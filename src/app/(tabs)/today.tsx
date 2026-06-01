@@ -225,7 +225,7 @@ export default function Today() {
         <View className="mb-6 items-center">
           <RingGauge progress={milestoneProgress} size={272} stroke={12}>
             <Label className="text-ash">Clean for</Label>
-            <Display className="mt-1 text-8xl leading-none text-chalk">{t.days}</Display>
+            <Display className="mt-1 text-8xl leading-tight text-chalk">{t.days}</Display>
             <Label className="-mt-1 text-volt">
               {t.days === 1 ? 'Day' : 'Days'}
             </Label>

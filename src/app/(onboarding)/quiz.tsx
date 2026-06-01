@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   View,
   Pressable,
@@ -9,7 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useMutation } from 'convex/react';
+import { useConvexAuth, useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import {
   ChevronLeft,
@@ -156,10 +156,40 @@ type Phase = 'questions' | 'building' | 'reveal' | 'commit' | 'push';
 
 /* ------------------------------------------------------------------------- */
 
+/**
+ * Poll a boolean ref until it's true or the timeout elapses.
+ *
+ * Bridges reactive Convex auth state into the imperative commit() flow:
+ * `signIn('anonymous')` resolves once tokens are acquired, but the
+ * ConvexReactClient establishes its authenticated session a beat later. Firing
+ * an authenticated mutation before that lands makes `getAuthUserId` return null
+ * server-side ("Sign in anonymously before completing onboarding"). We gate on
+ * `isAuthenticated` so the mutation never races ahead of auth propagation.
+ */
+async function waitForAuth(
+  ref: { current: boolean },
+  { timeoutMs = 12000, intervalMs = 50 }: { timeoutMs?: number; intervalMs?: number } = {},
+): Promise<boolean> {
+  const start = Date.now();
+  while (!ref.current) {
+    if (Date.now() - start >= timeoutMs) return false;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  return true;
+}
+
 export default function Quiz() {
   const router = useRouter();
   const { signIn } = useAuthActions();
+  const { isAuthenticated } = useConvexAuth();
   const completeOnboarding = useMutation(api.users.completeOnboarding);
+
+  // Mirror reactive auth state into a ref so the imperative commit() handler can
+  // await it without re-render churn (see waitForAuth above).
+  const isAuthedRef = useRef(isAuthenticated);
+  useEffect(() => {
+    isAuthedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
 
   const [phase, setPhase] = useState<Phase>('questions');
   const [stepIndex, setStepIndex] = useState(0);
@@ -243,7 +273,18 @@ export default function Quiz() {
     setError(null);
     setSubmitting(true);
     try {
-      await signIn('anonymous');
+      // Skip re-signing-in on a retry: a prior attempt may have already created an
+      // anonymous session. Calling signIn('anonymous') again would orphan it behind
+      // a brand-new anonymous user and strand the first one.
+      if (!isAuthedRef.current) {
+        await signIn('anonymous');
+      }
+      // signIn() resolving ≠ authenticated session established. useConvexAuth()'s
+      // isAuthenticated only flips true once the BACKEND confirms the token
+      // (ConvexAuthState sets it from setAuth's onChange), so gating on it
+      // guarantees completeOnboarding's getAuthUserId() will resolve server-side.
+      const ready = await waitForAuth(isAuthedRef);
+      if (!ready) throw new Error('Convex auth session not ready after sign-in');
       await completeOnboarding({
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         productType: profile.productType,
@@ -601,7 +642,7 @@ function PlanReveal({
         {/* hero savings card — the giant lime number */}
         <View className="mt-7 overflow-hidden rounded-3xl border border-volt/30 bg-volt/10 p-6">
           <Label className="text-volt/80">Projected savings this year</Label>
-          <Display className="mt-1 text-7xl leading-none text-volt">
+          <Display className="mt-1 text-7xl leading-tight text-volt">
             ${annual.toLocaleString()}
           </Display>
           <View className="mt-5 flex-row gap-3">
@@ -686,7 +727,7 @@ function CommitScreen({
 
         <View className="mt-8 rounded-3xl border border-line bg-coal p-5">
           <Label>On track to save</Label>
-          <Display className="mt-1 text-6xl leading-none text-volt">
+          <Display className="mt-1 text-6xl leading-tight text-volt">
             ${annual.toLocaleString()}
           </Display>
           <Label className="mt-1 text-ash">this year</Label>

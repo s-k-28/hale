@@ -18,6 +18,11 @@ export const completeOnboarding = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Sign in anonymously before completing onboarding');
+    // Idempotent: if onboarding already completed for this user (e.g. a client
+    // retry after a network blip that actually succeeded server-side), return the
+    // existing attempt instead of inserting a duplicate quitAttempt.
+    const existing = await ctx.db.get(userId);
+    if (existing?.currentAttemptId) return { attemptId: existing.currentAttemptId };
     const now = Date.now();
     const attemptId = await ctx.db.insert('quitAttempts', { userId, startDate: now, active: true });
     await ctx.db.patch(userId, {
