@@ -16,7 +16,6 @@ import { moneySaved } from './model/plan';
 export const logRelapse = mutation({
   args: {
     kind: v.union(v.literal('lapse'), v.literal('relapse')),
-    trigger: v.optional(v.string()),
   },
   handler: async (ctx, { kind }) => {
     const userId = await getAuthUserId(ctx);
@@ -115,5 +114,29 @@ export const logRelapse = mutation({
       lifetimeMoneySaved: (user.lifetimeMoneySaved ?? 0) + bankedMoney,
       bestStreak: user.longestStreak ?? 0, // shown instead of a zero-void
     };
+  },
+});
+
+/**
+ * Attach the named trigger to the just-closed relapse attempt (I4). Called from
+ * the recovery screen AFTER the comforting reflection ("what pulled you back?"),
+ * once the attempt is already closed — separate from logRelapse because the
+ * trigger is named post-recovery (anti-shame: comfort first, reflect second).
+ */
+export const noteRelapseTrigger = mutation({
+  args: { trigger: v.string() },
+  handler: async (ctx, { trigger }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+    const closed = await ctx.db
+      .query('quitAttempts')
+      .withIndex('by_user_active', (q) => q.eq('userId', userId).eq('active', false))
+      .order('desc')
+      .first();
+    if (closed && closed.endReason === 'relapse') {
+      await ctx.db.patch(closed._id, { endTrigger: trigger });
+      return { ok: true };
+    }
+    return { ok: false };
   },
 });

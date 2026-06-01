@@ -50,6 +50,7 @@ export default defineSchema({
     startDate: v.number(), // epoch ms — the quit moment
     endDate: v.optional(v.number()), // set on relapse
     endReason: v.optional(v.union(v.literal('relapse'), v.literal('restart'))),
+    endTrigger: v.optional(v.string()), // I4 — what pulled them back (trigger intelligence)
     active: v.boolean(),
   }).index('by_user_active', ['userId', 'active']),
 

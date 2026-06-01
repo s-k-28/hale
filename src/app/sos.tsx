@@ -82,6 +82,7 @@ function fmtUsd(n: number) {
 export default function CravingSos() {
   const logCraving = useMutation(api.cravings.logCraving);
   const logRelapse = useMutation(api.relapse.logRelapse);
+  const noteRelapseTrigger = useMutation(api.relapse.noteRelapseTrigger);
 
   const [view, setView] = useState<View_>({ kind: 'home' });
 
@@ -94,6 +95,18 @@ export default function CravingSos() {
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/today');
   }, []);
+
+  /** Finish the I4 recovery flow: attach the named trigger to the just-closed
+   *  relapse attempt (real data for I3 trigger intelligence) + fire the guardrail
+   *  event. Trigger is optional — never block the user from moving on. */
+  const completeRecovery = useCallback(
+    (trigger: string | null) => {
+      if (trigger) noteRelapseTrigger({ trigger }).catch(() => {});
+      track(Ev.RELAPSE_RECOVERED, trigger ? { trigger } : {});
+      close();
+    },
+    [noteRelapseTrigger, close],
+  );
 
   /**
    * Finish a survived craving from the post-resolution capture. `vals` carries the
@@ -199,7 +212,7 @@ export default function CravingSos() {
           close();
           router.push('/(tabs)/coach');
         }}
-        onDone={close}
+        onDone={completeRecovery}
       />
     );
   }
@@ -728,8 +741,9 @@ function RecoverKindly({
   lifetimeMoneySaved: number;
   bestStreak: number;
   onTalkToSage: () => void;
-  onDone: () => void;
+  onDone: (trigger: string | null) => void;
 }) {
+  const [trigger, setTrigger] = useState<string | null>(null);
   return (
     <Screen edges={['top', 'bottom']}>
       <ScrollView
@@ -777,18 +791,31 @@ function RecoverKindly({
           </View>
         </View>
 
+        {/* I4 — name the trigger: therapeutic ("naming it") + real data for I3. */}
         <View className="mt-9">
-          <Button label="Reflect with Sage" variant="primary" onPress={onTalkToSage} />
-          <View className="mt-2.5 flex-row items-center justify-center gap-1.5">
+          <View className="flex-row items-center gap-1.5">
             <Sparkles color={colors.ash} size={13} strokeWidth={2.5} />
-            <Body className="text-center text-xs text-ash">
-              What pulled you back? Naming it is how the next run gets easier.
-            </Body>
+            <Label className="text-ash">What pulled you back?</Label>
+          </View>
+          <Body className="mt-1.5 text-xs text-ash">Naming it is how the next run gets easier.</Body>
+          <View className="mt-3 flex-row flex-wrap gap-2">
+            {TRIGGER_CHIPS.map((t) => (
+              <Chip
+                key={t}
+                label={t}
+                selected={trigger === t}
+                onPress={() => setTrigger((cur) => (cur === t ? null : t))}
+              />
+            ))}
           </View>
         </View>
 
+        <View className="mt-8">
+          <Button label="Reflect with Sage" variant="primary" onPress={onTalkToSage} />
+        </View>
+
         <Pressable
-          onPress={onDone}
+          onPress={() => onDone(trigger)}
           accessibilityRole="button"
           className="mt-4 h-14 items-center justify-center rounded-2xl border border-line active:bg-coal"
         >
