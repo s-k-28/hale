@@ -8,12 +8,31 @@ module.exports = {
         // ── Bold Momentum ── dark + electric lime
         void: '#0A0C0B', // app background (near-black)
         coal: '#12161A', // elevated surface
-        card: '#161B18', // cards
+        card: '#12161A', // cards / surfaces (also serves shadcn `card`)
         volt: { DEFAULT: '#C6FF3D', dim: '#9FD22E', ink: '#0A0C0B' }, // electric lime accent
         chalk: '#F4F7F2', // primary text on dark
         ash: '#8A938C', // muted text
         line: '#1F2723', // hairline borders
         sos: '#FF5A4D', // craving red (brightened for dark)
+        // ── shadcn / React Native Reusables semantic tokens → Bold Momentum ──
+        background: '#0A0C0B',
+        foreground: '#F4F7F2',
+        'card-foreground': '#F4F7F2',
+        popover: '#12161A',
+        'popover-foreground': '#F4F7F2',
+        primary: '#C6FF3D',
+        'primary-foreground': '#0A0C0B',
+        secondary: '#161B18',
+        'secondary-foreground': '#F4F7F2',
+        muted: '#161B18',
+        'muted-foreground': '#8A938C',
+        accent: '#1F2723',
+        'accent-foreground': '#F4F7F2',
+        destructive: '#FF5A4D',
+        'destructive-foreground': '#FFFFFF',
+        border: '#1F2723',
+        input: '#1F2723',
+        ring: '#C6FF3D',
         // legacy teal kept so un-reskinned screens stay readable during transition
         hale: {
           50: '#e7f3ee',
