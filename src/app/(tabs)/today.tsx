@@ -171,6 +171,8 @@ export default function Today() {
       const res = await checkIn({});
       if (!res.alreadyCheckedIn) {
         track(Ev.CHECKIN_COMPLETED, { streak: res.streak, usedFreeze: res.usedFreeze });
+        // P2 exit-criteria event: only when a bounded freeze actually forgave a missed day.
+        if (res.usedFreeze) track(Ev.STREAK_FREEZE_USED, { streak: res.streak });
       }
     } catch {
       // Reactive query will reflect truth; swallow transient mutation errors.
