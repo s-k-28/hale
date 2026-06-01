@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sage — a calm lime breath/leaf companion (swappable for a Rive .riv later) -->
+  <path d="M256 118 q44 -64 96 -40 q-8 64 -96 64 z" fill="#9FD22E"/>
+  <rect x="250" y="150" width="12" height="40" rx="6" fill="#9FD22E"/>
+  <ellipse cx="256" cy="296" rx="150" ry="158" fill="#C6FF3D"/>
+  <ellipse cx="186" cy="332" rx="16" ry="12" fill="#9FD22E"/>
+  <ellipse cx="326" cy="332" rx="16" ry="12" fill="#9FD22E"/>
+  <circle cx="212" cy="282" r="21" fill="#0A0C0B"/>
+  <circle cx="300" cy="282" r="21" fill="#0A0C0B"/>
+  <circle cx="219" cy="274" r="7" fill="#F4F7F2"/>
+  <circle cx="307" cy="274" r="7" fill="#F4F7F2"/>
+  <path d="M214 342 q42 42 84 0" stroke="#0A0C0B" stroke-width="14" fill="none" stroke-linecap="round"/>
+</svg>

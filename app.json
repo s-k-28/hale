@@ -1,20 +1,24 @@
 {
   "expo": {
-    "name": "hale",
+    "name": "HALE",
     "slug": "hale",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "hale",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0C0B",
+    "newArchEnabled": true,
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.haleapp.hale",
+      "icon": "./assets/images/icon.png",
+      "supportsTablet": false
     },
     "android": {
+      "package": "com.haleapp.hale",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
+        "backgroundColor": "#0A0C0B",
+        "foregroundImage": "./assets/images/adaptive-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
@@ -24,14 +28,23 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "development"
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "android": {
+          "backgroundColor": "#0A0C0B",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 120,
+          "dark": {
+            "backgroundColor": "#0A0C0B",
             "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
+            "imageWidth": 120
           }
         }
       ],

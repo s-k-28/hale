@@ -1,0 +1,8 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- transparent "H" glyph (adaptive foreground + splash) -->
+  <g fill="#C6FF3D">
+    <rect x="308" y="312" width="116" height="400" rx="16"/>
+    <rect x="600" y="312" width="116" height="400" rx="16"/>
+    <polygon points="308,486 716,450 716,556 308,592"/>
+  </g>
+</svg>
