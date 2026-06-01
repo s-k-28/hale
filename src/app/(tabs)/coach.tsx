@@ -5,14 +5,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  Text,
   TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import { ArrowUp, Wind } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { Body, Display, Heading, Label } from '@/components/ui/Text';
+import { colors } from '@/theme/colors';
 
 type SageMessage = NonNullable<ReturnType<typeof useQuery<typeof api.sage.messages>>>[number];
 
@@ -70,11 +72,16 @@ export default function Coach() {
   const loading = authLoading || (isAuthenticated && messages === undefined);
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
-      {/* Header — Sage's identity, calm and present */}
-      <View className="border-b border-hale-50 px-6 pb-3 pt-1">
-        <Text className="text-2xl font-bold text-hale-900">Sage</Text>
-        <Text className="mt-0.5 text-sm text-hale-900/50">Your quit coach · always here</Text>
+    <SafeAreaView className="flex-1 bg-void" edges={['top', 'left', 'right']}>
+      {/* Header — Sage's identity. Loud caps wordmark, lime presence dot. */}
+      <View className="flex-row items-center justify-between border-b border-line px-6 pb-4 pt-1">
+        <View>
+          <Heading className="text-3xl text-chalk">SAGE</Heading>
+          <Label className="mt-1 text-ash">Your quit coach · always on</Label>
+        </View>
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-volt">
+          <Wind color={colors.voltInk} size={20} strokeWidth={2.75} />
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -84,7 +91,7 @@ export default function Coach() {
       >
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color="#0f7a5a" />
+            <ActivityIndicator color={colors.volt} />
           </View>
         ) : messageCount === 0 ? (
           <EmptyState />
@@ -94,7 +101,7 @@ export default function Coach() {
             data={messages}
             keyExtractor={(m) => m._id}
             renderItem={({ item }) => <Bubble message={item} />}
-            contentContainerClassName="px-4 py-4"
+            contentContainerClassName="px-4 py-6"
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -102,15 +109,15 @@ export default function Coach() {
           />
         )}
 
-        {/* Composer — pinned input bar with circular send */}
-        <View className="flex-row items-end gap-2 border-t border-hale-50 px-4 pb-2 pt-2">
-          <View className="flex-1 justify-center rounded-3xl bg-hale-50 px-4 py-2.5">
+        {/* Composer — pinned bar. Coal input, lime circular send. */}
+        <View className="flex-row items-end gap-2.5 border-t border-line bg-void px-4 pb-2 pt-3">
+          <View className="flex-1 justify-center rounded-3xl border border-line bg-coal px-4 py-3">
             <TextInput
               value={draft}
               onChangeText={setDraft}
               placeholder="Talk to Sage…"
-              placeholderTextColor="#0a2f2466"
-              className="max-h-32 text-base leading-5 text-hale-900"
+              placeholderTextColor={colors.ash}
+              className="max-h-32 font-body text-base leading-5 text-chalk"
               multiline
               returnKeyType="default"
               editable={!sending}
@@ -121,14 +128,18 @@ export default function Coach() {
             disabled={!canSend}
             accessibilityRole="button"
             accessibilityLabel="Send message to Sage"
-            className={`h-11 w-11 items-center justify-center rounded-full ${
-              canSend ? 'bg-hale-500' : 'bg-hale-100'
+            className={`h-12 w-12 items-center justify-center rounded-full ${
+              canSend ? 'bg-volt active:bg-volt-dim' : 'bg-coal border border-line'
             }`}
           >
             {sending ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <ActivityIndicator size="small" color={colors.voltInk} />
             ) : (
-              <Text className="text-lg font-bold leading-none text-white">↑</Text>
+              <ArrowUp
+                color={canSend ? colors.voltInk : colors.ash}
+                size={22}
+                strokeWidth={3}
+              />
             )}
           </Pressable>
         </View>
@@ -137,41 +148,42 @@ export default function Coach() {
   );
 }
 
-/** A single chat turn. User bubbles are brand teal & right-aligned; Sage's are
- *  a soft neutral on the left — the familiar AI-chat rhythm. */
+/** A single chat turn. User bubbles are electric lime & right-aligned with
+ *  near-black ink; Sage's are coal on the left — high-contrast, sticker energy. */
 function Bubble({ message }: { message: SageMessage }) {
   const isUser = message.role === 'user';
   return (
-    <View className={`mb-2.5 max-w-[82%] ${isUser ? 'self-end' : 'self-start'}`}>
+    <View className={`mb-3 max-w-[82%] ${isUser ? 'self-end' : 'self-start'}`}>
       <View
         className={
           isUser
-            ? 'rounded-3xl rounded-br-md bg-hale-500 px-4 py-2.5'
-            : 'rounded-3xl rounded-bl-md bg-hale-50 px-4 py-2.5'
+            ? 'rounded-3xl rounded-br-md bg-volt px-4 py-3'
+            : 'rounded-3xl rounded-bl-md border border-line bg-coal px-4 py-3'
         }
       >
-        <Text className={`text-base leading-5 ${isUser ? 'text-white' : 'text-hale-900'}`}>
+        <Body
+          className={`text-[15px] leading-[21px] ${isUser ? 'font-body-medium text-volt-ink' : 'text-chalk'}`}
+        >
           {message.content}
-        </Text>
+        </Body>
       </View>
     </View>
   );
 }
 
-/** Friendly, low-pressure first contact — no empty-screen anxiety. */
+/** Warm, low-pressure first contact — no empty-screen anxiety, no judgment. */
 function EmptyState() {
   return (
-    <View className="flex-1 items-center justify-center px-10">
-      <View className="h-16 w-16 items-center justify-center rounded-full bg-hale-50">
-        <Text className="text-3xl">🌿</Text>
+    <View className="flex-1 items-center justify-center px-9">
+      <View className="h-20 w-20 items-center justify-center rounded-3xl bg-volt">
+        <Wind color={colors.voltInk} size={36} strokeWidth={2.5} />
       </View>
-      <Text className="mt-5 text-center text-xl font-semibold text-hale-900">
-        Hey, I&apos;m Sage
-      </Text>
-      <Text className="mt-2 text-center text-base leading-6 text-hale-900/60">
-        Here whenever a craving hits. Tell me what&apos;s going on — no judgment, just
-        support to ride it out.
-      </Text>
+      <Display className="mt-7 text-center text-5xl text-chalk">HEY,{'\n'}I&apos;M SAGE</Display>
+      <Body className="mt-4 max-w-[300px] text-center text-base leading-6 text-ash">
+        Here the second a craving hits. Tell me what&apos;s going on — no judgment,
+        just backup to ride it out. It peaks, then it passes.
+      </Body>
+      <Label className="mt-8 text-ash">Cravings pass · you don&apos;t quit on yourself</Label>
     </View>
   );
 }

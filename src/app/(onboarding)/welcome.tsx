@@ -1,24 +1,42 @@
 import { Link } from 'expo-router';
-import { View, Text, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View } from 'react-native';
+import { Screen } from '@/components/ui/Screen';
+import { Display, Heading, Label } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
+import { Pill } from '@/components/ui/Pill';
 
 /** Welcome → quiz. (The quiz screen is built grounded in Mobbin references.) */
 export default function Welcome() {
   return (
-    <SafeAreaView className="flex-1 bg-hale-900">
-      <View className="flex-1 items-center justify-center px-8">
-        <Text className="text-hale-100 text-4xl font-bold">HALE</Text>
-        <Text className="mt-3 text-center text-hale-100/80 text-lg">
-          Quit nicotine — and don&apos;t do it alone.
-        </Text>
+    <Screen edges={['top', 'bottom']}>
+      <View className="flex-1 px-6">
+        {/* Hero — huge loud wordmark, generous dark negative space */}
+        <View className="flex-1 justify-center">
+          <View className="mb-6">
+            <Pill tone="volt">NO MORE NICOTINE</Pill>
+          </View>
+
+          <Display className="text-chalk text-8xl leading-none tracking-tight">HALE</Display>
+
+          <Heading className="text-volt text-3xl leading-tight mt-5">
+            Quit Nicotine.{'\n'}Together.
+          </Heading>
+
+          <Label className="text-ash mt-5 text-sm leading-relaxed normal-case tracking-normal max-w-[300px]">
+            Build a quit plan that actually sticks — and beat the cravings with people who get it.
+          </Label>
+        </View>
       </View>
+
+      {/* Primary CTA — the ONE loud lime moment */}
       <View className="px-6 pb-10">
         <Link href="/(onboarding)/quiz" asChild>
-          <Pressable className="rounded-full bg-hale-500 py-4">
-            <Text className="text-center text-white font-semibold text-base">Build my quit plan</Text>
-          </Pressable>
+          <Button label="BUILD MY QUIT PLAN" variant="primary" />
         </Link>
+        <Label className="text-ash/70 text-center mt-4 normal-case tracking-normal">
+          Free to start · 60-second setup
+        </Label>
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }

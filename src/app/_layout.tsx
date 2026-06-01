@@ -1,7 +1,18 @@
 import '../global.css';
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import * as SecureStore from 'expo-secure-store';
+import { useFonts } from 'expo-font';
+import { Anton_400Regular } from '@expo-google-fonts/anton';
+import { Archivo_700Bold, Archivo_800ExtraBold } from '@expo-google-fonts/archivo';
+import {
+  HankenGrotesk_400Regular,
+  HankenGrotesk_500Medium,
+  HankenGrotesk_600SemiBold,
+  HankenGrotesk_700Bold,
+} from '@expo-google-fonts/hanken-grotesk';
 import { ConvexReactClient } from 'convex/react';
 import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { PostHogProvider } from 'posthog-react-native';
@@ -11,6 +22,7 @@ import { initOneSignal } from '@/lib/onesignal';
 import { initSentry } from '@/lib/sentry';
 
 initSentry();
+SplashScreen.preventAutoHideAsync();
 
 const convex = new ConvexReactClient(env.convexUrl || 'https://placeholder.convex.cloud', {
   unsavedChangesWarning: false,
@@ -24,18 +36,36 @@ const secureStorage = {
 };
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Anton_400Regular,
+    Archivo_700Bold,
+    Archivo_800ExtraBold,
+    HankenGrotesk_400Regular,
+    HankenGrotesk_500Medium,
+    HankenGrotesk_600SemiBold,
+    HankenGrotesk_700Bold,
+  });
+
   useEffect(() => {
     initRevenueCat();
     initOneSignal();
   }, []);
 
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
   const tree = (
     <ConvexAuthProvider client={convex} storage={secureStorage}>
+      <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="sos" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
       </Stack>
     </ConvexAuthProvider>
   );

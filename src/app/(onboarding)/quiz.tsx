@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   View,
-  Text,
   Pressable,
   ScrollView,
   TextInput,
@@ -9,11 +8,31 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
+import {
+  ChevronLeft,
+  Check,
+  Wind,
+  Cigarette,
+  Shuffle,
+  Heart,
+  PiggyBank,
+  Users,
+  Bird,
+  Wind as Lungs,
+  Compass,
+  Bell,
+  Flame,
+  TrendingUp,
+} from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
+import { Screen } from '@/components/ui/Screen';
+import { Display, Heading, Body, Label } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
+import { Pill } from '@/components/ui/Pill';
+import { colors } from '@/theme/colors';
 import { track, Ev } from '@/lib/analytics';
 import { requestPushPermission } from '@/lib/onesignal';
 import {
@@ -24,7 +43,7 @@ import {
 } from '@convex/model/plan';
 
 /* ------------------------------------------------------------------------- *
- * O1 — Onboarding quiz → plan reveal → commitment.
+ * O1 — Onboarding quiz → plan reveal → commitment. (Bold Momentum re-skin.)
  *
  * Grounded in the canonical "quiz → personalized plan" pattern used by Cal AI,
  * Headspace, Fabulous and the leading quit-nicotine apps (Smoke Free / QuitNow):
@@ -60,13 +79,16 @@ const INITIAL: Answers = {
   name: '',
 };
 
+/* lucide glyph type for option rows */
+type Glyph = (props: { color?: string; size?: number; strokeWidth?: number }) => ReactNode;
+
 /* ---- option sets (copy is per-product so the unit language stays honest) ---- */
 
-const PRODUCTS: { value: ProductType; label: string; emoji: string; unit: string }[] = [
-  { value: 'vape', label: 'Vape / e-cig', emoji: '💨', unit: 'pods' },
-  { value: 'pouch', label: 'Nicotine pouches', emoji: '🟢', unit: 'pouches' },
-  { value: 'cig', label: 'Cigarettes', emoji: '🚬', unit: 'cigarettes' },
-  { value: 'mixed', label: 'A mix of things', emoji: '🔀', unit: 'units' },
+const PRODUCTS: { value: ProductType; label: string; Icon: Glyph; unit: string }[] = [
+  { value: 'vape', label: 'Vape / e-cig', Icon: Wind, unit: 'pods' },
+  { value: 'pouch', label: 'Nicotine pouches', Icon: Shuffle, unit: 'pouches' },
+  { value: 'cig', label: 'Cigarettes', Icon: Cigarette, unit: 'cigarettes' },
+  { value: 'mixed', label: 'A mix of things', Icon: Shuffle, unit: 'units' },
 ];
 
 const PER_DAY_CHOICES = [3, 6, 10, 15, 20, 30];
@@ -101,13 +123,13 @@ const HOUR_BANDS: { hour: number; label: string }[] = [
   { hour: 22, label: 'Late night' },
 ];
 
-const MOTIVATIONS = [
-  { value: 'health', label: 'My health', emoji: '❤️' },
-  { value: 'money', label: 'Save money', emoji: '💰' },
-  { value: 'family', label: 'My family / kids', emoji: '👨‍👩‍👧' },
-  { value: 'freedom', label: 'Feel free of it', emoji: '🕊️' },
-  { value: 'fitness', label: 'Fitness / breathing', emoji: '🫁' },
-  { value: 'control', label: 'Take back control', emoji: '🧭' },
+const MOTIVATIONS: { value: string; label: string; Icon: Glyph }[] = [
+  { value: 'health', label: 'My health', Icon: Heart },
+  { value: 'money', label: 'Save money', Icon: PiggyBank },
+  { value: 'family', label: 'My family / kids', Icon: Users },
+  { value: 'freedom', label: 'Feel free of it', Icon: Bird },
+  { value: 'fitness', label: 'Fitness / breathing', Icon: Lungs },
+  { value: 'control', label: 'Take back control', Icon: Compass },
 ];
 
 /* The ordered question steps that own a progress dot. */
@@ -285,19 +307,19 @@ export default function Quiz() {
   /* ----------------------------- question phase --------------------------- */
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
+    <Screen edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         {/* header: back + progress dots */}
-        <View className="flex-row items-center px-5 pt-2">
+        <View className="flex-row items-center px-5 pt-1">
           <Pressable
             onPress={goBack}
             hitSlop={12}
-            className="h-9 w-9 items-center justify-center rounded-full"
+            className="h-10 w-10 items-center justify-center rounded-full border border-line bg-coal active:bg-card"
           >
-            <Text className="text-2xl text-hale-900">‹</Text>
+            <ChevronLeft color={colors.chalk} size={22} strokeWidth={2.5} />
           </Pressable>
           <View className="flex-1 flex-row items-center justify-center gap-1.5">
             {QUESTION_STEPS.map((_, i) => (
@@ -305,32 +327,33 @@ export default function Quiz() {
                 key={i}
                 className={
                   i === stepIndex
-                    ? 'h-2 w-6 rounded-full bg-hale-500'
+                    ? 'h-1.5 w-7 rounded-full bg-volt'
                     : i < stepIndex
-                      ? 'h-2 w-2 rounded-full bg-hale-400'
-                      : 'h-2 w-2 rounded-full bg-hale-100'
+                      ? 'h-1.5 w-3 rounded-full bg-volt/40'
+                      : 'h-1.5 w-3 rounded-full bg-line'
                 }
               />
             ))}
           </View>
-          <View className="h-9 w-9" />
+          <View className="h-10 w-10" />
         </View>
 
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-6 pt-6 pb-4"
+          contentContainerClassName="px-6 pt-8 pb-4"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {step === 'productType' && (
             <Question
+              index={stepIndex}
               title="What are you quitting?"
               subtitle="We tailor your plan to what you use."
             >
               {PRODUCTS.map((p) => (
                 <ChoiceCard
                   key={p.value}
-                  emoji={p.emoji}
+                  Icon={p.Icon}
                   label={p.label}
                   selected={answers.productType === p.value}
                   onPress={() => set('productType', p.value)}
@@ -341,6 +364,7 @@ export default function Quiz() {
 
           {step === 'baselinePerDay' && (
             <Question
+              index={stepIndex}
               title={`How many ${unitWord} a day?`}
               subtitle="A rough average is perfect — we use it to size your savings."
             >
@@ -359,6 +383,7 @@ export default function Quiz() {
 
           {step === 'unitCost' && (
             <Question
+              index={stepIndex}
               title={`What does one ${unitWord.replace(/s$/, '')} cost?`}
               subtitle="Roughly. This is what we'll turn into money back in your pocket."
             >
@@ -377,6 +402,7 @@ export default function Quiz() {
 
           {step === 'triggers' && (
             <Question
+              index={stepIndex}
               title="When do cravings hit hardest?"
               subtitle="Pick all that apply — your plan will plan around these."
             >
@@ -405,6 +431,7 @@ export default function Quiz() {
 
           {step === 'hardestHour' && (
             <Question
+              index={stepIndex}
               title="What's your toughest time of day?"
               subtitle="We'll check in with you right before it."
             >
@@ -421,13 +448,14 @@ export default function Quiz() {
 
           {step === 'motivation' && (
             <Question
+              index={stepIndex}
               title="What's pulling you forward?"
               subtitle="Your reason shows up when cravings do."
             >
               {MOTIVATIONS.map((m) => (
                 <ChoiceCard
                   key={m.value}
-                  emoji={m.emoji}
+                  Icon={m.Icon}
                   label={m.label}
                   selected={answers.motivation === m.value}
                   onPress={() => set('motivation', m.value)}
@@ -438,6 +466,7 @@ export default function Quiz() {
 
           {step === 'name' && (
             <Question
+              index={stepIndex}
               title="What should we call you?"
               subtitle="Just a first name — so your plan feels like yours. Optional."
             >
@@ -445,41 +474,28 @@ export default function Quiz() {
                 value={answers.name}
                 onChangeText={(t) => set('name', t)}
                 placeholder="First name"
-                placeholderTextColor="#9aa6a1"
+                placeholderTextColor={colors.ash}
                 autoCapitalize="words"
                 autoCorrect={false}
                 returnKeyType="done"
                 onSubmitEditing={() => canAdvance && goNext()}
-                className="rounded-2xl border border-hale-100 bg-hale-50 px-5 py-4 text-lg text-hale-900"
+                className="rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
               />
             </Question>
           )}
         </ScrollView>
 
         {/* sticky CTA */}
-        <View className="px-6 pb-2 pt-2">
-          <Pressable
+        <View className="px-6 pb-3 pt-2">
+          <Button
+            label={stepIndex === QUESTION_STEPS.length - 1 ? 'BUILD MY PLAN' : 'CONTINUE'}
+            variant="primary"
             disabled={!canAdvance}
             onPress={goNext}
-            className={
-              canAdvance
-                ? 'rounded-full bg-hale-500 py-4 active:opacity-90'
-                : 'rounded-full bg-hale-100 py-4'
-            }
-          >
-            <Text
-              className={
-                canAdvance
-                  ? 'text-center text-base font-semibold text-white'
-                  : 'text-center text-base font-semibold text-hale-400'
-              }
-            >
-              {stepIndex === QUESTION_STEPS.length - 1 ? 'Build my plan' : 'Continue'}
-            </Text>
-          </Pressable>
+          />
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -502,37 +518,52 @@ function BuildingPlan({ name }: { name: string }) {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-hale-900">
+    <Screen edges={['top', 'bottom']}>
       <View className="flex-1 items-center justify-center px-8">
-        <ActivityIndicator color="#39a37c" size="large" />
-        <Text className="mt-8 text-center text-2xl font-bold text-white">
-          {name ? `Hang tight, ${name}…` : 'Hang tight…'}
-        </Text>
-        <Text className="mt-2 text-center text-base text-hale-100/80">
+        <View className="mb-8 h-16 w-16 items-center justify-center rounded-2xl border border-line bg-coal">
+          <Flame color={colors.volt} size={30} strokeWidth={2.5} />
+        </View>
+        <ActivityIndicator color={colors.volt} size="large" />
+        <Heading className="mt-8 text-center text-3xl leading-tight">
+          {name ? `HANG TIGHT,\n${name.toUpperCase()}` : 'HANG TIGHT'}
+        </Heading>
+        <Body className="mt-3 text-center font-body-medium text-base text-ash">
           Building your personalized quit plan
-        </Text>
-        <View className="mt-10 w-full gap-3">
+        </Body>
+
+        <View className="mt-12 w-full gap-3">
           {lines.map((l, i) => (
-            <View key={l} className="flex-row items-center gap-3">
+            <View
+              key={l}
+              className={
+                i < done
+                  ? 'flex-row items-center gap-3 rounded-2xl border border-volt/30 bg-volt/10 px-4 py-3.5'
+                  : 'flex-row items-center gap-3 rounded-2xl border border-line bg-coal px-4 py-3.5'
+              }
+            >
               <View
                 className={
                   i < done
-                    ? 'h-6 w-6 items-center justify-center rounded-full bg-hale-500'
-                    : 'h-6 w-6 items-center justify-center rounded-full border border-hale-400/40'
+                    ? 'h-7 w-7 items-center justify-center rounded-full bg-volt'
+                    : 'h-7 w-7 items-center justify-center rounded-full border border-line'
                 }
               >
-                {i < done ? <Text className="text-xs text-white">✓</Text> : null}
+                {i < done ? <Check color={colors.voltInk} size={16} strokeWidth={3} /> : null}
               </View>
-              <Text
-                className={i < done ? 'text-base text-white' : 'text-base text-hale-100/40'}
+              <Body
+                className={
+                  i < done
+                    ? 'flex-1 font-body-semibold text-base text-chalk'
+                    : 'flex-1 font-body-medium text-base text-ash'
+                }
               >
                 {l}
-              </Text>
+              </Body>
             </View>
           ))}
         </View>
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -553,70 +584,74 @@ function PlanReveal({
   onContinue: () => void;
 }) {
   return (
-    <SafeAreaView className="flex-1 bg-hale-900" edges={['top', 'bottom']}>
+    <Screen edges={['top', 'bottom']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-6 pt-6 pb-4"
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-base font-medium text-hale-100/80">
-          {name ? `${name}, your plan is ready` : 'Your plan is ready'}
-        </Text>
-        <Text className="mt-1 text-3xl font-bold text-white">Here&apos;s what quitting gives back</Text>
+        <View className="mb-5">
+          <Pill tone="volt">YOUR PLAN IS READY</Pill>
+        </View>
+        <Heading className="text-3xl leading-tight">
+          {name ? `${name.toUpperCase()}, HERE'S WHAT` : "HERE'S WHAT"}
+          {'\n'}QUITTING GIVES BACK
+        </Heading>
 
-        {/* hero savings card */}
-        <View className="mt-6 rounded-3xl bg-hale-500 p-6">
-          <Text className="text-sm font-medium uppercase tracking-wide text-white/80">
-            Projected savings this year
-          </Text>
-          <Text className="mt-1 text-5xl font-extrabold text-white">
+        {/* hero savings card — the giant lime number */}
+        <View className="mt-7 overflow-hidden rounded-3xl border border-volt/30 bg-volt/10 p-6">
+          <Label className="text-volt/80">Projected savings this year</Label>
+          <Display className="mt-1 text-7xl leading-none text-volt">
             ${annual.toLocaleString()}
-          </Text>
-          <View className="mt-4 flex-row gap-3">
-            <View className="flex-1 rounded-2xl bg-white/15 p-3">
-              <Text className="text-xs text-white/80">First month</Text>
-              <Text className="text-lg font-bold text-white">${firstMonth.toLocaleString()}</Text>
+          </Display>
+          <View className="mt-5 flex-row gap-3">
+            <View className="flex-1 rounded-2xl border border-line bg-coal p-4">
+              <Label>First month</Label>
+              <Display className="mt-1 text-3xl text-chalk">
+                ${firstMonth.toLocaleString()}
+              </Display>
             </View>
-            <View className="flex-1 rounded-2xl bg-white/15 p-3">
-              <Text className="text-xs text-white/80">Every month</Text>
-              <Text className="text-lg font-bold text-white">${monthly.toLocaleString()}</Text>
+            <View className="flex-1 rounded-2xl border border-line bg-coal p-4">
+              <Label>Every month</Label>
+              <Display className="mt-1 text-3xl text-chalk">
+                ${monthly.toLocaleString()}
+              </Display>
             </View>
           </View>
         </View>
 
-        {/* health recovery timeline */}
-        <Text className="mt-8 text-xl font-bold text-white">Your body starts healing fast</Text>
-        <View className="mt-4 gap-3">
+        {/* health recovery timeline — clean dark list */}
+        <View className="mt-9 flex-row items-center gap-2">
+          <TrendingUp color={colors.volt} size={20} strokeWidth={2.5} />
+          <Heading className="text-xl">Your body heals fast</Heading>
+        </View>
+        <View className="mt-4 gap-2.5">
           {milestones.map((m, i) => (
             <View
               key={m.label}
-              className="flex-row items-start gap-3 rounded-2xl bg-white/5 p-4"
+              className="flex-row items-center gap-4 rounded-2xl border border-line bg-coal p-4"
             >
-              <View className="mt-0.5 h-7 w-7 items-center justify-center rounded-full bg-hale-500/30">
-                <Text className="text-xs font-bold text-hale-100">{i + 1}</Text>
+              <View className="h-9 w-9 items-center justify-center rounded-full border border-line bg-card">
+                <Display className="text-lg leading-none text-volt">{i + 1}</Display>
               </View>
               <View className="flex-1">
-                <Text className="text-xs font-medium uppercase tracking-wide text-hale-100/70">
-                  {formatHours(m.hours)}
-                </Text>
-                <Text className="text-base text-white">{m.label}</Text>
+                <Label className="text-ash">{formatHours(m.hours)}</Label>
+                <Body className="mt-0.5 font-body-semibold text-base text-chalk">{m.label}</Body>
               </View>
             </View>
           ))}
         </View>
 
-        <Text className="mt-5 text-xs leading-5 text-hale-100/50">
+        <Body className="mt-6 font-body text-xs leading-5 text-ash">
           Recovery timelines reflect commonly reported milestones and are general guidance, not
           medical advice. Everyone&apos;s body is different — talk to a clinician about your health.
-        </Text>
+        </Body>
       </ScrollView>
 
-      <View className="px-6 pb-2 pt-2">
-        <Pressable onPress={onContinue} className="rounded-full bg-hale-500 py-4 active:opacity-90">
-          <Text className="text-center text-base font-semibold text-white">Continue</Text>
-        </Pressable>
+      <View className="px-6 pb-3 pt-2">
+        <Button label="CONTINUE" variant="primary" onPress={onContinue} />
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -635,84 +670,78 @@ function CommitScreen({
   onCommit: () => void;
 }) {
   return (
-    <SafeAreaView className="flex-1 bg-hale-900" edges={['top', 'bottom']}>
-      <View className="flex-1 items-center justify-center px-8">
-        <Text className="text-6xl">🌿</Text>
-        <Text className="mt-6 text-center text-3xl font-bold text-white">
-          {name ? `Ready, ${name}?` : 'Ready to start?'}
-        </Text>
-        <Text className="mt-3 text-center text-base leading-6 text-hale-100/80">
-          Your quit clock starts the moment you commit. From here you&apos;ll see your clean time,
-          your money saved, and you won&apos;t do it alone.
-        </Text>
+    <Screen edges={['top', 'bottom']}>
+      <View className="flex-1 justify-center px-7">
+        <View className="mb-7 h-20 w-20 items-center justify-center rounded-3xl border border-volt/30 bg-volt/10">
+          <Flame color={colors.volt} size={38} strokeWidth={2.5} />
+        </View>
 
-        <View className="mt-8 w-full rounded-2xl bg-white/5 p-4">
-          <Text className="text-center text-sm text-hale-100/70">On track to save</Text>
-          <Text className="text-center text-2xl font-bold text-white">
-            ${annual.toLocaleString()} this year
-          </Text>
+        <Heading className="text-5xl leading-none">
+          {name ? `READY,\n${name.toUpperCase()}?` : 'READY TO\nSTART?'}
+        </Heading>
+        <Body className="mt-5 font-body-medium text-base leading-6 text-ash">
+          Your quit clock starts the moment you commit. From here you&apos;ll see your clean time,
+          your money saved — and you won&apos;t do it alone.
+        </Body>
+
+        <View className="mt-8 rounded-3xl border border-line bg-coal p-5">
+          <Label>On track to save</Label>
+          <Display className="mt-1 text-6xl leading-none text-volt">
+            ${annual.toLocaleString()}
+          </Display>
+          <Label className="mt-1 text-ash">this year</Label>
         </View>
 
         {error ? (
-          <Text className="mt-4 text-center text-sm text-sos">{error}</Text>
+          <Body className="mt-5 font-body-semibold text-center text-sm text-sos">{error}</Body>
         ) : null}
       </View>
 
-      <View className="px-6 pb-2 pt-2">
-        <Pressable
+      <View className="px-6 pb-3 pt-2">
+        <Button
+          label="I'M COMMITTING — START MY QUIT"
+          variant="primary"
+          loading={submitting}
           disabled={submitting}
           onPress={onCommit}
-          className={
-            submitting
-              ? 'rounded-full bg-hale-600 py-4'
-              : 'rounded-full bg-hale-500 py-4 active:opacity-90'
-          }
-        >
-          {submitting ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text className="text-center text-base font-semibold text-white">
-              I&apos;m committing — start my quit
-            </Text>
-          )}
-        </Pressable>
-        <Text className="mt-3 text-center text-xs text-hale-100/50">
-          No account needed. We&apos;ll keep your progress safe on this device.
-        </Text>
+        />
+        <Label className="mt-4 text-center text-ash/70 normal-case tracking-normal">
+          No account needed · we keep your progress safe on this device
+        </Label>
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 /** Help-framed push opt-in — explainer FIRST, then the OS prompt (Decision 2). */
 function PushOptIn({ onDecide }: { onDecide: (granted: boolean) => void }) {
   return (
-    <SafeAreaView className="flex-1 bg-hale-900" edges={['top', 'bottom']}>
-      <View className="flex-1 items-center justify-center px-8">
-        <Text className="text-6xl">🔔</Text>
-        <Text className="mt-6 text-center text-2xl font-bold text-white">
-          Want a nudge when it&apos;s hardest?
-        </Text>
-        <Text className="mt-3 text-center text-base leading-6 text-hale-100/80">
+    <Screen edges={['top', 'bottom']}>
+      <View className="flex-1 justify-center px-7">
+        <View className="mb-7 h-20 w-20 items-center justify-center rounded-3xl border border-volt/30 bg-volt/10">
+          <Bell color={colors.volt} size={38} strokeWidth={2.5} />
+        </View>
+
+        <Heading className="text-4xl leading-tight">
+          WANT A NUDGE WHEN{'\n'}IT&apos;S HARDEST?
+        </Heading>
+        <Body className="mt-5 font-body-medium text-base leading-6 text-ash">
           The people who quit for good get a little support right before their toughest hour — a
           check-in, a craving tip, or a word from your buddy. No spam, ever.
-        </Text>
+        </Body>
       </View>
 
-      <View className="px-6 pb-2 pt-2">
-        <Pressable
+      <View className="gap-3 px-6 pb-3 pt-2">
+        <Button
+          label="YES, SUPPORT ME THROUGH IT"
+          variant="primary"
           onPress={() => onDecide(true)}
-          className="rounded-full bg-hale-500 py-4 active:opacity-90"
-        >
-          <Text className="text-center text-base font-semibold text-white">
-            Yes, support me through it
-          </Text>
-        </Pressable>
-        <Pressable onPress={() => onDecide(false)} className="py-4">
-          <Text className="text-center text-sm text-hale-100/60">Maybe later</Text>
+        />
+        <Pressable onPress={() => onDecide(false)} className="py-3">
+          <Label className="text-center text-ash normal-case tracking-normal">Maybe later</Label>
         </Pressable>
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -721,30 +750,37 @@ function PushOptIn({ onDecide }: { onDecide: (granted: boolean) => void }) {
  * ========================================================================= */
 
 function Question({
+  index,
   title,
   subtitle,
   children,
 }: {
+  index: number;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
     <View>
-      <Text className="text-2xl font-bold text-hale-900">{title}</Text>
-      {subtitle ? <Text className="mt-2 text-base text-hale-900/50">{subtitle}</Text> : null}
-      <View className="mt-6 gap-3">{children}</View>
+      <Label className="text-volt">
+        Question {index + 1} / {QUESTION_STEPS.length}
+      </Label>
+      <Heading className="mt-3 text-4xl leading-[1.05]">{title}</Heading>
+      {subtitle ? (
+        <Body className="mt-3 font-body-medium text-base leading-6 text-ash">{subtitle}</Body>
+      ) : null}
+      <View className="mt-7 gap-3">{children}</View>
     </View>
   );
 }
 
 function ChoiceCard({
-  emoji,
+  Icon,
   label,
   selected,
   onPress,
 }: {
-  emoji?: string;
+  Icon?: Glyph;
   label: string;
   selected: boolean;
   onPress: () => void;
@@ -754,28 +790,38 @@ function ChoiceCard({
       onPress={onPress}
       className={
         selected
-          ? 'flex-row items-center gap-3 rounded-2xl border-2 border-hale-500 bg-hale-50 px-5 py-4'
-          : 'flex-row items-center gap-3 rounded-2xl border-2 border-hale-100 bg-white px-5 py-4 active:bg-hale-50'
+          ? 'flex-row items-center gap-4 rounded-2xl border border-volt bg-volt/10 px-5 py-4'
+          : 'flex-row items-center gap-4 rounded-2xl border border-line bg-coal px-5 py-4 active:bg-card'
       }
     >
-      {emoji ? <Text className="text-2xl">{emoji}</Text> : null}
-      <Text
+      {Icon ? (
+        <View
+          className={
+            selected
+              ? 'h-10 w-10 items-center justify-center rounded-xl bg-volt'
+              : 'h-10 w-10 items-center justify-center rounded-xl border border-line bg-card'
+          }
+        >
+          <Icon color={selected ? colors.voltInk : colors.ash} size={20} strokeWidth={2.5} />
+        </View>
+      ) : null}
+      <Body
         className={
           selected
-            ? 'flex-1 text-base font-semibold text-hale-900'
-            : 'flex-1 text-base font-medium text-hale-900'
+            ? 'flex-1 font-body-bold text-base text-chalk'
+            : 'flex-1 font-body-medium text-base text-chalk'
         }
       >
         {label}
-      </Text>
+      </Body>
       <View
         className={
           selected
-            ? 'h-6 w-6 items-center justify-center rounded-full bg-hale-500'
-            : 'h-6 w-6 rounded-full border-2 border-hale-100'
+            ? 'h-7 w-7 items-center justify-center rounded-full bg-volt'
+            : 'h-7 w-7 rounded-full border border-line'
         }
       >
-        {selected ? <Text className="text-xs text-white">✓</Text> : null}
+        {selected ? <Check color={colors.voltInk} size={16} strokeWidth={3} /> : null}
       </View>
     </Pressable>
   );
@@ -795,17 +841,19 @@ function PillChoice({
       onPress={onPress}
       className={
         selected
-          ? 'rounded-full border-2 border-hale-500 bg-hale-500 px-5 py-3'
-          : 'rounded-full border-2 border-hale-100 bg-white px-5 py-3 active:bg-hale-50'
+          ? 'rounded-full border border-volt bg-volt px-5 py-3'
+          : 'rounded-full border border-line bg-coal px-5 py-3 active:bg-card'
       }
     >
-      <Text
+      <Body
         className={
-          selected ? 'text-base font-semibold text-white' : 'text-base font-medium text-hale-900'
+          selected
+            ? 'font-body-bold text-base text-volt-ink'
+            : 'font-body-medium text-base text-chalk'
         }
       >
         {label}
-      </Text>
+      </Body>
     </Pressable>
   );
 }

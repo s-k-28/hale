@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import Animated, {
   Easing,
@@ -11,22 +10,39 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import {
+  ChevronLeft,
+  Heart,
+  MessageCircle,
+  RotateCcw,
+  Sparkles,
+  Timer,
+  Users,
+  Wind,
+  X,
+} from 'lucide-react-native';
 import { useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { Screen } from '@/components/ui/Screen';
+import { Body, Display, Heading, Label } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
+import { RingGauge } from '@/components/ui/RingGauge';
+import { colors } from '@/theme/colors';
 
 /**
  * Craving SOS — I1 (ride-it-out / breathe / talk to Sage / ping buddy) + I4
- * (non-shaming relapse recovery). Full-screen modal on the sos #c0392b surface.
+ * (non-shaming relapse recovery). Full-screen Bold Momentum modal on the dark
+ * void, with the sos-red used loudly and sparingly for urgency.
  *
  * Decision 3 (anti-shame) lives in the "I slipped" flow: we ask lapse vs relapse,
  * and on a true relapse the recovery screen surfaces LIFETIME saved + best streak
- * (returned by api.relapse.logRelapse) — NEVER a zero — plus a Sage reflection.
+ * (returned by api.relapse.logRelapse) — NEVER a zero — in huge font-display
+ * numerals, plus a Sage reflection.
  *
  * This screen is supportive, not medical advice (disclaimed in the footer).
  */
 
-const SOS = '#c0392b';
 const RIDE_SECONDS = 5 * 60; // "it peaks then fades" — 5 minutes to ride it out
 
 type View_ =
@@ -156,51 +172,54 @@ export default function CravingSos() {
     );
   }
 
-  // HOME — the calm menu of options.
+  // HOME — the calm menu of options on the dark void.
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: SOS }}>
+    <Screen edges={['top', 'bottom']}>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pb-10"
+        contentContainerClassName="px-5 pb-10"
         showsVerticalScrollIndicator={false}
       >
         <View className="flex-row items-center justify-between pt-2">
-          <Text className="text-sm font-semibold uppercase tracking-widest text-white/70">
-            Craving SOS
-          </Text>
+          <View className="flex-row items-center gap-2">
+            <View className="h-2.5 w-2.5 rounded-full bg-sos" />
+            <Label className="text-sos">Craving SOS</Label>
+          </View>
           <Pressable
             onPress={close}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Close"
-            className="h-9 w-9 items-center justify-center rounded-full bg-white/15"
+            className="h-10 w-10 items-center justify-center rounded-full border border-line bg-coal active:opacity-70"
           >
-            <Text className="text-lg leading-none text-white">×</Text>
+            <X color={colors.chalk} size={18} strokeWidth={2.5} />
           </Pressable>
         </View>
 
-        <View className="mt-8">
-          <Text className="text-3xl font-extrabold leading-tight text-white">
-            You're not in danger.{'\n'}This will pass.
-          </Text>
-          <Text className="mt-3 text-base leading-relaxed text-white/80">
+        <View className="mt-10">
+          <Heading className="text-5xl leading-[0.95]">You're not{'\n'}in danger.</Heading>
+          <Display className="mt-2 text-6xl leading-[0.9] text-sos">THIS PASSES.</Display>
+          <Body className="mt-5 text-base leading-relaxed text-ash">
             A craving peaks in a few minutes, then fades — whether or not you act on it. Let's get
             you to the other side. Pick one:
-          </Text>
+          </Body>
         </View>
 
-        <View className="mt-8">
+        <View className="mt-9 gap-3">
           <PrimaryOption
+            icon={Timer}
             title="Ride it out"
             subtitle="A 5-minute timer. It peaks, then fades."
             onPress={() => setView({ kind: 'ride' })}
           />
           <Option
+            icon={Wind}
             title="Breathe"
             subtitle="Box breathing — follow the circle, slow it all down."
             onPress={() => setView({ kind: 'breathe' })}
           />
           <Option
+            icon={MessageCircle}
             title="Talk to Sage"
             subtitle="Your coach is here, right now, no judgment."
             onPress={() => {
@@ -211,6 +230,7 @@ export default function CravingSos() {
             }}
           />
           <Option
+            icon={Users}
             title="Ping my buddy"
             subtitle="Send a quiet rally. (Coming soon)"
             disabled
@@ -221,18 +241,18 @@ export default function CravingSos() {
         <Pressable
           onPress={() => setView({ kind: 'slip-choose' })}
           accessibilityRole="button"
-          className="mt-8 items-center rounded-2xl border border-white/30 py-4 active:opacity-70"
+          className="mt-9 flex-row items-center justify-between rounded-2xl border border-line bg-coal px-5 py-4 active:opacity-70"
         >
-          <Text className="text-base font-semibold text-white">I slipped</Text>
-          <Text className="mt-0.5 text-xs text-white/60">It's okay. Let's keep going.</Text>
+          <View>
+            <Body className="font-body-bold text-base text-chalk">I slipped</Body>
+            <Body className="mt-0.5 text-xs text-ash">It's okay. Let's keep going.</Body>
+          </View>
+          <RotateCcw color={colors.ash} size={18} strokeWidth={2.5} />
         </Pressable>
 
-        <Text className="mt-8 text-center text-xs leading-relaxed text-white/55">
-          HALE is supportive, not medical advice. If you're in crisis or thinking about harming
-          yourself, please contact your local emergency services.
-        </Text>
+        <Disclaimer full />
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -240,11 +260,15 @@ export default function CravingSos() {
 /* Home option rows                                                    */
 /* ------------------------------------------------------------------ */
 
+type IconType = typeof Timer;
+
 function PrimaryOption({
+  icon: Icon,
   title,
   subtitle,
   onPress,
 }: {
+  icon: IconType;
   title: string;
   subtitle: string;
   onPress: () => void;
@@ -253,22 +277,27 @@ function PrimaryOption({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      className="mb-3 rounded-2xl bg-white px-5 py-5 active:opacity-80"
+      className="flex-row items-center gap-4 rounded-3xl bg-sos px-5 py-5 active:opacity-90"
     >
-      <Text className="text-lg font-bold" style={{ color: SOS }}>
-        {title}
-      </Text>
-      <Text className="mt-1 text-sm text-hale-900/60">{subtitle}</Text>
+      <View className="h-12 w-12 items-center justify-center rounded-2xl bg-black/15">
+        <Icon color={colors.chalk} size={24} strokeWidth={2.5} />
+      </View>
+      <View className="flex-1">
+        <Heading className="text-xl text-white">{title}</Heading>
+        <Body className="mt-1 text-sm text-white/80">{subtitle}</Body>
+      </View>
     </Pressable>
   );
 }
 
 function Option({
+  icon: Icon,
   title,
   subtitle,
   onPress,
   disabled,
 }: {
+  icon: IconType;
   title: string;
   subtitle: string;
   onPress: () => void;
@@ -280,10 +309,17 @@ function Option({
       disabled={disabled}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!disabled }}
-      className={`mb-3 rounded-2xl bg-white/12 px-5 py-5 ${disabled ? 'opacity-50' : 'active:opacity-80'}`}
+      className={`flex-row items-center gap-4 rounded-3xl border border-line bg-coal px-5 py-5 ${
+        disabled ? 'opacity-45' : 'active:opacity-80'
+      }`}
     >
-      <Text className="text-lg font-bold text-white">{title}</Text>
-      <Text className="mt-1 text-sm text-white/70">{subtitle}</Text>
+      <View className="h-12 w-12 items-center justify-center rounded-2xl border border-line bg-card">
+        <Icon color={disabled ? colors.ash : colors.volt} size={24} strokeWidth={2.5} />
+      </View>
+      <View className="flex-1">
+        <Heading className="text-xl text-chalk">{title}</Heading>
+        <Body className="mt-1 text-sm text-ash">{subtitle}</Body>
+      </View>
     </Pressable>
   );
 }
@@ -322,52 +358,41 @@ function RideItOut({
   }, [progress, done]);
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: SOS }}>
-      <View className="flex-1 px-6 pb-10">
+    <Screen edges={['top', 'bottom']}>
+      <View className="flex-1 px-5 pb-10">
         <Header title="Ride it out" onBack={onBack} />
 
         <View className="flex-1 items-center justify-center">
-          <Text className="text-7xl font-extrabold tabular-nums text-white">
-            {fmtClock(remaining)}
-          </Text>
-          <View className="mt-6 h-1.5 w-56 overflow-hidden rounded-full bg-white/20">
-            <View
-              className="h-full rounded-full bg-white"
-              style={{ width: `${Math.round(progress * 100)}%` }}
-            />
-          </View>
-          <Text className="mt-8 px-4 text-center text-lg leading-relaxed text-white/85">
+          <RingGauge progress={progress} size={264} stroke={12}>
+            <View className="items-center">
+              <Label className="text-volt">{done ? 'Made it' : 'It crests, then fades'}</Label>
+              <Display className="mt-1 text-7xl tabular-nums text-chalk">
+                {fmtClock(remaining)}
+              </Display>
+            </View>
+          </RingGauge>
+          <Body className="mt-10 px-4 text-center text-lg leading-relaxed text-ash">
             {reassurance}
-          </Text>
+          </Body>
         </View>
 
         {done ? (
-          <Pressable
-            onPress={onSurvived}
-            accessibilityRole="button"
-            className="items-center rounded-2xl bg-white py-4 active:opacity-80"
-          >
-            <Text className="text-base font-bold" style={{ color: SOS }}>
-              I made it through
-            </Text>
-          </Pressable>
+          <Button label="I made it through" variant="primary" onPress={onSurvived} />
         ) : (
-          <Pressable
+          <Button
+            label="The craving passed — I'm good"
+            variant="surface"
             onPress={onSurvived}
-            accessibilityRole="button"
-            className="items-center rounded-2xl bg-white/15 py-4 active:opacity-70"
-          >
-            <Text className="text-base font-semibold text-white">The craving passed — I'm good</Text>
-          </Pressable>
+          />
         )}
 
         <Pressable onPress={onSlip} accessibilityRole="button" className="mt-3 items-center py-2">
-          <Text className="text-sm text-white/60">I slipped</Text>
+          <Body className="text-sm text-ash">I slipped</Body>
         </Pressable>
 
         <Disclaimer />
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -433,42 +458,34 @@ function BoxBreathing({
   });
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: SOS }}>
-      <View className="flex-1 px-6 pb-10">
+    <Screen edges={['top', 'bottom']}>
+      <View className="flex-1 px-5 pb-10">
         <Header title="Breathe" onBack={onBack} />
 
         <View className="flex-1 items-center justify-center">
-          <View className="h-64 w-64 items-center justify-center">
+          <View className="h-72 w-72 items-center justify-center">
             <Animated.View
-              className="absolute h-64 w-64 rounded-full bg-white/15"
+              className="absolute h-72 w-72 rounded-full border border-volt/40 bg-volt/10"
               style={circleStyle}
             />
-            <View className="h-28 w-28 items-center justify-center rounded-full bg-white/25">
-              <Text className="text-center text-lg font-bold text-white">{PHASES[phase].label}</Text>
+            <View className="h-32 w-32 items-center justify-center rounded-full border border-volt/50 bg-volt/15">
+              <Heading className="text-center text-lg text-volt">{PHASES[phase].label}</Heading>
             </View>
           </View>
-          <Text className="mt-10 px-6 text-center text-base leading-relaxed text-white/80">
+          <Body className="mt-12 px-6 text-center text-base leading-relaxed text-ash">
             In for four, hold for four, out for four, hold for four. Let your shoulders drop.
-          </Text>
+          </Body>
         </View>
 
-        <Pressable
-          onPress={onSurvived}
-          accessibilityRole="button"
-          className="items-center rounded-2xl bg-white py-4 active:opacity-80"
-        >
-          <Text className="text-base font-bold" style={{ color: SOS }}>
-            I feel steadier — I'm good
-          </Text>
-        </Pressable>
+        <Button label="I feel steadier — I'm good" variant="primary" onPress={onSurvived} />
 
         <Pressable onPress={onSlip} accessibilityRole="button" className="mt-3 items-center py-2">
-          <Text className="text-sm text-white/60">I slipped</Text>
+          <Body className="text-sm text-ash">I slipped</Body>
         </Pressable>
 
         <Disclaimer />
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -486,48 +503,56 @@ function SlipChoose({
   onRelapse: () => void;
 }) {
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: SOS }}>
-      <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10" showsVerticalScrollIndicator={false}>
+    <Screen edges={['top', 'bottom']}>
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="px-5 pb-10"
+        showsVerticalScrollIndicator={false}
+      >
         <Header title="No shame here" onBack={onCancel} />
 
-        <Text className="mt-2 text-2xl font-extrabold leading-tight text-white">
-          Slips are part of quitting — not the end of it.
-        </Text>
-        <Text className="mt-3 text-base leading-relaxed text-white/80">
+        <View className="mt-4">
+          <Heading className="text-4xl leading-[0.95]">Slips are part of quitting —</Heading>
+          <Display className="mt-2 text-5xl leading-[0.9] text-volt">NOT THE END.</Display>
+        </View>
+        <Body className="mt-5 text-base leading-relaxed text-ash">
           Be honest with yourself; it's the only way the data helps you. Which one fits?
-        </Text>
+        </Body>
 
         <Pressable
           onPress={onLapse}
           accessibilityRole="button"
-          className="mt-8 rounded-2xl bg-white px-5 py-5 active:opacity-80"
+          className="mt-9 rounded-3xl border border-volt/40 bg-volt/10 px-5 py-5 active:opacity-80"
         >
-          <Text className="text-lg font-bold" style={{ color: SOS }}>
-            Just a slip
-          </Text>
-          <Text className="mt-1 text-sm text-hale-900/60">
+          <View className="flex-row items-center gap-2">
+            <Heading className="text-xl text-volt">Just a slip</Heading>
+            <View className="rounded-full bg-volt/20 px-2.5 py-0.5">
+              <Label className="text-volt">Streak safe</Label>
+            </View>
+          </View>
+          <Body className="mt-2 text-sm leading-relaxed text-chalk/80">
             One moment, and I'm back on track. Your streak is protected.
-          </Text>
+          </Body>
         </Pressable>
 
         <Pressable
           onPress={onRelapse}
           accessibilityRole="button"
-          className="mt-3 rounded-2xl bg-white/12 px-5 py-5 active:opacity-80"
+          className="mt-3 rounded-3xl border border-line bg-coal px-5 py-5 active:opacity-80"
         >
-          <Text className="text-lg font-bold text-white">I'm back on it for now</Text>
-          <Text className="mt-1 text-sm text-white/70">
+          <Heading className="text-xl text-chalk">I'm back on it for now</Heading>
+          <Body className="mt-2 text-sm leading-relaxed text-ash">
             We'll start a fresh run — and keep everything you've already earned.
-          </Text>
+          </Body>
         </Pressable>
 
-        <Pressable onPress={onCancel} accessibilityRole="button" className="mt-6 items-center py-2">
-          <Text className="text-sm text-white/70">Actually, I'm okay — go back</Text>
+        <Pressable onPress={onCancel} accessibilityRole="button" className="mt-7 items-center py-2">
+          <Body className="text-sm text-ash">Actually, I'm okay — go back</Body>
         </Pressable>
 
         <Disclaimer />
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -547,66 +572,73 @@ function RecoverKindly({
   onDone: () => void;
 }) {
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: SOS }}>
-      <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10" showsVerticalScrollIndicator={false}>
-        <View className="pt-10">
-          <Text className="text-3xl font-extrabold leading-tight text-white">
-            This isn't a reset.{'\n'}It's a fresh run.
-          </Text>
-          <Text className="mt-3 text-base leading-relaxed text-white/85">
+    <Screen edges={['top', 'bottom']}>
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="px-5 pb-10"
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="pt-12">
+          <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-volt/40 bg-volt/10">
+            <Heart color={colors.volt} size={24} strokeWidth={2.5} />
+          </View>
+          <Heading className="text-4xl leading-[0.95]">This isn't a reset.</Heading>
+          <Display className="mt-2 text-6xl leading-[0.9] text-volt">FRESH RUN.</Display>
+          <Body className="mt-5 text-base leading-relaxed text-ash">
             Quitting nicotine almost never happens in one clean line. What you've built so far
             doesn't disappear — it's still yours.
-          </Text>
+          </Body>
         </View>
 
-        <View className="mt-8 rounded-2xl bg-white px-5 py-6">
-          <Text className="text-xs font-semibold uppercase tracking-widest text-hale-900/50">
-            What you've already earned
-          </Text>
-          <View className="mt-4 flex-row">
-            <View className="flex-1">
-              <Text className="text-3xl font-extrabold text-hale-900">
-                {fmtUsd(lifetimeMoneySaved)}
-              </Text>
-              <Text className="mt-1 text-sm text-hale-900/60">saved, lifetime</Text>
+        {/* What you've already earned — loud lifetime stats, NEVER a zero feel. */}
+        <View className="mt-9 overflow-hidden rounded-3xl border border-line bg-coal">
+          <View className="border-b border-line px-5 pt-5">
+            <Label>What you've already earned</Label>
+          </View>
+          <View className="flex-row">
+            <View className="flex-1 border-r border-line px-5 py-5">
+              <Display className="text-5xl text-volt">{fmtUsd(lifetimeMoneySaved)}</Display>
+              <Body className="mt-1.5 text-sm text-ash">saved, lifetime</Body>
             </View>
-            <View className="flex-1">
-              <Text className="text-3xl font-extrabold text-hale-900">
-                {bestStreak} {bestStreak === 1 ? 'day' : 'days'}
-              </Text>
-              <Text className="mt-1 text-sm text-hale-900/60">your best streak</Text>
+            <View className="flex-1 px-5 py-5">
+              <View className="flex-row items-baseline gap-1.5">
+                <Display className="text-5xl text-chalk">{bestStreak}</Display>
+                <Body className="font-body-bold text-base text-ash">
+                  {bestStreak === 1 ? 'day' : 'days'}
+                </Body>
+              </View>
+              <Body className="mt-1.5 text-sm text-ash">your best streak</Body>
             </View>
           </View>
-          <Text className="mt-5 text-sm leading-relaxed text-hale-900/70">
-            You already proved you can do this for {bestStreak > 0 ? `${bestStreak} ` : 'a '}
-            {bestStreak === 1 ? 'day' : 'days'}. You can do it again — starting now.
-          </Text>
+          <View className="border-t border-line px-5 py-4">
+            <Body className="text-sm leading-relaxed text-chalk/80">
+              You already proved you can do this for {bestStreak > 0 ? `${bestStreak} ` : 'a '}
+              {bestStreak === 1 ? 'day' : 'days'}. You can do it again — starting now.
+            </Body>
+          </View>
         </View>
 
-        <Pressable
-          onPress={onTalkToSage}
-          accessibilityRole="button"
-          className="mt-8 items-center rounded-2xl bg-white py-4 active:opacity-80"
-        >
-          <Text className="text-base font-bold" style={{ color: SOS }}>
-            Reflect with Sage
-          </Text>
-        </Pressable>
-        <Text className="mt-2 text-center text-xs text-white/60">
-          What pulled you back? Naming it is how the next run gets easier.
-        </Text>
+        <View className="mt-9">
+          <Button label="Reflect with Sage" variant="primary" onPress={onTalkToSage} />
+          <View className="mt-2.5 flex-row items-center justify-center gap-1.5">
+            <Sparkles color={colors.ash} size={13} strokeWidth={2.5} />
+            <Body className="text-center text-xs text-ash">
+              What pulled you back? Naming it is how the next run gets easier.
+            </Body>
+          </View>
+        </View>
 
         <Pressable
           onPress={onDone}
           accessibilityRole="button"
-          className="mt-4 items-center rounded-2xl border border-white/30 py-4 active:opacity-70"
+          className="mt-4 h-14 items-center justify-center rounded-2xl border border-line active:bg-coal"
         >
-          <Text className="text-base font-semibold text-white">Start my fresh run</Text>
+          <Heading className="text-[15px] tracking-wide text-chalk">Start my fresh run</Heading>
         </Pressable>
 
         <Disclaimer />
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -622,20 +654,22 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
         hitSlop={12}
         accessibilityRole="button"
         accessibilityLabel="Back"
-        className="h-9 w-9 items-center justify-center rounded-full bg-white/15"
+        className="h-10 w-10 items-center justify-center rounded-full border border-line bg-coal active:opacity-70"
       >
-        <Text className="text-lg leading-none text-white">‹</Text>
+        <ChevronLeft color={colors.chalk} size={20} strokeWidth={2.5} />
       </Pressable>
-      <Text className="text-sm font-semibold uppercase tracking-widest text-white/70">{title}</Text>
-      <View className="h-9 w-9" />
+      <Label className="text-ash">{title}</Label>
+      <View className="h-10 w-10" />
     </View>
   );
 }
 
-function Disclaimer() {
+function Disclaimer({ full = false }: { full?: boolean }) {
   return (
-    <Text className="mt-6 text-center text-xs leading-relaxed text-white/55">
-      Supportive, not medical advice.
-    </Text>
+    <Body className="mt-7 text-center text-xs leading-relaxed text-ash/70">
+      {full
+        ? "HALE is supportive, not medical advice. If you're in crisis or thinking about harming yourself, please contact your local emergency services."
+        : 'Supportive, not medical advice.'}
+    </Body>
   );
 }
