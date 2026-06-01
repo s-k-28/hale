@@ -525,7 +525,7 @@ function RideItOut({
           <RingGauge progress={progress} size={264} stroke={12}>
             <View className="items-center">
               <Label className="text-volt">{done ? 'Made it' : 'It crests, then fades'}</Label>
-              <Display className="mt-1 text-7xl tabular-nums text-chalk">
+              <Display className="mt-1 text-7xl leading-tight tabular-nums text-chalk">
                 {fmtClock(remaining)}
               </Display>
             </View>
@@ -756,12 +756,12 @@ function RecoverKindly({
           </View>
           <View className="flex-row">
             <View className="flex-1 border-r border-line px-5 py-5">
-              <Display className="text-5xl text-volt">{fmtUsd(lifetimeMoneySaved)}</Display>
+              <Display className="text-5xl leading-tight text-volt">{fmtUsd(lifetimeMoneySaved)}</Display>
               <Body className="mt-1.5 text-sm text-ash">saved, lifetime</Body>
             </View>
             <View className="flex-1 px-5 py-5">
               <View className="flex-row items-baseline gap-1.5">
-                <Display className="text-5xl text-chalk">{bestStreak}</Display>
+                <Display className="text-5xl leading-tight text-chalk">{bestStreak}</Display>
                 <Body className="font-body-bold text-base text-ash">
                   {bestStreak === 1 ? 'day' : 'days'}
                 </Body>
