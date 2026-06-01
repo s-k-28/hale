@@ -29,6 +29,8 @@ import {
   TrendingUp,
 } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
+import { takePendingBuddy } from '@/lib/pendingBuddy';
 import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -184,6 +186,7 @@ export default function Quiz() {
   const { signIn } = useAuthActions();
   const { isAuthenticated } = useConvexAuth();
   const completeOnboarding = useMutation(api.users.completeOnboarding);
+  const pairWith = useMutation(api.buddies.pairWith);
 
   // Mirror reactive auth state into a ref so the imperative commit() handler can
   // await it without re-render churn (see waitForAuth above).
@@ -301,6 +304,16 @@ export default function Quiz() {
         baseline_per_day: profile.baselinePerDay,
         projected_annual: annual,
       });
+      // Redeem a pending buddy invite (S1: auto-pair on first open).
+      const pendingBuddy = await takePendingBuddy();
+      if (pendingBuddy) {
+        try {
+          await pairWith({ inviterId: pendingBuddy as Id<'users'> });
+          track(Ev.BUDDY_PAIRED, { via: 'invite_onboard' });
+        } catch {
+          // Best-effort; never block landing in the app.
+        }
+      }
       setPhase('push'); // help-framed opt-in before we land on Today
     } catch (e) {
       setError('Something went wrong starting your plan. Please try again.');
