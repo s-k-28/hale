@@ -49,8 +49,25 @@ type View_ =
   | { kind: 'home' }
   | { kind: 'ride' }
   | { kind: 'breathe' }
+  | { kind: 'log'; resolvedBy: 'timer' | 'breathing' } // post-resolution craving capture
   | { kind: 'slip-choose' } // lapse vs relapse
   | { kind: 'recover'; lifetimeMoneySaved: number; bestStreak: number }; // post-relapse, kind screen
+
+/** Trigger / context chips — the user picks their REAL one (the logged value is
+ *  their selection, never a default). Triggers mirror the onboarding set. */
+const TRIGGER_CHIPS = [
+  'Stress',
+  'Boredom',
+  'After a meal',
+  'Coffee',
+  'Alcohol',
+  'Driving',
+  'Social',
+  'Phone',
+  'Just woke up',
+  'Work break',
+] as const;
+const CONTEXT_CHIPS = ['Alone', 'Around people', 'At home', 'At work', 'Out', 'Winding down'] as const;
 
 function fmtClock(totalSec: number) {
   const m = Math.floor(totalSec / 60);
@@ -67,9 +84,6 @@ export default function CravingSos() {
   const logRelapse = useMutation(api.relapse.logRelapse);
 
   const [view, setView] = useState<View_>({ kind: 'home' });
-  // best-effort intensity estimate for the craving log (the SOS surface itself
-  // implies a strong urge; default high, the recovery screens never block on it).
-  const intensityRef = useRef(4);
 
   // Fire SOS-opened once on mount.
   useEffect(() => {
@@ -81,27 +95,41 @@ export default function CravingSos() {
     else router.replace('/(tabs)/today');
   }, []);
 
-  /** Resolve the craving WITHOUT slipping → log survived + fire analytics, then close. */
-  const resolveSurvived = useCallback(
-    async (resolvedBy: 'timer' | 'breathing' | 'sage' | 'buddy') => {
+  /**
+   * Finish a survived craving from the post-resolution capture. `vals` carries the
+   * user's REAL intensity/trigger/context (null when they skip). craving_survived
+   * always fires (they made it); craving_logged + the Convex row only when they
+   * gave us data — never a fabricated intensity.
+   */
+  const completeLog = useCallback(
+    async (
+      vals: { intensity: number; trigger?: string; context?: string } | null,
+      resolvedBy: 'timer' | 'breathing',
+    ) => {
       try {
-        await logCraving({ intensity: intensityRef.current, outcome: 'survived', resolvedBy });
-        track(Ev.CRAVING_LOGGED, { outcome: 'survived', resolvedBy });
+        if (vals) {
+          await logCraving({
+            intensity: vals.intensity,
+            trigger: vals.trigger,
+            context: vals.context,
+            outcome: 'survived',
+            resolvedBy,
+          });
+          track(Ev.CRAVING_LOGGED, { outcome: 'survived', resolvedBy, intensity: vals.intensity });
+        }
         track(Ev.CRAVING_SURVIVED, { resolvedBy });
       } catch {
         // Logging is best-effort; never trap the user in the SOS modal on a write error.
       }
+      close();
     },
-    [logCraving],
+    [logCraving, close],
   );
 
   if (view.kind === 'ride') {
     return (
       <RideItOut
-        onSurvived={async () => {
-          await resolveSurvived('timer');
-          close();
-        }}
+        onSurvived={() => setView({ kind: 'log', resolvedBy: 'timer' })}
         onBack={() => setView({ kind: 'home' })}
         onSlip={() => setView({ kind: 'slip-choose' })}
       />
@@ -111,12 +139,19 @@ export default function CravingSos() {
   if (view.kind === 'breathe') {
     return (
       <BoxBreathing
-        onSurvived={async () => {
-          await resolveSurvived('breathing');
-          close();
-        }}
+        onSurvived={() => setView({ kind: 'log', resolvedBy: 'breathing' })}
         onBack={() => setView({ kind: 'home' })}
         onSlip={() => setView({ kind: 'slip-choose' })}
+      />
+    );
+  }
+
+  if (view.kind === 'log') {
+    const resolvedBy = view.resolvedBy;
+    return (
+      <CravingLogCapture
+        onSave={(vals) => completeLog(vals, resolvedBy)}
+        onSkip={() => completeLog(null, resolvedBy)}
       />
     );
   }
@@ -126,13 +161,12 @@ export default function CravingSos() {
       <SlipChoose
         onCancel={() => setView({ kind: 'home' })}
         onLapse={async () => {
-          // 'lapse' preserves the streak (bounded grace) — still log a craving with
-          // a 'lapsed' outcome for trigger intelligence, then return to a kind home.
+          // 'lapse' preserves the streak (bounded grace). logRelapse is the source
+          // of truth; we don't fabricate a craving row with a guessed intensity —
+          // trigger naming lives on the recovery screen.
           try {
             await logRelapse({ kind: 'lapse' });
             track(Ev.RELAPSE_LOGGED, { kind: 'lapse' });
-            await logCraving({ intensity: intensityRef.current, outcome: 'lapsed' });
-            track(Ev.CRAVING_LOGGED, { outcome: 'lapsed' });
           } catch {
             /* best-effort */
           }
@@ -142,8 +176,6 @@ export default function CravingSos() {
           try {
             const res = await logRelapse({ kind: 'relapse' });
             track(Ev.RELAPSE_LOGGED, { kind: 'relapse' });
-            await logCraving({ intensity: intensityRef.current, outcome: 'relapsed' });
-            track(Ev.CRAVING_LOGGED, { outcome: 'relapsed' });
             setView({
               kind: 'recover',
               lifetimeMoneySaved: res?.lifetimeMoneySaved ?? 0,
@@ -223,8 +255,8 @@ export default function CravingSos() {
             title="Talk to Sage"
             subtitle="Your coach is here, right now, no judgment."
             onPress={() => {
-              // Opening the coach counts as resolving via Sage.
-              void resolveSurvived('sage');
+              // The resolution happens in the conversation — don't log a premature
+              // (fake) survival here; just hand off to the coach.
               close();
               router.push('/(tabs)/coach');
             }}
@@ -253,6 +285,133 @@ export default function CravingSos() {
         <Disclaimer full />
       </ScrollView>
     </Screen>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Post-resolution craving capture (I1) — real intensity/trigger/context */
+/* ------------------------------------------------------------------ */
+
+function CravingLogCapture({
+  onSave,
+  onSkip,
+}: {
+  onSave: (vals: { intensity: number; trigger?: string; context?: string }) => void;
+  onSkip: () => void;
+}) {
+  const [intensity, setIntensity] = useState<number | null>(null);
+  const [trigger, setTrigger] = useState<string | null>(null);
+  const [context, setContext] = useState<string | null>(null);
+
+  return (
+    <Screen edges={['top', 'bottom']}>
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="px-5 pb-10"
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mt-8">
+          <Label className="text-volt">You made it</Label>
+          <Heading className="mt-2 text-4xl leading-[0.95]">That craving{'\n'}just passed.</Heading>
+          <Body className="mt-4 text-base leading-relaxed text-ash">
+            Quick — naming it teaches HALE your triggers, so we get ahead of the next one.
+          </Body>
+        </View>
+
+        {/* Intensity — user-selected, never defaulted */}
+        <Label className="mt-9 text-ash">How strong was it?</Label>
+        <View className="mt-3 flex-row gap-2">
+          {[1, 2, 3, 4, 5].map((n) => {
+            const on = intensity === n;
+            return (
+              <Pressable
+                key={n}
+                onPress={() => setIntensity(n)}
+                accessibilityRole="button"
+                accessibilityLabel={`Intensity ${n}`}
+                className={`flex-1 items-center rounded-2xl border py-3.5 active:opacity-80 ${
+                  on ? 'border-volt bg-volt/15' : 'border-line bg-coal'
+                }`}
+              >
+                <Display className={`text-2xl ${on ? 'text-volt' : 'text-chalk'}`}>{n}</Display>
+              </Pressable>
+            );
+          })}
+        </View>
+        <View className="mt-1.5 flex-row justify-between px-1">
+          <Body className="text-[11px] text-ash">Barely there</Body>
+          <Body className="text-[11px] text-ash">Intense</Body>
+        </View>
+
+        {/* Trigger */}
+        <Label className="mt-8 text-ash">What set it off?</Label>
+        <View className="mt-3 flex-row flex-wrap gap-2">
+          {TRIGGER_CHIPS.map((t) => (
+            <Chip
+              key={t}
+              label={t}
+              selected={trigger === t}
+              onPress={() => setTrigger((cur) => (cur === t ? null : t))}
+            />
+          ))}
+        </View>
+
+        {/* Context */}
+        <Label className="mt-8 text-ash">Where were you?</Label>
+        <View className="mt-3 flex-row flex-wrap gap-2">
+          {CONTEXT_CHIPS.map((c) => (
+            <Chip
+              key={c}
+              label={c}
+              selected={context === c}
+              onPress={() => setContext((cur) => (cur === c ? null : c))}
+            />
+          ))}
+        </View>
+
+        <Button
+          variant="primary"
+          label="SAVE & FINISH"
+          disabled={intensity === null}
+          onPress={() =>
+            intensity !== null &&
+            onSave({ intensity, trigger: trigger ?? undefined, context: context ?? undefined })
+          }
+          className="mt-9"
+        />
+        <Pressable
+          onPress={onSkip}
+          accessibilityRole="button"
+          className="mt-4 items-center py-2 active:opacity-70"
+        >
+          <Body className="text-sm text-ash">Skip</Body>
+        </Pressable>
+      </ScrollView>
+    </Screen>
+  );
+}
+
+function Chip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      className={`rounded-full border px-4 py-2 active:opacity-70 ${
+        selected ? 'border-volt bg-volt/15' : 'border-line bg-coal'
+      }`}
+    >
+      <Body className={`text-sm ${selected ? 'font-body-semibold text-volt' : 'text-chalk'}`}>
+        {label}
+      </Body>
+    </Pressable>
   );
 }
 

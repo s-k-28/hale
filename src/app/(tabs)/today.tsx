@@ -316,7 +316,7 @@ export default function Today() {
         {/* SOS — loud red craving button */}
         <Pressable
           onPress={() => {
-            track(Ev.CRAVING_SOS_OPENED);
+            // craving_sos_opened fires once, on the SOS screen mount (avoids a double-count).
             router.push('/sos');
           }}
           className="mb-6 flex-row items-center gap-4 rounded-2xl bg-sos px-6 py-5 active:opacity-90"
