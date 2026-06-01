@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Redirect, router } from 'expo-router';
 import { useMutation, useQuery } from 'convex/react';
 import { Check, ChevronRight, Flame, ShieldCheck, Siren } from 'lucide-react-native';
@@ -13,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { StatTile } from '@/components/ui/StatTile';
 import { Pill } from '@/components/ui/Pill';
 import { RingGauge } from '@/components/ui/RingGauge';
+import MilestoneCelebration from '@/components/MilestoneCelebration';
 import { colors } from '@/theme/colors';
 
 /**
@@ -76,6 +78,19 @@ function nextLandmark(streak: number) {
   return LANDMARK_DAYS.find((d) => d > streak) ?? null;
 }
 
+/** Highest celebrated landmark the user has REACHED for a given whole-day count. */
+function reachedLandmark(wholeDays: number): number | null {
+  let reached: number | null = null;
+  for (const d of LANDMARK_DAYS) {
+    if (d <= wholeDays) reached = d;
+    else break;
+  }
+  return reached;
+}
+
+/** AsyncStorage key — the last landmark we've already celebrated, so it fires once. */
+const LAST_CELEBRATED_LANDMARK_KEY = 'hale:lastCelebratedLandmark';
+
 export default function Today() {
   const state = useQuery(api.users.todayState, {});
   const checkIn = useMutation(api.checkins.checkIn);
@@ -92,6 +107,54 @@ export default function Today() {
       track(Ev.COUNTER_VIEWED);
     }
   }, [state]);
+
+  // Milestone celebration (P3): show the overlay the moment a NEW landmark day is
+  // crossed. We persist the last-celebrated landmark in AsyncStorage so the spike
+  // fires exactly once per landmark, across mounts/sessions.
+  const [celebrateDay, setCelebrateDay] = useState<number | null>(null);
+  const lastCelebratedRef = useRef<number | null>(null);
+  const hydratedRef = useRef(false);
+
+  // Hydrate the stored landmark once, before we decide whether to celebrate.
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(LAST_CELEBRATED_LANDMARK_KEY)
+      .then((raw) => {
+        if (!active) return;
+        const parsed = raw != null ? Number(raw) : NaN;
+        lastCelebratedRef.current = Number.isFinite(parsed) ? parsed : null;
+      })
+      .catch(() => {
+        // Storage read failures are non-fatal — treat as "nothing celebrated yet".
+      })
+      .finally(() => {
+        if (active) hydratedRef.current = true;
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Detect a reached-but-uncelebrated landmark once todayState resolves.
+  useEffect(() => {
+    if (!state || !hydratedRef.current || celebrateDay !== null) return;
+    const wholeDays = Math.floor(Math.max(0, now - state.quitStart) / MS.day);
+    const reached = reachedLandmark(wholeDays);
+    if (reached !== null && reached > (lastCelebratedRef.current ?? 0)) {
+      setCelebrateDay(reached);
+    }
+  }, [state, now, celebrateDay]);
+
+  // Persist + dismiss — records the landmark so it never re-fires.
+  const onCelebrationClose = useCallback(() => {
+    const day = celebrateDay;
+    setCelebrateDay(null);
+    if (day == null) return;
+    lastCelebratedRef.current = day;
+    AsyncStorage.setItem(LAST_CELEBRATED_LANDMARK_KEY, String(day)).catch(() => {
+      // Persisting failed; the in-memory ref still prevents a re-show this session.
+    });
+  }, [celebrateDay]);
 
   const todayLocalDate = useMemo(() => {
     if (!state?.timezone) return null;
@@ -272,6 +335,15 @@ export default function Today() {
         {/* Buddy status row */}
         <BuddyRow data={buddy} streak={streak} landmark={landmark} longestStreak={state.longestStreak} />
       </ScrollView>
+
+      {/* Milestone celebration overlay — fires once per landmark day reached. */}
+      <MilestoneCelebration
+        visible={celebrateDay !== null}
+        day={celebrateDay ?? 0}
+        moneySaved={state.currentMoneySaved}
+        recoveryPct={Math.round(milestoneProgress * 100)}
+        onClose={onCelebrationClose}
+      />
     </Screen>
   );
 }

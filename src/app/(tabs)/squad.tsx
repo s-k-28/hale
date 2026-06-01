@@ -152,13 +152,15 @@ function PairedState({
 }) {
   const [cheered, setCheered] = useState(false);
   const displayName = useMemo(() => name?.trim() || 'Your buddy', [name]);
+  const cheer = useMutation(api.nudges.cheer);
 
   const onCheer = useCallback(() => {
     if (cheered) return;
     setCheered(true);
     track(Ev.NUDGE_SENT, { type: 'cheer', surface: 'squad' });
-    // TODO(S2): call api.nudges.send({ type: 'cheer' }) once wired.
-  }, [cheered]);
+    // Fire-and-forget — swallow errors so the optimistic UI never breaks.
+    cheer({ type: 'cheer' }).catch(() => {});
+  }, [cheered, cheer]);
 
   return (
     <View className="mt-6">

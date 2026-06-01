@@ -17,4 +17,21 @@ crons.daily(
   internal.pushes.streakAtRisk,
 );
 
+/**
+ * trial-reminder sweep: a single daily win-back / trial-reminder pass.
+ *
+ * EMAIL-GATED: this only ever reaches users who have LINKED an email. Most
+ * HALE users are anonymous (schema Decision 2) and have no email, so the
+ * underlying email.sendTrialReminder is a silent no-op for them — the sweep
+ * simply skips anyone without a linked address.
+ *
+ * Stub for now: trialReminderSweep enumerates eligible users and schedules
+ * email.sendTrialReminder per user once trial/lifecycle windows are wired up.
+ */
+crons.daily(
+  'trial-reminder',
+  { hourUTC: 17, minuteUTC: 0 }, // shortly after the streak nudge; tune as we learn
+  internal.email.trialReminderSweep,
+);
+
 export default crons;

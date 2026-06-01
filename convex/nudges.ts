@@ -84,6 +84,51 @@ export const myNudges = query({
 });
 
 /**
+ * Cheer your buddy (S2) — the one-tap "Send support" from the Squad screen.
+ * Resolves the authed user's ACTIVE buddyLink (mirrors buddies.ts: by_userA
+ * then by_userB), derives the OTHER side as the recipient, writes the nudge
+ * row, then schedules a friend-sourced push. If there's no active buddy we
+ * degrade to { sent: false } rather than throwing, so the optimistic Squad UI
+ * never breaks on a fire-and-forget call.
+ */
+export const cheer = mutation({
+  args: {
+    type: v.union(v.literal('cheer'), v.literal('support')),
+  },
+  handler: async (ctx, { type }) => {
+    const fromUser = await getAuthUserId(ctx);
+    if (!fromUser) throw new Error('Not authenticated');
+
+    const asA = await ctx.db
+      .query('buddyLinks')
+      .withIndex('by_userA', (q) => q.eq('userA', fromUser))
+      .filter((q) => q.eq(q.field('status'), 'active'))
+      .first();
+    const link =
+      asA ??
+      (await ctx.db
+        .query('buddyLinks')
+        .withIndex('by_userB', (q) => q.eq('userB', fromUser))
+        .filter((q) => q.eq(q.field('status'), 'active'))
+        .first());
+
+    if (!link) return { sent: false };
+
+    const toUser = link.userA === fromUser ? link.userB : link.userA;
+
+    await ctx.db.insert('nudges', { fromUser, toUser, type, ts: Date.now() });
+
+    await ctx.scheduler.runAfter(0, internal.pushes.notifyUser, {
+      userId: toUser,
+      title: 'Your buddy is cheering you on 💪',
+      body: 'Keep your streak going — they’re counting on you.',
+    });
+
+    return { sent: true };
+  },
+});
+
+/**
  * Mark one nudge read (clears it from the unread inbox). Scoped to the
  * recipient so a caller can only dismiss nudges addressed to them.
  */
