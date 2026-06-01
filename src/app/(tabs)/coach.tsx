@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import { SageMark } from '@/components/SageMark';
 import { ArrowUp, Wind } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
@@ -175,10 +176,8 @@ function Bubble({ message }: { message: SageMessage }) {
 function EmptyState() {
   return (
     <View className="flex-1 items-center justify-center px-9">
-      <View className="h-20 w-20 items-center justify-center rounded-3xl bg-volt">
-        <Wind color={colors.voltInk} size={36} strokeWidth={2.5} />
-      </View>
-      <Display className="mt-7 text-center text-5xl text-chalk">HEY,{'\n'}I&apos;M SAGE</Display>
+      <SageMark size={112} />
+      <Display className="mt-6 text-center text-5xl text-chalk">HEY,{'\n'}I&apos;M SAGE</Display>
       <Body className="mt-4 max-w-[300px] text-center text-base leading-6 text-ash">
         Here the second a craving hits. Tell me what&apos;s going on — no judgment,
         just backup to ride it out. It peaks, then it passes.
