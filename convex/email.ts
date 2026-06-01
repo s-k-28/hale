@@ -68,7 +68,9 @@ export const getUserEmail = internalQuery({
  */
 export const sendTrialReminder = internalAction({
   args: { userId: v.id('users') },
-  handler: async (ctx, { userId }) => {
+  // Explicit return type: this action calls a sibling internal action, which
+  // would otherwise create a circular type inference (TS7022/7023).
+  handler: async (ctx, { userId }): Promise<{ sent: boolean }> => {
     const { email, name } = await ctx.runQuery(internal.email.getUserEmail, { userId });
     if (!email) return { sent: false }; // anonymous / not linked — nothing to send
 
