@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import type { View as RNView } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { Check, ChevronRight, Crown, Share2, Sparkles } from 'lucide-react-native';
+import { BarChart3, Check, ChevronRight, Crown, Gift, Share2, Sparkles } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import {
   HEALTH_MILESTONES,
@@ -262,7 +262,51 @@ function YouContent({
             </View>
           </View>
         )}
+
+        {/* Phase-2 entry points */}
+        <View className="mt-4 gap-3">
+          <YouLink
+            icon={<Gift color={colors.volt} size={20} strokeWidth={2.5} />}
+            title="Treat yourself"
+            sub="Set a goal to spend your saved money on."
+            onPress={() => router.push('/goals')}
+          />
+          <YouLink
+            icon={<BarChart3 color={colors.volt} size={20} strokeWidth={2.5} />}
+            title="Your insights"
+            sub="Craving trends + recovery — HALE+."
+            onPress={() => router.push('/analytics')}
+          />
+        </View>
       </ScrollView>
     </Screen>
+  );
+}
+
+function YouLink({
+  icon,
+  title,
+  sub,
+  onPress,
+}: {
+  icon: ReactNode;
+  title: string;
+  sub: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      className="flex-row items-center rounded-2xl border border-line bg-coal px-5 py-4 active:bg-card"
+    >
+      {icon}
+      <View className="ml-3 flex-1">
+        <Body className="font-body-semibold text-base text-chalk">{title}</Body>
+        <Body className="mt-0.5 text-sm text-ash">{sub}</Body>
+      </View>
+      <ChevronRight color={colors.ash} size={20} />
+    </Pressable>
   );
 }

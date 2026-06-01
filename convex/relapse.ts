@@ -1,6 +1,7 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 import { mutation } from './_generated/server';
+import { internal } from './_generated/api';
 import { localDateOf } from './model/streak';
 import { moneySaved } from './model/plan';
 
@@ -69,6 +70,44 @@ export const logRelapse = mutation({
       lifetimeCleanDays: (user.lifetimeCleanDays ?? 0) + bankedDays, // PRESERVED + grown
       lifetimeMoneySaved: (user.lifetimeMoneySaved ?? 0) + bankedMoney,
     });
+
+    // RELAPSE RALLY (S5) — APPEND-ONLY. A relapse (never a lapse) is the moment a
+    // buddy can do the most good. Resolve the authed user's ACTIVE buddyLink
+    // (mirrors buddies.ts: by_userA then by_userB), emit a SANITIZED tough_moment
+    // feedEvent into the pair's buddy scope, and reach the buddy with a push.
+    // PRIVACY: the payload NEVER carries craving/relapse detail — just the signal
+    // that their buddy needs support. Best-effort; failure here must not undo the
+    // banked transaction above, so any missing buddy simply skips the rally.
+    const asA = await ctx.db
+      .query('buddyLinks')
+      .withIndex('by_userA', (q) => q.eq('userA', userId))
+      .filter((q) => q.eq(q.field('status'), 'active'))
+      .first();
+    const buddyLink =
+      asA ??
+      (await ctx.db
+        .query('buddyLinks')
+        .withIndex('by_userB', (q) => q.eq('userB', userId))
+        .filter((q) => q.eq(q.field('status'), 'active'))
+        .first());
+
+    if (buddyLink) {
+      const buddyUserId = buddyLink.userA === userId ? buddyLink.userB : buddyLink.userA;
+      await ctx.db.insert('feedEvents', {
+        scopeType: 'buddy',
+        scopeId: String(buddyLink._id),
+        actorId: userId,
+        type: 'tough_moment',
+        payload: {}, // SANITIZED — never any craving/relapse detail (privacy)
+        ts: now,
+      });
+      await ctx.scheduler.runAfter(0, internal.pushes.notifyUser, {
+        userId: buddyUserId,
+        title: 'Your buddy is having a tough moment',
+        body: 'Send them some strength',
+      });
+    }
+
     return {
       kind,
       newAttemptId,

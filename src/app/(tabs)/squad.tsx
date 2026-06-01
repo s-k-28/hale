@@ -1,7 +1,17 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Share, View } from 'react-native';
+import { router } from 'expo-router';
 import { useMutation, useQuery } from 'convex/react';
-import { Check, Flame, Globe, HeartHandshake, Share2, UserPlus, Users } from 'lucide-react-native';
+import {
+  Check,
+  ChevronRight,
+  Flame,
+  HeartHandshake,
+  Share2,
+  Trophy,
+  UserPlus,
+  Users,
+} from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { Screen } from '@/components/ui/Screen';
@@ -65,7 +75,7 @@ export default function Squad() {
           <SoloState invite={invite} />
         )}
 
-        <PublicSquadCard />
+        <Phase2Links />
       </ScrollView>
     </Screen>
   );
@@ -217,24 +227,49 @@ function PairedState({
 
 /* ── Post-launch placeholder ─────────────────────────────────────── */
 
-function PublicSquadCard() {
+function Phase2Links() {
+  return (
+    <View className="mt-6 gap-3">
+      <NavRow
+        icon={<Users color={colors.volt} size={22} strokeWidth={2.5} />}
+        title="Squads & challenges"
+        sub="Quit alongside a group — start a 6-week challenge."
+        onPress={() => router.push('/squads')}
+      />
+      <NavRow
+        icon={<Trophy color={colors.volt} size={22} strokeWidth={2.5} />}
+        title="Weekly league"
+        sub="Climb the consistency board for your stage."
+        onPress={() => router.push('/leagues')}
+      />
+    </View>
+  );
+}
+
+function NavRow({
+  icon,
+  title,
+  sub,
+  onPress,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  sub: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Join a public squad — coming soon"
-      disabled
-      className="mt-6 flex-row items-center rounded-2xl border border-dashed border-line bg-coal/40 px-5 py-5"
+      accessibilityLabel={title}
+      onPress={onPress}
+      className="flex-row items-center rounded-2xl border border-line bg-coal px-5 py-4 active:bg-card"
     >
-      <Globe color={colors.ash} size={24} strokeWidth={2} />
+      {icon}
       <View className="ml-3 flex-1">
-        <Body className="font-body-semibold text-base text-chalk">Join a public squad</Body>
-        <Body className="mt-0.5 text-sm text-ash">
-          Quit alongside a group going through the same thing.
-        </Body>
+        <Body className="font-body-semibold text-base text-chalk">{title}</Body>
+        <Body className="mt-0.5 text-sm text-ash">{sub}</Body>
       </View>
-      <Pill tone="volt">
-        <Label className="text-volt">SOON</Label>
-      </Pill>
+      <ChevronRight color={colors.ash} size={20} />
     </Pressable>
   );
 }

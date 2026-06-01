@@ -112,6 +112,54 @@ export default defineSchema({
     ts: v.number(),
   }).index('by_scope_ts', ['scopeType', 'scopeId', 'ts']),
 
-  // squads / leagues = POST-LAUNCH (omitted from MVP schema).
-  // DERIVED (no table): live counter, $ saved, health-milestone curve, analytics.
+  // ── Phase 2 (post-launch) ──────────────────────────────────────
+  squads: defineTable({
+    name: v.string(),
+    ownerId: v.id('users'),
+    isPublic: v.boolean(),
+    inviteCode: v.string(),
+    memberCount: v.number(),
+    // 6-week "stay clean together" challenge (StickK: 6–8wk + weekly cadence)
+    challengeStart: v.optional(v.number()),
+    challengeEnd: v.optional(v.number()),
+    challengeGoalDays: v.optional(v.number()),
+  })
+    .index('by_invite', ['inviteCode'])
+    .index('by_public', ['isPublic']),
+
+  squadMembers: defineTable({
+    squadId: v.id('squads'),
+    userId: v.id('users'),
+    role: v.union(v.literal('owner'), v.literal('member')),
+    joinedAt: v.number(),
+  })
+    .index('by_squad', ['squadId'])
+    .index('by_user', ['userId']),
+
+  // Opt-in weekly leagues — segmented by quit-stage; ranked by consistency.
+  leagueMemberships: defineTable({
+    userId: v.id('users'),
+    weekKey: v.string(), // "YYYY-Www"
+    stageBucket: v.union(
+      v.literal('d0_7'),
+      v.literal('d8_30'),
+      v.literal('d31_90'),
+      v.literal('d90plus'),
+    ),
+    optedIn: v.boolean(),
+  })
+    .index('by_week_bucket', ['weekKey', 'stageBucket'])
+    .index('by_user_week', ['userId', 'weekKey']),
+
+  // "Treat yourself" savings goals (P4) — tangible reward for $ saved.
+  savingsGoals: defineTable({
+    userId: v.id('users'),
+    label: v.string(),
+    targetAmount: v.number(),
+    createdAt: v.number(),
+    achievedAt: v.optional(v.number()),
+  }).index('by_user', ['userId']),
+
+  // DERIVED (no table): live counter, $ saved, milestone curve, craving analytics,
+  // league scores (counted from checkIns at query time).
 });

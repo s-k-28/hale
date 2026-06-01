@@ -35,6 +35,16 @@ export const Ev = {
   // Monetization
   PAYWALL_VIEWED: 'paywall_viewed',
   PURCHASE_COMPLETED: 'purchase_completed',
+  // Phase 2 (post-launch) — squads, leagues, rally, goals, analytics
+  SQUAD_CREATED: 'squad_created',
+  SQUAD_JOINED: 'squad_joined',
+  SQUAD_INVITED: 'squad_invited',
+  SQUAD_LEFT: 'squad_left',
+  CHALLENGE_COMPLETED: 'challenge_completed',
+  LEAGUE_OPTIN: 'league_optin',
+  RALLY_SENT: 'rally_sent',
+  SAVINGS_GOAL_SET: 'savings_goal_set',
+  ANALYTICS_VIEWED: 'analytics_viewed',
 } as const;
 
 export type EventName = (typeof Ev)[keyof typeof Ev];
