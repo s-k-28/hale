@@ -65,5 +65,8 @@ export function identifyUser(userId: string, props?: Record<string, any>) {
 }
 
 export function track(event: EventName, props?: Record<string, any>) {
+  // Dev-observable: every event prints to the Metro log so firing is verifiable
+  // even before EXPO_PUBLIC_POSTHOG_KEY is set (delivery to PostHog needs the key).
+  if (__DEV__) console.log('[ev]', event, props ? JSON.stringify(props) : '');
   client?.capture(event, props);
 }
