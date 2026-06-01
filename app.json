@@ -34,7 +34,10 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      "expo-localization",
+      "@sentry/react-native",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
