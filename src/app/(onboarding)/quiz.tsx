@@ -17,6 +17,7 @@ import {
   Wind,
   Cigarette,
   Shuffle,
+  Package,
   Heart,
   PiggyBank,
   Users,
@@ -86,7 +87,7 @@ type Glyph = (props: { color?: string; size?: number; strokeWidth?: number }) =>
 
 const PRODUCTS: { value: ProductType; label: string; Icon: Glyph; unit: string }[] = [
   { value: 'vape', label: 'Vape / e-cig', Icon: Wind, unit: 'pods' },
-  { value: 'pouch', label: 'Nicotine pouches', Icon: Shuffle, unit: 'pouches' },
+  { value: 'pouch', label: 'Nicotine pouches', Icon: Package, unit: 'pouches' },
   { value: 'cig', label: 'Cigarettes', Icon: Cigarette, unit: 'cigarettes' },
   { value: 'mixed', label: 'A mix of things', Icon: Shuffle, unit: 'units' },
 ];
