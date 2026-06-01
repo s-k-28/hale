@@ -223,6 +223,9 @@ export default function Today() {
           ) : null}
         </View>
 
+        {/* Friend-sourced nudge inbox (S2) — shows when a buddy has reached out. */}
+        <NudgeInbox />
+
         {/* HERO — live clean-time counter inside the lime RingGauge */}
         <View className="mb-6 items-center">
           <RingGauge progress={milestoneProgress} size={272} stroke={12}>
@@ -347,6 +350,36 @@ export default function Today() {
         onClose={onCelebrationClose}
       />
     </Screen>
+  );
+}
+
+/** Friend-sourced nudge inbox (S2). Newest unread nudge; tap to open → markRead
+ *  + NUDGE_OPENED. Renders nothing when the inbox is empty (the common case). */
+function NudgeInbox() {
+  const nudges = useQuery(api.nudges.myNudges, {});
+  const markRead = useMutation(api.nudges.markRead);
+  if (!nudges || nudges.length === 0) return null;
+  const n = nudges[0];
+  const onOpen = () => {
+    track(Ev.NUDGE_OPENED, { type: n.type });
+    markRead({ nudgeId: n._id }).catch(() => {
+      // Reactive query reflects truth; swallow transient mutation errors.
+    });
+  };
+  return (
+    <Pressable
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel="Open buddy nudge"
+      className="mb-5 rounded-2xl border border-volt/30 bg-volt/10 px-5 py-4 active:opacity-80"
+    >
+      <View className="flex-row items-center gap-2">
+        <Flame color={colors.volt} size={18} strokeWidth={2.5} />
+        <Body className="flex-1 font-body-bold text-base text-chalk">{n.title}</Body>
+      </View>
+      <Body className="mt-1 text-sm leading-5 text-ash">{n.body}</Body>
+      <Body className="mt-2 text-xs text-volt">Tap to dismiss</Body>
+    </Pressable>
   );
 }
 

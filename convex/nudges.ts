@@ -74,12 +74,21 @@ export const myNudges = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
-    return await ctx.db
+    const rows = await ctx.db
       .query('nudges')
       .withIndex('by_to', (q) => q.eq('toUser', userId))
       .order('desc')
       .filter((q) => q.eq(q.field('readAt'), undefined))
       .take(20);
+    // Join the sender's name and build display copy in ONE place (nudgeCopy),
+    // so the in-app inbox reads identically to the friend-sourced push.
+    return await Promise.all(
+      rows.map(async (n) => {
+        const sender = await ctx.db.get(n.fromUser);
+        const { title, body } = nudgeCopy(n.type, sender?.name ?? null);
+        return { _id: n._id, type: n.type, ts: n.ts, title, body };
+      }),
+    );
   },
 });
 
