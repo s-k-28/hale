@@ -7,6 +7,7 @@ import { Check, ChevronRight, Flame, ShieldCheck, Siren } from 'lucide-react-nat
 import { api } from '@convex/_generated/api';
 import { localDateOf } from '@convex/model/streak';
 import { LANDMARK_DAYS, recoveryFraction } from '@convex/model/plan';
+import { toast } from 'sonner-native';
 import { track, Ev } from '@/lib/analytics';
 import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
@@ -173,9 +174,11 @@ export default function Today() {
         track(Ev.CHECKIN_COMPLETED, { streak: res.streak, usedFreeze: res.usedFreeze });
         // P2 exit-criteria event: only when a bounded freeze actually forgave a missed day.
         if (res.usedFreeze) track(Ev.STREAK_FREEZE_USED, { streak: res.streak });
+        toast.success("Locked in for today 🔥");
       }
     } catch {
-      // Reactive query will reflect truth; swallow transient mutation errors.
+      // Surface what was a silent failure — a failed tap shouldn't be a dead end.
+      toast.error("Couldn't check in — please try again");
     } finally {
       setChecking(false);
     }

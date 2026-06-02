@@ -13,6 +13,7 @@ import {
   Users,
 } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
+import { toast } from 'sonner-native';
 import { track, Ev } from '@/lib/analytics';
 import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
@@ -169,8 +170,12 @@ function PairedState({
     if (cheered) return;
     setCheered(true);
     track(Ev.NUDGE_SENT, { type: 'cheer', surface: 'squad' });
-    // Fire-and-forget — swallow errors so the optimistic UI never breaks.
-    cheer({ type: 'cheer' }).catch(() => {});
+    cheer({ type: 'cheer' })
+      .then(() => toast.success("Support sent 💪"))
+      .catch(() => {
+        setCheered(false); // revert the optimistic state so they can retry
+        toast.error("Couldn't send support — try again");
+      });
   }, [cheered, cheer]);
 
   return (

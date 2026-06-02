@@ -1,6 +1,7 @@
 import '../global.css';
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SecureStore from 'expo-secure-store';
@@ -29,6 +30,7 @@ import { initRevenueCat } from '@/lib/revenuecat';
 import { initOneSignal } from '@/lib/onesignal';
 import { initSentry } from '@/lib/sentry';
 import { posthog } from '@/lib/analytics';
+import { Toaster } from 'sonner-native';
 
 initSentry();
 SplashScreen.preventAutoHideAsync();
@@ -80,17 +82,26 @@ export default function RootLayout() {
           <Stack.Screen name="sos" options={{ presentation: 'modal' }} />
           <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
         </Stack>
+        {/* App-wide transient feedback (sonner-native). Sibling of the navigator so
+            toasts overlay every screen; SafeArea/GestureHandler contexts come from
+            expo-router's root. */}
+        <Toaster />
       </TamaguiProvider>
     </ConvexAuthProvider>
   );
 
   // PostHog wraps the tree only when configured. Pass the SHARED client (see
   // lib/analytics.ts) so usePostHog() and track() are the same instance.
-  return posthog ? (
+  const app = posthog ? (
     <PostHogProvider client={posthog} autocapture={false}>
       {tree}
     </PostHogProvider>
   ) : (
     tree
   );
+
+  // GestureHandlerRootView must wrap the whole app so react-native-gesture-handler
+  // detectors work — sonner-native toasts (swipe-to-dismiss) and @gorhom/bottom-sheet
+  // both require it. Nothing used a GestureDetector before, so it was never needed.
+  return <GestureHandlerRootView style={{ flex: 1 }}>{app}</GestureHandlerRootView>;
 }
