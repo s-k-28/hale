@@ -5,6 +5,7 @@ import { House, Users, Sparkles, User } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { usePushTags } from '@/hooks/usePushTags';
 import { identifyUser } from '@/lib/analytics';
+import { identifyPurchaser } from '@/lib/revenuecat';
 import { colors } from '@/theme/colors';
 
 /**
@@ -28,6 +29,12 @@ function PushSync() {
   useEffect(() => {
     if (uid) identifyUser(uid, { has_buddy: hasBuddy });
   }, [uid, hasBuddy]);
+
+  // RevenueCat: app_user_id == Convex user _id so the /revenuecat/webhook
+  // entitlement→users.premium mirror can match. Idempotent + scaffold-safe.
+  useEffect(() => {
+    if (uid) identifyPurchaser(uid);
+  }, [uid]);
 
   usePushTags(uid, today, hasBuddy);
   return null;
