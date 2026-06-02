@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "lottiefiles-creator": {
+      "command": "npx",
+      "args": ["-y", "@lottiefiles/creator-mcp@latest"]
+    },
+    "lucide-icons": {
+      "command": "npx",
+      "args": ["-y", "lucide-icons-mcp", "--stdio"]
+    },
+    "rive": {
+      "command": "open",
+      "args": ["-a", "Rive Early Access", "--args", "--mcp"]
+    }
+  }
+}

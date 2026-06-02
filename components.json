@@ -22,6 +22,6 @@
     "@originui": "https://originui.com/r/{name}.json",
     "@21st": "https://21st.dev/r/{name}",
     "@cult": "https://cult-ui.com/r/{name}.json",
-    "@rnr": "https://www.reactnativereusables.com/r/{name}.json"
+    "@rnr": "https://reactnativereusables.com/r/nativewind/{name}.json"
   }
 }
