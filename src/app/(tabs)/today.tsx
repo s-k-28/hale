@@ -19,6 +19,15 @@ import MilestoneCelebration from '@/components/MilestoneCelebration';
 import CheckInBurst from '@/components/CheckInBurst';
 import { colors } from '@/theme/colors';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 /**
  * Today — the home dashboard (P1/P2), re-skinned to BOLD MOMENTUM.
@@ -246,7 +255,7 @@ export default function Today() {
         <View className="mb-6 items-center">
           <RingGauge progress={milestoneProgress} size={272} stroke={12}>
             <Label className="text-ash">Clean for</Label>
-            <Display className="mt-1 text-8xl leading-tight text-chalk">{t.days}</Display>
+            <HeroDays days={t.days} />
             <Label className="-mt-1 text-volt">
               {t.days === 1 ? 'Day' : 'Days'}
             </Label>
@@ -414,11 +423,53 @@ function Dot() {
   return <Display className="mx-2 -translate-y-1 text-2xl text-line">·</Display>;
 }
 
-/** One h/m/s unit under the hero day counter. */
+/**
+ * The hero day count — breathes subtly (a slow ~4s scale cycle) so the live
+ * counter reads as alive, not frozen. Scale-only (centered) → no layout shift.
+ */
+function HeroDays({ days }: { days: number }) {
+  const scale = useSharedValue(1);
+  useEffect(() => {
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.018, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+      false,
+    );
+  }, [scale]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <Animated.View className="mt-1" style={style}>
+      <Display className="text-8xl leading-tight text-chalk">{days}</Display>
+    </Animated.View>
+  );
+}
+
+/**
+ * One h/m/s unit under the hero day counter. On every value change the digits
+ * roll up with a small spring (a slight overshoot) — the "satisfying tick" that
+ * makes the seconds feel live and minute/hour rollovers read cleanly.
+ */
 function CounterUnit({ value, label }: { value: string; label: string }) {
+  const anim = useSharedValue(1);
+  const prev = useRef(value);
+  useEffect(() => {
+    if (prev.current === value) return;
+    prev.current = value;
+    anim.value = 0;
+    anim.value = withSpring(1, { damping: 15, stiffness: 240, mass: 0.5 });
+  }, [value, anim]);
+  const style = useAnimatedStyle(() => ({
+    opacity: 0.72 + anim.value * 0.28,
+    transform: [{ translateY: (1 - anim.value) * 6 }],
+  }));
   return (
     <View className="items-center">
-      <Display className="text-3xl text-chalk">{value}</Display>
+      <Animated.View style={style}>
+        <Display className="text-3xl text-chalk">{value}</Display>
+      </Animated.View>
       <Label className="mt-0.5 text-ash">{label}</Label>
     </View>
   );
