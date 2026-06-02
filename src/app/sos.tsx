@@ -7,7 +7,9 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import {
@@ -732,6 +734,58 @@ function SlipChoose({
 /* (I4) Kind recovery screen — surfaces lifetime, never a zero         */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Gentle warm entrance — fade in + a soft rise, staggered by `delay`. The motion
+ * on the recovery screen must read as CALM and reassuring (the opposite of the
+ * milestone confetti): slow, soft-eased, never bouncy. Additive only.
+ */
+function SoftRise({
+  delay = 0,
+  children,
+}: {
+  delay?: number;
+  children: React.ReactNode;
+}) {
+  const p = useSharedValue(0);
+  useEffect(() => {
+    p.value = withDelay(
+      delay,
+      withTiming(1, { duration: 640, easing: Easing.out(Easing.cubic) }),
+    );
+    return () => cancelAnimation(p);
+  }, [p, delay]);
+  const style = useAnimatedStyle(() => ({
+    opacity: p.value,
+    transform: [{ translateY: (1 - p.value) * 16 }],
+  }));
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
+
+/** A slow, warm heartbeat on the recovery Heart — reassurance made literal. */
+function WarmHeart() {
+  const s = useSharedValue(1);
+  useEffect(() => {
+    s.value = withRepeat(
+      withSequence(
+        withTiming(1.09, { duration: 720, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 940, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(s);
+  }, [s]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
+  return (
+    <Animated.View
+      className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-volt/40 bg-volt/10"
+      style={style}
+    >
+      <Heart color={colors.volt} size={24} strokeWidth={2.5} />
+    </Animated.View>
+  );
+}
+
 function RecoverKindly({
   lifetimeMoneySaved,
   bestStreak,
@@ -751,18 +805,19 @@ function RecoverKindly({
         contentContainerClassName="px-5 pb-10"
         showsVerticalScrollIndicator={false}
       >
-        <View className="pt-12">
-          <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-volt/40 bg-volt/10">
-            <Heart color={colors.volt} size={24} strokeWidth={2.5} />
+        <SoftRise>
+          <View className="pt-12">
+            <WarmHeart />
+            <Heading className="text-4xl leading-[0.95]">This isn't a reset.</Heading>
+            <Display className="mt-2 text-6xl leading-tight text-volt">FRESH RUN.</Display>
+            <Body className="mt-5 text-base leading-relaxed text-ash">
+              Quitting nicotine almost never happens in one clean line. What you've built so far
+              doesn't disappear — it's still yours.
+            </Body>
           </View>
-          <Heading className="text-4xl leading-[0.95]">This isn't a reset.</Heading>
-          <Display className="mt-2 text-6xl leading-tight text-volt">FRESH RUN.</Display>
-          <Body className="mt-5 text-base leading-relaxed text-ash">
-            Quitting nicotine almost never happens in one clean line. What you've built so far
-            doesn't disappear — it's still yours.
-          </Body>
-        </View>
+        </SoftRise>
 
+        <SoftRise delay={140}>
         {/* What you've already earned — loud lifetime stats, NEVER a zero feel. */}
         <View className="mt-9 overflow-hidden rounded-3xl border border-line bg-coal">
           <View className="border-b border-line px-5 pt-5">
@@ -790,7 +845,9 @@ function RecoverKindly({
             </Body>
           </View>
         </View>
+        </SoftRise>
 
+        <SoftRise delay={260}>
         {/* I4 — name the trigger: therapeutic ("naming it") + real data for I3. */}
         <View className="mt-9">
           <View className="flex-row items-center gap-1.5">
@@ -821,6 +878,7 @@ function RecoverKindly({
         >
           <Heading className="text-[15px] tracking-wide text-chalk">Start my fresh run</Heading>
         </Pressable>
+        </SoftRise>
 
         <Disclaimer />
       </ScrollView>
