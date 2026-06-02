@@ -24,10 +24,11 @@ import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { PostHogProvider } from 'posthog-react-native';
 import { TamaguiProvider } from 'tamagui';
 import tamaguiConfig from '../../tamagui.config';
-import { env, has } from '@/lib/config';
+import { env } from '@/lib/config';
 import { initRevenueCat } from '@/lib/revenuecat';
 import { initOneSignal } from '@/lib/onesignal';
 import { initSentry } from '@/lib/sentry';
+import { posthog } from '@/lib/analytics';
 
 initSentry();
 SplashScreen.preventAutoHideAsync();
@@ -83,9 +84,10 @@ export default function RootLayout() {
     </ConvexAuthProvider>
   );
 
-  // PostHog wraps the tree only when a key is present (scaffold-safe).
-  return has('posthogKey') ? (
-    <PostHogProvider apiKey={env.posthogKey} options={{ host: env.posthogHost }} autocapture={false}>
+  // PostHog wraps the tree only when configured. Pass the SHARED client (see
+  // lib/analytics.ts) so usePostHog() and track() are the same instance.
+  return posthog ? (
+    <PostHogProvider client={posthog} autocapture={false}>
       {tree}
     </PostHogProvider>
   ) : (

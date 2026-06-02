@@ -50,24 +50,32 @@ export const Ev = {
 
 export type EventName = (typeof Ev)[keyof typeof Ev];
 
-let client: PostHog | null = null;
+/**
+ * Single shared PostHog client, created eagerly (at import) when a key is present.
+ * BOTH track()/identifyUser() here AND `<PostHogProvider client={posthog}>`
+ * (src/app/_layout.tsx) use this SAME instance — two PostHog instances sharing one
+ * key clash on on-device persistence (distinct_id + event queue), so there must be
+ * exactly one. Null in scaffold mode (no key) → every call below is a safe no-op.
+ *
+ * Previously `track()` used a lazily-initialized client that was NEVER initialized
+ * (initAnalytics had no callers), so every capture() silently dropped. This is the fix.
+ */
+export const posthog: PostHog | null = has('posthogKey')
+  ? new PostHog(env.posthogKey, { host: env.posthogHost })
+  : null;
 
+/** Back-compat: the client is now an eager singleton (see `posthog` above). */
 export function initAnalytics(): PostHog | null {
-  if (!has('posthogKey')) return null; // no key yet → no-op (scaffold mode)
-  if (!client) {
-    client = new PostHog(env.posthogKey, { host: env.posthogHost });
-  }
-  return client;
+  return posthog;
 }
 
 /** Cohort/wedge properties (has_buddy, coach_used, plan_type) attach here. */
 export function identifyUser(userId: string, props?: Record<string, any>) {
-  client?.identify(userId, props);
+  posthog?.identify(userId, props);
 }
 
 export function track(event: EventName, props?: Record<string, any>) {
-  // Dev-observable: every event prints to the Metro log so firing is verifiable
-  // even before EXPO_PUBLIC_POSTHOG_KEY is set (delivery to PostHog needs the key).
+  // Dev-observable: every event prints to the Metro log so firing is verifiable.
   if (__DEV__) console.log('[ev]', event, props ? JSON.stringify(props) : '');
-  client?.capture(event, props);
+  posthog?.capture(event, props);
 }

@@ -1,21 +1,35 @@
+import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { useQuery } from 'convex/react';
 import { House, Users, Sparkles, User } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { usePushTags } from '@/hooks/usePushTags';
+import { identifyUser } from '@/lib/analytics';
 import { colors } from '@/theme/colors';
 
 /**
- * Mounts the OneSignal link + behavior-tag sync for the whole authed app. Lives
- * in the tab layout so it stays mounted across tabs (not just Today) and fires
- * once todayState resolves the user's id. Renders nothing. Degrades to a no-op
- * when OneSignal is unconfigured (the lib helpers short-circuit on a missing
- * app id), so it's always safe to mount.
+ * Whole-app session sync for authed users. Lives in the tab layout so it stays
+ * mounted across tabs (not just Today) and fires once todayState resolves the
+ * user's id. Renders nothing. Each piece degrades to a no-op when its service
+ * is unconfigured, so it's always safe to mount:
+ *   - identifyUser → attributes PostHog events to the Convex user id (== the
+ *     OneSignal/RevenueCat external id), so the funnel is per-user.
+ *   - usePushTags → links the OneSignal device + mirrors behavior-targeting tags.
  */
 function PushSync() {
   const today = useQuery(api.users.todayState, {});
   const buddy = useQuery(api.buddies.myBuddy, {});
-  usePushTags(today?.userId ?? null, today, !!buddy?.buddy);
+  const uid = today?.userId ?? null;
+  const hasBuddy = !!buddy?.buddy;
+
+  // Attribute events to the Convex user id + set the has_buddy wedge cohort
+  // property (paired vs solo — the north-star segmentation). Re-runs when buddy
+  // status resolves/changes.
+  useEffect(() => {
+    if (uid) identifyUser(uid, { has_buddy: hasBuddy });
+  }, [uid, hasBuddy]);
+
+  usePushTags(uid, today, hasBuddy);
   return null;
 }
 
