@@ -38,7 +38,11 @@ export const Ev = {
   TRIAL_STARTED: 'trial_started',
   PAYWALL_VIEWED: 'paywall_viewed',
   PURCHASE_COMPLETED: 'purchase_completed',
-  // Phase 2 (post-launch) — squads, leagues, rally, goals, analytics
+  // Phase 2 (post-launch) — squads, leagues, rally. Several of these are
+  // intentionally NOT fired in Phase 1 (the squads/leagues/rally surfaces are
+  // built but gated off); they're defined here so the taxonomy is stable when
+  // Phase 2 lights them up. SAVINGS_GOAL_SET/GOAL_DELETED + ANALYTICS_VIEWED ARE
+  // fired today (goals + insights screens ship in Phase 1).
   SQUAD_CREATED: 'squad_created',
   SQUAD_JOINED: 'squad_joined',
   SQUAD_INVITED: 'squad_invited',
@@ -47,6 +51,7 @@ export const Ev = {
   LEAGUE_OPTIN: 'league_optin',
   RALLY_SENT: 'rally_sent',
   SAVINGS_GOAL_SET: 'savings_goal_set',
+  GOAL_DELETED: 'goal_deleted',
   ANALYTICS_VIEWED: 'analytics_viewed',
 } as const;
 

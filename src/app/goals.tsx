@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
-import { usePostHog } from 'posthog-react-native';
 import { Check, ChevronLeft, Gift, Plus, Trash2, X } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
+import { track, Ev } from '@/lib/analytics';
 import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -70,7 +70,6 @@ export default function Goals() {
 }
 
 function GoalsContent({ goals }: { goals: Goal[] }) {
-  const posthog = usePostHog();
   const setGoal = useMutation(api.goals.setGoal);
   const deleteGoal = useMutation(api.goals.deleteGoal);
 
@@ -93,7 +92,7 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
     setError(null);
     try {
       await setGoal({ label: label.trim(), targetAmount: targetNum });
-      posthog?.capture('goal_set', { target_amount: targetNum });
+      track(Ev.SAVINGS_GOAL_SET, { target_amount: targetNum });
       setLabel('');
       setAmount('');
     } catch (e) {
@@ -106,7 +105,7 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
   const onDelete = async (id: Goal['_id']) => {
     try {
       await deleteGoal({ goalId: id });
-      posthog?.capture('goal_deleted');
+      track(Ev.GOAL_DELETED);
     } catch {
       // best-effort; reactivity keeps the list honest
     }
