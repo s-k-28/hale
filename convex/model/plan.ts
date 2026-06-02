@@ -48,3 +48,15 @@ export function reachedHealthMilestones(quitStart: number, now: number) {
   const elapsedH = (now - quitStart) / 3_600_000;
   return HEALTH_MILESTONES.filter((m) => m.hours <= elapsedH);
 }
+
+/**
+ * Overall recovery toward full healing as a 0..1 fraction = health milestones
+ * reached / total. Monotonic (never resets), unlike next-milestone progress
+ * (cleanMs / nextMilestone.hours), which oscillates back toward 0 each time a
+ * milestone is passed. This is the canonical "reached / total" definition already
+ * surfaced by analytics.recoverySummary — use it anywhere a single recovery % is
+ * shown so every surface agrees.
+ */
+export function recoveryFraction(quitStart: number, now: number): number {
+  return reachedHealthMilestones(quitStart, now).length / HEALTH_MILESTONES.length;
+}

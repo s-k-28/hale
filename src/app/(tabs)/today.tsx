@@ -6,7 +6,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { Check, ChevronRight, Flame, ShieldCheck, Siren } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { localDateOf } from '@convex/model/streak';
-import { LANDMARK_DAYS } from '@convex/model/plan';
+import { LANDMARK_DAYS, recoveryFraction } from '@convex/model/plan';
 import { track, Ev } from '@/lib/analytics';
 import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
@@ -205,6 +205,10 @@ export default function Today() {
 
   const streak = state.currentStreak;
   const landmark = nextLandmark(streak);
+  // Overall recovery = health milestones reached / total — monotonic, never resets.
+  // (milestoneProgress, used by the ring + strip, is "progress to the NEXT milestone"
+  // and correctly oscillates per-window; it must NOT be shown as overall recovery.)
+  const recoveryPct = Math.round(recoveryFraction(state.quitStart, now) * 100);
 
   return (
     <Screen edges={['top']}>
@@ -278,7 +282,7 @@ export default function Today() {
         {/* Stat tiles — money saved (lime accent) + lung recovery */}
         <View className="mb-3 flex-row gap-3">
           <StatTile label="Money saved" value={money(state.currentMoneySaved)} accent />
-          <StatTile label="Lung recovery" value={`${Math.round(milestoneProgress * 100)}%`} />
+          <StatTile label="Recovery" value={`${recoveryPct}%`} />
         </View>
         {/* Lifetime line only when it ADDS info — i.e. there's history beyond this
             run (post-relapse). On a first run current == lifetime, so showing it
@@ -353,7 +357,7 @@ export default function Today() {
         visible={celebrateDay !== null}
         day={celebrateDay ?? 0}
         moneySaved={state.currentMoneySaved}
-        recoveryPct={Math.round(milestoneProgress * 100)}
+        recoveryPct={recoveryPct}
         onClose={onCelebrationClose}
       />
     </Screen>
