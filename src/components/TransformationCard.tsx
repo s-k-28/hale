@@ -1,4 +1,4 @@
-import { forwardRef, useRef } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import type { View as RNView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -36,6 +36,10 @@ export type TransformationCardProps = {
   /** 0..100 recovery indicator. Optional; omit to hide the recovery row. */
   recoveryPct?: number;
   name?: string;
+  /** When true, the hero numbers count up from 0 once on mount (celebration use).
+   *  Default false → fully static, so the persistent profile card AND every share
+   *  capture render the exact final values. */
+  animate?: boolean;
 };
 
 // Capture-safe font families (mirror tailwind.config.js fontFamily entries).
@@ -57,14 +61,58 @@ function clampPct(p: number) {
 }
 
 /**
+ * One-shot count-up 0 → target (easeOutCubic) on the JS thread, after a short
+ * delay so it reads as "earning" the number once the card pops in. Settles to the
+ * EXACT target, so a share capture (a deliberate, later tap) is always correct.
+ * Inactive → returns the target immediately (fully static).
+ */
+function useCountUp(target: number, active: boolean, durationMs = 950, delayMs = 300) {
+  const [value, setValue] = useState(active ? 0 : target);
+  useEffect(() => {
+    if (!active) {
+      setValue(target);
+      return;
+    }
+    let raf = 0;
+    let startTs: number | null = null;
+    const tick = (ts: number) => {
+      if (startTs === null) startTs = ts;
+      const p = Math.min(1, (ts - startTs) / durationMs);
+      const eased = 1 - Math.pow(1 - p, 3);
+      if (p < 1) {
+        setValue(target * eased);
+        raf = requestAnimationFrame(tick);
+      } else {
+        setValue(target); // exact settle
+      }
+    };
+    const timer = setTimeout(() => {
+      raf = requestAnimationFrame(tick);
+    }, delayMs);
+    return () => {
+      clearTimeout(timer);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [target, active, durationMs, delayMs]);
+  return value;
+}
+
+/**
  * The visual card. We forward a ref to the OUTER capture surface so callers (or
  * the built-in shareCard helper) can snapshot exactly this node.
  */
 const TransformationCard = forwardRef<RNView, TransformationCardProps>(
-  function TransformationCard({ days, moneySaved, recoveryPct, name }, ref) {
+  function TransformationCard({ days, moneySaved, recoveryPct, name, animate }, ref) {
     const wholeDays = Math.max(0, Math.floor(days));
     const pct = recoveryPct === undefined ? null : clampPct(recoveryPct);
     const firstName = name?.trim().split(/\s+/)[0] || null;
+
+    // Count-up displays — animate only in the celebration; static elsewhere and
+    // for share captures (settles exact). Hooks are called unconditionally.
+    const animateNums = !!animate;
+    const dispDays = Math.round(useCountUp(wholeDays, animateNums));
+    const dispMoney = useCountUp(moneySaved, animateNums);
+    const dispPct = clampPct(useCountUp(pct ?? 0, animateNums && pct !== null));
 
     return (
       <View
@@ -160,7 +208,7 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
                     color: colors.chalk,
                   }}
                 >
-                  {wholeDays}
+                  {dispDays}
                 </Text>
                 <Text
                   className="mb-4 ml-3 text-volt"
@@ -204,7 +252,7 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
                       color: colors.volt,
                     }}
                   >
-                    {fmtMoney(moneySaved)}
+                    {fmtMoney(dispMoney)}
                   </Text>
                 </View>
 
@@ -221,7 +269,7 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
                         className="text-sm text-chalk"
                         style={{ fontFamily: FONTS.bodyBold, color: colors.chalk }}
                       >
-                        {pct}%
+                        {dispPct}%
                       </Text>
                     </View>
                     <View
@@ -231,7 +279,7 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
                       <View
                         className="h-full rounded-full bg-volt"
                         style={{
-                          width: `${pct}%`,
+                          width: `${dispPct}%`,
                           backgroundColor: colors.volt,
                         }}
                       />

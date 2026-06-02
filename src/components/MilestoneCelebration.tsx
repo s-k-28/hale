@@ -164,6 +164,7 @@ export default function MilestoneCelebration({
                   moneySaved={moneySaved}
                   recoveryPct={recoveryPct}
                   name={name}
+                  animate
                 />
               </View>
             </PoppedCard>
