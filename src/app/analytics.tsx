@@ -351,7 +351,7 @@ function RecoveryProgress({ recovery }: { recovery: Recovery }) {
     <View className="rounded-3xl border border-line bg-coal p-5">
       <View className="flex-row items-end justify-between">
         <View>
-          <Display className="text-5xl leading-none tracking-tight text-volt">
+          <Display className="text-5xl leading-tight tracking-tight text-volt">
             {recovery.reached}
             <Display className="text-2xl text-ash">/{recovery.total}</Display>
           </Display>

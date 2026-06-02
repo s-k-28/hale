@@ -141,7 +141,7 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
         <View className="mt-2">
           <Pill tone="volt">HALE+</Pill>
 
-          <Display className="mt-5 text-chalk text-6xl leading-[0.95] tracking-tight">
+          <Display className="mt-5 text-chalk text-6xl leading-tight tracking-tight">
             GO ALL{'\n'}IN.
           </Display>
 
@@ -167,11 +167,11 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
         <View className="rounded-3xl bg-card border border-line px-5 py-5">
           <View className="flex-row items-end justify-between">
             <View>
-              <Display className="text-chalk text-5xl leading-none tracking-tight">$39.99</Display>
+              <Display className="text-chalk text-5xl leading-tight tracking-tight">$39.99</Display>
               <Label className="mt-2 text-ash normal-case tracking-normal">per year</Label>
             </View>
             <View className="items-end">
-              <Display className="text-volt text-2xl leading-none tracking-tight">$0.77</Display>
+              <Display className="text-volt text-2xl leading-tight tracking-tight">$0.77</Display>
               <Label className="mt-1 text-ash normal-case tracking-normal">a week</Label>
             </View>
           </View>

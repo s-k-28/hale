@@ -690,7 +690,7 @@ function PlanReveal({
               className="flex-row items-center gap-4 rounded-2xl border border-line bg-coal p-4"
             >
               <View className="h-9 w-9 items-center justify-center rounded-full border border-line bg-card">
-                <Display className="text-lg leading-none text-volt">{i + 1}</Display>
+                <Display className="text-lg leading-tight text-volt">{i + 1}</Display>
               </View>
               <View className="flex-1">
                 <Label className="text-ash">{formatHours(m.hours)}</Label>

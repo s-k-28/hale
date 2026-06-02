@@ -154,7 +154,9 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
                   style={{
                     fontFamily: FONTS.display,
                     fontSize: 132,
-                    lineHeight: 132,
+                    // Anton's tall numerals clip when lineHeight == fontSize;
+                    // ~1.14x gives the glyph tops room (the "0"→"U" clip fix).
+                    lineHeight: 150,
                     color: colors.chalk,
                   }}
                 >
