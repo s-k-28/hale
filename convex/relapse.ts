@@ -104,6 +104,8 @@ export const logRelapse = mutation({
         userId: buddyUserId,
         title: 'Your buddy is having a tough moment',
         body: 'Send them some strength',
+        // Routing tag so a tapped push opens the buddy/squad screen.
+        data: { kind: 'buddy_relapse' },
       });
     }
 

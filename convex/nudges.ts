@@ -131,6 +131,8 @@ export const cheer = mutation({
       userId: toUser,
       title: 'Your buddy is cheering you on 💪',
       body: 'Keep your streak going — they’re counting on you.',
+      // Routing tag so a tapped push opens the buddy/nudge inbox (parity with send()).
+      data: { kind: 'nudge', type, fromUser },
     });
 
     return { sent: true };

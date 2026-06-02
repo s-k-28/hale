@@ -32,6 +32,8 @@ export const Ev = {
   PROACTIVE_NUDGE_SENT: 'proactive_nudge_sent',
   RELAPSE_LOGGED: 'relapse_logged',
   RELAPSE_RECOVERED: 'relapse_recovered',
+  // Notifications (#9)
+  PUSH_OPENED: 'push_opened',
   // Monetization
   TRIAL_STARTED: 'trial_started',
   PAYWALL_VIEWED: 'paywall_viewed',

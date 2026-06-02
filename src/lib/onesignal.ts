@@ -1,10 +1,36 @@
-import { OneSignal, LogLevel } from 'react-native-onesignal';
+import { OneSignal, LogLevel, type NotificationClickEvent } from 'react-native-onesignal';
+import { router } from 'expo-router';
 import { env, has } from './config';
+import { track, Ev } from './analytics';
+
+/** Route a tapped push to the right screen by its server-set data.kind. */
+function routeForPush(kind?: string) {
+  switch (kind) {
+    case 'proactive':
+      router.navigate('/(tabs)/coach'); // get ahead of the hardest hour with Sage
+      break;
+    case 'nudge':
+      router.navigate('/(tabs)/today'); // buddy nudge inbox lives on Today (S2)
+      break;
+    case 'buddy_relapse':
+      router.navigate('/(tabs)/squad'); // a buddy needs support
+      break;
+    case 'streak_at_risk':
+    default:
+      router.navigate('/(tabs)/today'); // one-tap check-in saves the streak
+  }
+}
 
 export function initOneSignal() {
   if (!has('oneSignalAppId')) return; // scaffold mode — no-op
   OneSignal.Debug.setLogLevel(LogLevel.Warn);
   OneSignal.initialize(env.oneSignalAppId);
+  // Deep-link a tapped notification to the relevant screen + record the open.
+  OneSignal.Notifications.addEventListener('click', (event: NotificationClickEvent) => {
+    const kind = (event.notification.additionalData as { kind?: string } | undefined)?.kind;
+    track(Ev.PUSH_OPENED, { kind: kind ?? 'unknown' });
+    routeForPush(kind);
+  });
 }
 
 /**
