@@ -16,7 +16,9 @@ import { StatTile } from '@/components/ui/StatTile';
 import { Pill } from '@/components/ui/Pill';
 import { RingGauge } from '@/components/ui/RingGauge';
 import MilestoneCelebration from '@/components/MilestoneCelebration';
+import CheckInBurst from '@/components/CheckInBurst';
 import { colors } from '@/theme/colors';
+import * as Haptics from 'expo-haptics';
 
 /**
  * Today — the home dashboard (P1/P2), re-skinned to BOLD MOMENTUM.
@@ -99,6 +101,8 @@ export default function Today() {
 
   const now = useNow();
   const [checking, setChecking] = useState(false);
+  // One-shot celebratory burst over the CTA — mounts on a fresh check-in, self-unmounts.
+  const [showBurst, setShowBurst] = useState(false);
 
   // COUNTER_VIEWED — once, when the screen mounts with real data.
   const viewedRef = useRef(false);
@@ -168,12 +172,17 @@ export default function Today() {
   const onCheckIn = useCallback(async () => {
     if (checking || alreadyCheckedIn) return;
     setChecking(true);
+    // Tactile "press received" beat the instant the tap lands.
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     try {
       const res = await checkIn({});
       if (!res.alreadyCheckedIn) {
         track(Ev.CHECKIN_COMPLETED, { streak: res.streak, usedFreeze: res.usedFreeze });
         // P2 exit-criteria event: only when a bounded freeze actually forgave a missed day.
         if (res.usedFreeze) track(Ev.STREAK_FREEZE_USED, { streak: res.streak });
+        // Reward beat: success haptic + flame/spark burst over the CTA.
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        setShowBurst(true);
         toast.success("Locked in for today 🔥");
       }
     } catch {
@@ -298,15 +307,18 @@ export default function Today() {
           <View className="mb-6" />
         )}
 
-        {/* Primary CTA — one-tap daily check-in */}
-        <Button
-          label={alreadyCheckedIn ? 'Checked in — clean today' : 'Check in — clean today'}
-          variant="primary"
-          loading={checking}
-          disabled={alreadyCheckedIn}
-          onPress={onCheckIn}
-          className="mb-3"
-        />
+        {/* Primary CTA — one-tap daily check-in. Wrapper is the positioning context
+            for the celebratory burst overlay (absolute, pointerEvents none). */}
+        <View className="mb-3">
+          <Button
+            label={alreadyCheckedIn ? 'Checked in — clean today' : 'Check in — clean today'}
+            variant="primary"
+            loading={checking}
+            disabled={alreadyCheckedIn}
+            onPress={onCheckIn}
+          />
+          {showBurst ? <CheckInBurst onDone={() => setShowBurst(false)} /> : null}
+        </View>
         {alreadyCheckedIn ? (
           <View className="mb-3 flex-row items-center justify-center gap-1.5">
             <Check color={colors.volt} size={14} strokeWidth={3} />
