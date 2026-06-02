@@ -8,7 +8,7 @@ import {
   internalQuery,
 } from './_generated/server';
 import { internal } from './_generated/api';
-import { sageSystemPrompt, SAGE_MODEL } from './model/sage';
+import { SAGE_PERSONA, sageContextLine, SAGE_MODEL } from './model/sage';
 import { moneySaved } from './model/plan';
 
 /**
@@ -75,7 +75,12 @@ export const generate = internalAction({
           body: JSON.stringify({
             model: SAGE_MODEL,
             max_tokens: 400,
-            system: sageSystemPrompt(c.ctx),
+            // Stable persona first (cacheable prefix), volatile per-user context
+            // after — keeps the cache breakpoint from busting every turn.
+            system: [
+              { type: 'text', text: SAGE_PERSONA, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: sageContextLine(c.ctx) },
+            ],
             messages: c.history,
           }),
         });
@@ -83,9 +88,28 @@ export const generate = internalAction({
           const json = await res.json();
           const text = json?.content?.[0]?.text;
           if (typeof text === 'string' && text.trim()) content = text.trim();
+        } else {
+          // Surface WHY we fell back. Without this, a misconfig (bad/credit-less
+          // key, rate limit, bad model) is invisible and Sage serves the canned
+          // reply forever with no signal. Best-effort parse of Anthropic's
+          // {error:{type,message}} envelope; status alone is the floor.
+          let detail = '';
+          try {
+            const err = await res.json();
+            detail = err?.error?.type
+              ? `${err.error.type}: ${err.error.message ?? ''}`
+              : '';
+          } catch {
+            // body wasn't JSON — the status code is the signal
+          }
+          console.error(`[sage] anthropic non-ok ${res.status} ${detail} — using fallback`);
         }
-      } catch {
-        // Network/parse failure — keep the warm fallback rather than surfacing an error.
+      } catch (e) {
+        // Network/parse failure — keep the warm fallback, but record the reason.
+        console.error(
+          '[sage] anthropic fetch failed — using fallback:',
+          e instanceof Error ? e.message : String(e),
+        );
       }
     }
 
