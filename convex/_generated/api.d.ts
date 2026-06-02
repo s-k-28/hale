@@ -22,6 +22,7 @@ import type * as leagues from "../leagues.js";
 import type * as model_plan from "../model/plan.js";
 import type * as model_sage from "../model/sage.js";
 import type * as model_streak from "../model/streak.js";
+import type * as model_trial from "../model/trial.js";
 import type * as nudges from "../nudges.js";
 import type * as pushes from "../pushes.js";
 import type * as relapse from "../relapse.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   "model/plan": typeof model_plan;
   "model/sage": typeof model_sage;
   "model/streak": typeof model_streak;
+  "model/trial": typeof model_trial;
   nudges: typeof nudges;
   pushes: typeof pushes;
   relapse: typeof relapse;

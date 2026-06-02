@@ -304,6 +304,9 @@ export default function Quiz() {
         baseline_per_day: profile.baselinePerDay,
         projected_annual: annual,
       });
+      // App-managed 14-day trial begins now (§8) — granted server-side in
+      // completeOnboarding. Mark the activation→trial transition for funnel math.
+      track(Ev.TRIAL_STARTED, { trial_days: 14 });
       // Redeem a pending buddy invite (S1: auto-pair on first open).
       const pendingBuddy = await takePendingBuddy();
       if (pendingBuddy) {

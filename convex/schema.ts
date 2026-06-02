@@ -42,6 +42,10 @@ export default defineSchema({
     lifetimeMoneySaved: v.optional(v.number()),
     // monetization mirror (RC SDK entitlement is runtime source of truth)
     premium: v.optional(v.boolean()),
+    // app-managed trial (§8) — granted at onboarding; paywall gates after expiry
+    trialStartedAt: v.optional(v.number()), // epoch ms — when the 14-day window began
+    trialEndsAt: v.optional(v.number()), // epoch ms — trialStartedAt + 14d
+    trialReminderSent: v.optional(v.boolean()), // dedup the one trial-ending email
     oneSignalExternalId: v.optional(v.string()),
   }).index('email', ['email']),
 

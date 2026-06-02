@@ -2,6 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 import { mutation, query, internalMutation } from './_generated/server';
 import { moneySaved, nextHealthMilestone } from './model/plan';
+import { trialEndsFrom, trialStatus } from './model/trial';
 
 /** Called right after anonymous sign-in at the commitment step (Decision 2). */
 export const completeOnboarding = mutation({
@@ -35,6 +36,11 @@ export const completeOnboarding = mutation({
       lifetimeCleanDays: 0,
       lifetimeMoneySaved: 0,
       premium: false,
+      // Grant the app-managed 14-day full-access trial (§8). Paywall gates only
+      // after this window closes (unless they subscribe first).
+      trialStartedAt: now,
+      trialEndsAt: trialEndsFrom(now),
+      trialReminderSent: false,
     });
     return { attemptId };
   },
@@ -53,6 +59,7 @@ export const todayState = query({
     const now = Date.now();
     const profile = { baselinePerDay: user.baselinePerDay ?? 0, unitCost: user.unitCost ?? 0 };
     const currentSaved = moneySaved(profile, now - attempt.startDate);
+    const trial = trialStatus(now, user.trialEndsAt, user.premium ?? false);
     return {
       quitStart: attempt.startDate,
       currentMoneySaved: currentSaved,
@@ -63,6 +70,10 @@ export const todayState = query({
       lastCheckInLocalDate: user.lastCheckInLocalDate ?? null,
       nextMilestone: nextHealthMilestone(attempt.startDate, now),
       premium: user.premium ?? false,
+      // app-managed trial (§8) — UI shows countdown / gates after expiry
+      trialEndsAt: trial.trialEndsAt,
+      trialActive: trial.trialActive,
+      trialDaysRemaining: trial.trialDaysRemaining,
       timezone: user.timezone ?? null,
     };
   },

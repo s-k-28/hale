@@ -39,10 +39,12 @@ function fmtDay(date: string) {
 
 export default function Analytics() {
   const { isAuthenticated } = useConvexAuth();
-  const { premium, loading } = usePremium();
+  const { hasAccess, loading } = usePremium();
 
-  // Only fetch the (modest) datasets once premium + authed — no wasted reads.
-  const enabled = isAuthenticated && premium;
+  // Gate on hasAccess (premium OR active trial) — trial users get insights
+  // unlocked from minute one (§8). Only fetch once authed + entitled — no
+  // wasted reads behind the lock.
+  const enabled = isAuthenticated && hasAccess;
   const trend = useQuery(api.analytics.cravingTrend, enabled ? {} : 'skip');
   const recovery = useQuery(api.analytics.recoverySummary, enabled ? {} : 'skip');
 
@@ -51,8 +53,8 @@ export default function Analytics() {
   useEffect(() => {
     if (loading || viewedRef.current) return;
     viewedRef.current = true;
-    track(Ev.ANALYTICS_VIEWED, { locked: !premium });
-  }, [loading, premium]);
+    track(Ev.ANALYTICS_VIEWED, { locked: !hasAccess });
+  }, [loading, hasAccess]);
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -83,7 +85,7 @@ export default function Analytics() {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.volt} />
         </View>
-      ) : !premium ? (
+      ) : !hasAccess ? (
         <LockedPrompt />
       ) : (
         <Unlocked trend={trend} recovery={recovery} />

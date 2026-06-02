@@ -33,6 +33,7 @@ export const Ev = {
   RELAPSE_LOGGED: 'relapse_logged',
   RELAPSE_RECOVERED: 'relapse_recovered',
   // Monetization
+  TRIAL_STARTED: 'trial_started',
   PAYWALL_VIEWED: 'paywall_viewed',
   PURCHASE_COMPLETED: 'purchase_completed',
   // Phase 2 (post-launch) — squads, leagues, rally, goals, analytics

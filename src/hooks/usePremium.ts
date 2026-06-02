@@ -18,7 +18,13 @@ import { isPremium as rcIsPremium } from '@/lib/revenuecat';
  * `loading` is true until the very first resolution (either signal) so callers
  * can avoid flashing a locked state on cold start.
  */
-export function usePremium(): { premium: boolean; loading: boolean } {
+export function usePremium(): {
+  premium: boolean;
+  trialActive: boolean;
+  trialDaysRemaining: number;
+  hasAccess: boolean;
+  loading: boolean;
+} {
   const { isAuthenticated } = useConvexAuth();
 
   // Convex mirror — undefined while loading, null when not onboarded.
@@ -62,5 +68,12 @@ export function usePremium(): { premium: boolean; loading: boolean } {
   // slow/absent RC in scaffold mode, and don't wait on Convex when signed out.
   const loading = !rcResolved && !mirrorResolved;
 
-  return { premium, loading };
+  // App-managed trial (§8) from the Convex mirror. A subscriber is never "in
+  // trial" (todayState already reports trialActive=false when premium), so
+  // hasAccess = premium OR an active trial — the single gate the UI should use.
+  const trialActive = today?.trialActive ?? false;
+  const trialDaysRemaining = today?.trialDaysRemaining ?? 0;
+  const hasAccess = premium || trialActive;
+
+  return { premium, trialActive, trialDaysRemaining, hasAccess, loading };
 }

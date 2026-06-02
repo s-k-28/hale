@@ -1,6 +1,8 @@
 import { v } from 'convex/values';
-import { internalAction, internalQuery } from './_generated/server';
+import { internalAction, internalMutation, internalQuery } from './_generated/server';
 import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import { TRIAL_REMINDER_WINDOW_MS } from './model/trial';
 
 /**
  * Lifecycle-email layer (Resend). Mirrors the pushes.ts pattern: actions hold
@@ -96,21 +98,58 @@ export const sendTrialReminder = internalAction({
 });
 
 /**
- * Daily win-back / trial-reminder sweep (scheduled by crons.ts). STUB.
- *
- * EMAIL-GATED: only users who have LINKED an email can be reminded — anonymous
- * users (schema Decision 2) have none, and sendTrialReminder is a no-op for
- * them. Once trial/lifecycle windows are defined, enumerate eligible users
- * here and ctx.scheduler.runAfter(0, internal.email.sendTrialReminder, ...)
- * per user. Kept as a no-op pass-through stub for now so the cron is wired but
- * inert until that targeting query exists.
+ * Users whose app-managed trial (§8) is ending soon and who can actually be
+ * reached + still need converting:
+ *   • trialEndsAt within the next TRIAL_REMINDER_WINDOW_MS (≤ 2 days) and not
+ *     already past
+ *   • NOT premium (a subscriber doesn't need a trial nudge)
+ *   • has a linked email (anonymous users have none — schema Decision 2)
+ *   • not already reminded (trialReminderSent — the email fires exactly once)
+ */
+export const trialEndingUsers = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const users = await ctx.db.query('users').collect();
+    const due: Array<Id<'users'>> = [];
+    for (const user of users) {
+      if (user.premium) continue; // already converted
+      if (!user.email) continue; // can't reach an anonymous user
+      if (user.trialReminderSent) continue; // one reminder, ever
+      const endsAt = user.trialEndsAt;
+      if (endsAt == null) continue;
+      if (endsAt <= now) continue; // already expired — handled by the paywall, not email
+      if (endsAt - now > TRIAL_REMINDER_WINDOW_MS) continue; // not close enough yet
+      due.push(user._id);
+    }
+    return due;
+  },
+});
+
+/** Stamp that the trial-ending email was sent (dedup — fires exactly once). */
+export const markTrialReminded = internalMutation({
+  args: { userId: v.id('users') },
+  handler: async (ctx, { userId }) => {
+    await ctx.db.patch(userId, { trialReminderSent: true });
+  },
+});
+
+/**
+ * Daily trial-reminder sweep (scheduled by crons.ts). For each user whose trial
+ * is ending soon, send the single "your trial is ending" email and stamp it so
+ * we never email twice. sendTrialReminder is itself email-gated + scaffold-safe
+ * (no-op without RESEND_API_KEY), so this is safe to run before keys land — it
+ * just won't deliver. Returns the count for log/verification.
  */
 export const trialReminderSweep = internalAction({
   args: {},
-  handler: async (_ctx) => {
-    // TODO(step 8): query users whose trial is ending AND who have a linked
-    // email, then schedule internal.email.sendTrialReminder for each.
-    // No-op until the eligibility query lands — anonymous users are never
-    // emailed (they have no address to reach).
+  handler: async (ctx): Promise<{ reminded: number }> => {
+    const due: Array<Id<'users'>> = await ctx.runQuery(internal.email.trialEndingUsers, {});
+    for (const userId of due) {
+      await ctx.scheduler.runAfter(0, internal.email.sendTrialReminder, { userId });
+      await ctx.runMutation(internal.email.markTrialReminded, { userId });
+      console.log('[ev:server] trial_reminder_sent', JSON.stringify({ userId }));
+    }
+    return { reminded: due.length };
   },
 });
