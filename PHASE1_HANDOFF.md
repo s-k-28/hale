@@ -1,56 +1,77 @@
 # HALE — Phase-1 Build Handoff (resume after context clear)
 
-**Repo:** `~/hale` · git `main` (remote `s-k-28/hale`, **local commits NOT pushed**).
-**Stack (LOCKED):** Expo ~56.0.8 · React Native 0.85.3 · React 19.2.3 · Hermes v1 · New Architecture · **NativeWind ^4.2.4** · Convex (deployment `good-canary-630`) · `@convex-dev/auth` (anonymous) · expo-router (typedRoutes + reactCompiler).
+**Repo:** `~/hale` · git `main` (remote `s-k-28/hale`, **pushed through `7c094f7`** as of 2026-06-02 session).
+**Stack (LOCKED):** Expo ~56.0.8 · RN 0.85.3 · React 19.2.3 · Hermes v1 · New Arch · **NativeWind ^4.2.4** · Convex (`good-canary-630`) · `@convex-dev/auth` (anonymous) · expo-router (typedRoutes + reactCompiler).
 
-## The bar (hold throughout)
-Ultrathink before code (esp. data flow / failure / empty+error states). ExecBro is the **done-gate**: run live on device, screenshot/verify, confirm the `[ev]` event fires. No placeholders / no hardcoded values. Commit each increment. **A feature is done only when it hits its PRD exit criteria, not when it compiles.** Don't call Phase 1 done until all 10 pass.
+## The bar
+Ultrathink before code. ExecBro = done-gate (run live, screenshot, confirm `[ev]`). No placeholders/hardcoded. Commit each increment. **A feature is "passed" only at its PRD exit criteria, not when it compiles.** Phase 1 isn't done until all 10 pass.
 
-## Verification harness (how to actually verify)
-- **Simulator:** iPhone 17 Pro, UDID `755B55D9-8E4B-431C-9D1D-A635F38CFF5F`.
-- **Metro:** port 8081, cwd `~/hale`, log at `/tmp/hale-metro-spike.log`. Restart: kill the :8081 node, then `cd ~/hale && nohup npx expo start --port 8081 --clear > /tmp/hale-metro-spike.log 2>&1 &`.
-- **ExecBro (MCP):** `scan_metro` to attach. **CDP is 401** → JS introspection (get_logs / component tree / execute_in_app) is BLOCKED. Use `ios_screenshot`, `tap` (axe driver installed at `/opt/homebrew/bin/axe`), `swipe`, `ios_open_url`. Tap with `strategy:"accessibility"` (fiber path is 401'd).
-- **Event firing:** `track()` (src/lib/analytics.ts) logs `[ev] <name> <props>` to the Metro log in `__DEV__`. Verify events: `grep -aE "\[ev\]" /tmp/hale-metro-spike.log`.
-- **Convex reads:** `cd ~/hale && npx convex data <table>` (users, quitAttempts, checkIns, cravings, buddyLinks, nudges, sageMessages, feedEvents).
-- **Convex deploy:** `npx convex dev --once --typecheck disable` (REQUIRED flag — there are **pre-existing** `process.env` type errors in pushes/sage/email/http/auth.config that block the typecheck; they are not ours).
-- **Fresh onboarding:** the iOS keychain (Convex auth token via expo-secure-store) **survives app uninstall** on the sim. To force a fresh first-time user: `xcrun simctl keychain <UDID> reset` then relaunch.
-- **Deep links:** `hale://sos`, `hale://u/<inviterId>` (buddy invite).
-- **Test users (Convex):** current = `m977q7gwpr70m6vt5pwsxjpfqs87tc38` (paired with buddy **"Sid"** `m97fwmct5bb0fvx5gm00k7cp2x87t6b0`). Seed a nudge: `npx convex import --append --table nudges <file.jsonl> --yes`.
-- **PostHog MCP** connected (org "HALE") — use it to confirm event **delivery** once the key is set (see open items).
+## Verification harness
+- **Sim:** iPhone 17 Pro UDID `755B55D9-8E4B-431C-9D1D-A635F38CFF5F`.
+- **Metro:** port 8081, cwd `~/hale`, log `/tmp/hale-metro-spike.log`. Restart: kill :8081 node, `cd ~/hale && nohup npx expo start --port 8081 --clear > /tmp/hale-metro-spike.log 2>&1 &`.
+- **ExecBro MCP:** `scan_metro`. **CDP 401** → JS introspection blocked; use `ios_screenshot`/`tap`(strategy:"accessibility", axe at /opt/homebrew/bin/axe)/`swipe`/`ios_open_url`.
+- **Client events:** `track()` logs `[ev] <name> <props>` to Metro log in `__DEV__`. `grep -aE "\[ev\]" /tmp/hale-metro-spike.log`. (Drops some in-burst lines on this 401 connection — confirm via Convex when in doubt.)
+- **Server events:** Convex actions `console.log('[ev:server] …')` → `npx convex logs --history N`.
+- **Convex:** `npx convex data <table>` (read) · `npx convex run <fn>` (run) · deploy `npx convex dev --once --typecheck disable` (REQUIRED flag — pre-existing process.env type errors in pushes/sage/email/http/auth.config).
+- **Fresh onboarding:** keychain survives uninstall → `xcrun simctl keychain <UDID> reset` then relaunch.
+- **Deep links:** `hale://sos`, `hale://u/<inviterId>`.
+- **Test users:** current `m977q7gwpr70m6vt5pwsxjpfqs87tc38` (buddy "Sid" `m97fwmct5bb0fvx5gm00k7cp2x87t6b0`). Seed rows: `npx convex import --append --table <t> <jsonl> --yes`.
 
-## 10 Phase-1 features
-| # | Feature | Status | Notes / files |
-|---|---------|--------|---------------|
-| O1 | Onboarding quiz→plan→commit | ✅ **VERIFIED** | Auth-race fixed (commit gates on `useConvexAuth().isAuthenticated`). welcome.tsx is **Tamagui**; rest NativeWind. `src/app/(onboarding)/welcome.tsx`, `quiz.tsx`; `convex/users.ts:completeOnboarding`. Events onboarding_started/plan_viewed/quit_committed. |
-| P1/P2 | Today: counter + check-in + freeze | ✅ **VERIFIED** | `counter_viewed` fires; `streak_freeze_used` wired (freeze-path live-fire still needs a 1-day-gap sim). `src/app/(tabs)/today.tsx`, `convex/users.ts:todayState`, `checkins.ts`, `model/streak.ts`, `model/plan.ts`. |
-| S1/S2 | Buddy pairing + nudge | ✅ **VERIFIED** | Deep-link `u/[id]` + auto-pair on first-open; nudge inbox on Today fires nudge_opened. `src/app/u/[id].tsx`, `src/lib/pendingBuddy.ts`, `convex/buddies.ts`, `convex/nudges.ts` (myNudges joins sender name), `squad.tsx`, `today.tsx:NudgeInbox`. |
-| I1 | Craving SOS + log | ✅ **VERIFIED** | `CravingLogCapture` = real intensity(1-5)/trigger/context → Convex (no hardcoding). craving_logged/survived fire; sos_opened double-fire fixed; Sage handoff no longer fake-logs. `src/app/sos.tsx`, `convex/cravings.ts`. |
-| I4 | Relapse recovery | ✅ **VERIFIED** | relapse_recovered fires w/ trigger; `quitAttempts.endTrigger` stored via `noteRelapseTrigger`; anti-shame (lifetime preserved). `src/app/sos.tsx:RecoverKindly`, `convex/relapse.ts`, `schema.ts`. |
-| I2/I3 | Sage coach + proactive nudge | 🟡 **NEXT** | Sage chat + Claude action BUILT but **NOT verified live**: `convex/sage.ts` (send / generate=action→Claude / contextFor / writeReply), `src/app/(tabs)/coach.tsx`; coach_message_sent/coach_session wired. **I3 proactive nudge ENTIRELY MISSING** — no cron using `users.hardestHour`; `proactive_nudge_sent` never fires. Free-tier msg limit absent. Now has real craving/trigger data (I1+I4) for context. |
-| P3 | Milestone cards + share | 🟡 remaining | Code-complete, **never run live**. `src/components/MilestoneCelebration.tsx`, `TransformationCard.tsx`, today.tsx celebration trigger; milestone_reached/card_shared wired; uses expo-linear-gradient (not skia). Verify: hit a landmark day → celebration + native share. |
-| Paywall | trials | 🟡 remaining | Paywall renders + RevenueCat webhook (`convex/http.ts`) + `setPremiumByExternalId` wired. **Trial system STUBBED**: `convex/email.ts:trialReminderSweep` is a TODO; NO trial fields in schema; `trial_started` NOT in Ev map; no post-quiz solo/buddy gate. `src/app/paywall.tsx`. |
-| Notifications | cap 2/day | 🟡 remaining | 2/4 push classes (friend nudges, streakAtRisk cron). **Hard cap 2/day promised in UI but ZERO implemented** (no pushLog table). hardest-hour proactive missing. `convex/pushes.ts`, `crons.ts`, `nudges.ts`, `src/lib/onesignal.ts`, usePushTags hook. |
-| Polish/ASO | hero screens + submit | 🟡 remaining | Screens coded. `app.json` has ZERO ASO metadata; `eas.json` submit is an empty placeholder (no Apple config/creds/privacy manifest). |
+## 10 features — passed vs code-done-pending-keys
+| # | Feature | State | Gap to "passed" |
+|---|---------|-------|-----------------|
+| O1 | Onboarding | ✅ behavior verified live | metric delivery needs PostHog key |
+| P1/P2 | Today counter/check-in/freeze | ✅ behavior verified live | metric delivery needs PostHog key |
+| S1/S2 | Buddy pairing + nudge | ✅ behavior verified live | metric delivery needs PostHog key |
+| I1 | Craving SOS + real log | ✅ behavior verified live | metric delivery needs PostHog key |
+| I4 | Relapse recovery | ✅ behavior verified live | metric delivery needs PostHog key |
+| I2 | Sage coach | 🟡 code-done, plumbing verified | **ANTHROPIC_API_KEY** (real replies; currently fallback) |
+| I3 | Proactive hardest-hour nudge | 🟡 code-done, logic verified (`{nudged:1}`→`0`); **link mutation now DONE** (`752c2c5`) | **OneSignal keys** (push delivery) + dev rebuild |
+| P3 | Milestone cards + share | ✅ **behavior verified LIVE** (overlay + both share paths) | metric delivery needs PostHog key |
+| 8 | Paywall + trials | 🟢 **trial backbone DONE + live-verified** (`328d1a3`): 14-day grant, `trial_started`, `hasAccess` gate unlocks analytics for trial users; paywall+webhook exist | **RevenueCat** key+config (real purchases) + onboarding paywall-placement UX decision; **Resend** key (trial emails) |
+| 9 | Notifications | 🟢 **cap 2/day DONE + verified** (`9009539`, `true,true,false`); **link mutation DONE** (`752c2c5`) | **OneSignal keys** (delivery); verify full PRD class set (handoff noted "2/4" — re-audit) |
+| 10 | Polish/ASO | 🔴 screens coded; app.json no ASO, eas.json submit empty; **Anton clip still open** | metadata + Apple submit config + Anton glyph fix |
 
-**Score: 5/10 verified** (O1, P1/P2, S1/S2, I1, I4).
+**Behavior-verified live: O1, P1/P2, S1/S2, I1, I4, P3 (6) + §8 trial grant/gate. Code-done pending keys: I2 (Anthropic), I3 (OneSignal). §8 pure-code DONE (RC key for purchases). §9 pure-code DONE (OneSignal key for delivery).**
+
+**Trial model (LOCKED 2026-06-02): app-managed** — Convex owns `trialStartedAt/trialEndsAt` (14 days), granted at onboarding; paywall gates after expiry. RevenueCat owns the paid sub. `trialStatus`/`TRIAL_LENGTH_DAYS` in `convex/model/trial.ts`.
+
+## Keys still needed (exact var → location → unblocks)
+| Key | Where | Unblocks |
+|-----|-------|----------|
+| `EXPO_PUBLIC_POSTHOG_KEY` (= PostHog "Project API Key", `phc_…`; opt `EXPO_PUBLIC_POSTHOG_HOST`) | `~/hale/.env.local` (restart Metro) | **event DELIVERY → metrics for ALL 10** (highest leverage) |
+| `ANTHROPIC_API_KEY` (`sk-ant-…`) | Convex: `npx convex env set ANTHROPIC_API_KEY …` | I2 Sage real Claude replies |
+| `EXPO_PUBLIC_ONESIGNAL_APP_ID` | `~/hale/.env.local` | OneSignal SDK init + external-id login on device |
+| `ONESIGNAL_APP_ID` + `ONESIGNAL_REST_API_KEY` | Convex: `npx convex env set …` | server push SEND (I3, streak, buddy) |
+| `EXPO_PUBLIC_REVENUECAT_IOS_KEY` (`appl_…`) + RC dashboard product/entitlement "HALE+" + webhook→Convex http + App Store Connect product | `.env.local` + RC/ASC dashboards | Paywall real purchases + premium |
+| Resend key (check `convex/email.ts` for var) | Convex env | trial-reminder emails (lowest — most users anonymous) |
+
+OneSignal also requires a **dev rebuild** (native plugin) before any user is targetable.
+
+## The one PURE CODE gap (no key) — ✅ CLOSED (`752c2c5`)
+`users.linkOneSignal({ externalId })` now writes `oneSignalExternalId` (auth-guarded, idempotent); `loginOneSignal` returns whether the SDK actually logged in; `usePushTags` persists the link only for real (non-scaffold) devices. Unblocks I3 + streak-at-risk delivery once OneSignal keys land. (Backend verified live; the client write needs OneSignal key + dev rebuild to exercise on-device.)
 
 ## Locked architecture decisions (do NOT undo)
-1. **quitAttempts model:** current clean-time (resets on relapse, honest) is separate from the LIFETIME ledger (`lifetimeCleanDays`/`lifetimeMoneySaved`, NEVER zeroed — anti-shame). `users.currentStreak` etc. are a denormalized cache written ONLY by `checkIn`/`logRelapse` mutations.
-2. **Anonymous auth (Decision 2):** users created via `@convex-dev/auth` anonymous sign-in; sign-up deferred to the commit step. `getAuthUserId(ctx)` guards all authed mutations.
-3. **Timezone / localDate:** streak + craving math is timezone-aware (`users.timezone` IANA; `localDateOf`/`localHourOf` in `convex/model/streak.ts`). Check-ins dedup by `localDate`.
-4. **NativeWind, NOT Tamagui.** PRD specced NativeWind; nothing was broken. A Tamagui migration was spiked + foundation built (`tamagui.config.ts`, `src/components/tama.tsx`, `TamaguiProvider` in `_layout.tsx`, welcome.tsx ported) then **PAUSED by user decision** to finish features first. Tamagui coexists (welcome = Tamagui, rest = NativeWind). **Do NOT resume the migration unless the user re-decides.**
-5. **Anti-shame (Decision 3):** relapse routes to a kind recovery flow that surfaces lifetime saved + best streak; never a zero-void; comfort before reflection.
+1. **quitAttempts:** current clean-time (resets on relapse) vs LIFETIME ledger (never zeroed, anti-shame). `users.currentStreak` etc. = denormalized cache written ONLY by checkIn/logRelapse.
+2. **Anonymous auth** (`@convex-dev/auth`); signup deferred to commit. `getAuthUserId` guards authed mutations.
+3. **Timezone/localDate** everywhere (`convex/model/streak.ts:localDateOf/localHourOf`). hardestHour 0-23 local.
+4. **NativeWind, NOT Tamagui.** Tamagui spike+foundation+welcome built then **PAUSED by user**; coexists (welcome=Tamagui, rest=NativeWind). Do NOT resume migration unless user re-decides.
+5. **Anti-shame (Decision 3):** relapse → kind recovery (lifetime preserved), comfort before reflection.
 
-## Open cross-cutting items
-- **PostHog DELIVERY blocked:** `EXPO_PUBLIC_POSTHOG_KEY` is NOT in `~/hale/.env.local`, so `track()` only logs to the device (no delivery to the PostHog dashboard). Events are FIRING-verified via the `[ev]` log. To enable delivery: user adds the `phc_` ingestion key (PostHog → `/settings/project`) to `.env.local`; then `initAnalytics()` wires the client and the PostHog MCP can confirm arrival. (`src/lib/analytics.ts`.)
-- **Anton headline clip (polish pass):** `Display` (Anton) with `leading-none`/`leading-[0.9]` clips round glyphs. FIXED on numeric Displays (today counter, reveal $, commit $, sos timer, recovery stats → `leading-tight`). STILL CLIPS on uppercase WORD headlines using `leading-[0.9]` ("THIS PASSES" sos.tsx, "FRESH RUN", "NOT THE END", etc.). Fix idea: give `Display` a safe default lineHeight, or swap those `leading-[0.9]`→`leading-tight`.
+## Open cross-cutting
+- **Anton word-headline clip:** `Display` (Anton) with `leading-[0.9]`/`leading-none` clips round letters. Numeric Displays fixed (→`leading-tight`). **Confirmed live 2026-06-02 on 3 screens:** You-card hero (`0`→`U`), paywall headline (`GO`→`GU`), card prices (`$39.99`→`$39.YY`). Headlines pending a polish pass (Display default lineHeight or swap those leadings). Part of #10.
+- **Onboarding paywall placement (UX decision pending):** with an app-managed trial, a hard RC paywall mid-onboarding conflicts with "everyone gets 14 days free". Decide where/whether the paywall surfaces in onboarding before wiring it.
+- **Tamagui (parked 2026-06-02):** user asked to "use Tamagui.dev" but deferred the actual decision until UI work resumes. Decision options on the table: full migration / Tamagui-for-new-UI-only / just-consult-docs. Still NativeWind everywhere except welcome.tsx.
 
 ## Remaining priority order
-1. **I2/I3** — verify Sage works live (chat → Claude reply < 3s, coach_message_sent/coach_session), then build the **proactive hardest-hour nudge** (cron reading `users.hardestHour` → OneSignal → `proactive_nudge_sent`). Add free-tier msg cap.
-2. **Paywall trial system** — schema trial fields + implement `trialReminderSweep` + add `trial_started` to Ev map + post-quiz solo/buddy gate.
-3. **Notification 2/day cap** — pushLog table + cap check in send paths; wire `proactive_nudge_sent`.
-4. **P3 verify** — milestone celebration + card share, live.
-(Then #10 Polish/ASO if in scope.)
+1. **§8 finish:** RevenueCat key + config (real purchases) + onboarding paywall-placement decision. (Backbone done + verified.)
+2. **§9 finish:** OneSignal keys + dev rebuild (delivery) + re-audit the PRD notification class set ("2/4" note).
+3. **PostHog key** — unblocks metric delivery for ALL 10 at once (highest leverage).
+4. **I2** Anthropic key (real Sage). **Tamagui decision + Anton clip** (#10 polish). **#10 ASO** metadata.
 
-## Recent commits on `main` (this session, not pushed)
-auth-race + hero-clip fix · global.css · Q1 icon · Tamagui foundation+welcome · streak_freeze_used · buddy pairing deep-link · nudge inbox · analytics dev-log · I1 craving capture · sos Anton clip · I4 relapse_recovered.
+## Commits on `main` — pushed to `s-k-28/hale` through `9009539`
+Prior session: …I4 relapse_recovered · handoff doc · I3 proactive nudge (`965b6ae`).
+**2026-06-02 session (all verified):** `752c2c5` linkOneSignal (push link gap CLOSED) · `328d1a3` §8 app-managed 14-day trial backbone (grant+gate+reminder sweep, live-verified) · `9009539` §9 push fatigue cap 2/user/local-day (live-verified) · plus a `chore` commit (handoff update + tsconfig nativewind-env + shadcn registries + onboarding mockups).
+
+## 2026-06-02 live-verification log (sim)
+Fresh onboarding → new user `m977rje4qac4aysaz3e22j62dd87xvbv` (vape). Events captured in Metro log: `onboarding_started → plan_viewed → quit_committed → trial_started{trial_days:14} → counter_viewed → paywall_viewed → card_shared{day:0,source:profile} → milestone_reached{day:7} → card_shared{day:7,source:milestone} → analytics_viewed{locked:false}`. DB: `trialEndsAt`=now+13.998d, `trialReminderSent:false`. §9 cap: `pushes:tryConsumePushBudget(cap=2)` → `true,true,false`. **NOTE:** that test user was backdated 8 days (via a now-DELETED `convex/_devseed.ts` temp mutation) to trigger the day-7 milestone — it's a throwaway; ignore its quit date.

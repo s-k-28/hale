@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HALE · 10 First Name</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  body { min-height: 100vh; display: grid; place-items: center; padding: 40px; gap: 24px; }
+  .caption { font-family: var(--font-body); color: var(--ash); font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; }
+  .caption strong { color: var(--volt); font-weight: 700; }
+
+  .topbar { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+  .progress.is-top { flex: 1; }
+
+  .qmeta { font-family: var(--font-body); font-weight: 700; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--volt); margin-bottom: 12px; }
+  .qhead { font-family: var(--font-display); font-size: 56px; line-height: 0.92; letter-spacing: -0.03em; color: var(--chalk); margin-bottom: 8px; }
+  .qsub { font-family: var(--font-body); font-weight: 500; font-size: 14px; line-height: 1.5; color: var(--ash); margin-bottom: 40px; }
+
+  .name-input-wrap { margin-bottom: 20px; position: relative; }
+  .name-prefix {
+    font-family: var(--font-display);
+    font-size: 36px;
+    color: var(--ash);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .name-input {
+    font-family: var(--font-display);
+    font-size: 56px;
+    color: var(--volt);
+    letter-spacing: -0.03em;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--volt);
+    width: 100%;
+    padding: 6px 0 12px;
+    outline: none;
+    line-height: 1;
+    margin-top: 8px;
+    caret-color: var(--volt);
+  }
+  .name-input::placeholder { color: var(--ash-dim); }
+
+  .cursor {
+    display: inline-block;
+    width: 3px;
+    height: 48px;
+    background: var(--volt);
+    vertical-align: -10px;
+    margin-left: 2px;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+  .signature-note {
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--coal);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--ash);
+    line-height: 1.5;
+  }
+  .signature-note b { color: var(--chalk); }
+  .signature-note em { font-style: italic; color: var(--volt); }
+
+  /* Suggestion chips */
+  .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .suggestion {
+    padding: 8px 12px;
+    background: var(--coal);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--ash);
+    cursor: pointer;
+  }
+  .suggestion:hover { color: var(--chalk); border-color: var(--volt-edge); }
+
+  /* Keyboard simulator at bottom */
+  .keyboard {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 280px;
+    background: #1C1F22;
+    border-top: 1px solid var(--line);
+    padding: 12px 4px 28px;
+    display: grid;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .kbd-row { display: flex; gap: 4px; justify-content: center; }
+  .key {
+    flex: 1;
+    background: #34373B;
+    border-radius: 6px;
+    display: grid; place-items: center;
+    font-family: 'SF Pro Text', -apple-system, sans-serif;
+    font-size: 18px;
+    color: var(--chalk);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.5);
+    max-width: 32px;
+  }
+  .key.is-wide { max-width: 60px; }
+  .key.is-space { max-width: 140px; }
+  .key.is-modifier { background: #24272A; font-size: 12px; font-weight: 600; color: var(--ash); max-width: 44px; }
+  .home-indicator { position: absolute; left: 50%; transform: translateX(-50%); bottom: 8px; width: 134px; height: 5px; background: rgba(255,255,255,0.4); border-radius: 3px; }
+
+  .frame-mark { position: absolute; top: 80px; right: 32px; font-family: var(--font-display); font-size: 80px; color: rgba(255,255,255,0.025); letter-spacing: -0.05em; line-height: 0.8; pointer-events: none; z-index: 1; }
+  .frame-mark small { display: block; font-family: var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: 0.2em; color: rgba(198,255,61,0.15); margin-top: 6px; }
+</style>
+</head>
+<body>
+  <div class="caption">10 · First Name <strong>·</strong> Act 2 · Quiz (7/8)</div>
+
+  <div class="phone">
+    <div class="statusbar">
+      <span class="statusbar-time">9:41</span>
+      <span class="statusbar-icons">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><path d="M9 10.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM3.5 7.5a8 8 0 0111 0M1 4.5a12 12 0 0116 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="currentColor"/><rect x="22.5" y="4" width="2" height="4" rx="0.5" fill="currentColor" opacity="0.5"/></svg>
+      </span>
+    </div>
+    <div class="grain"></div>
+    <div class="phone-content">
+      <div class="frame-mark">10<small>NAME</small></div>
+
+      <div class="topbar">
+        <button class="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="progress is-top">
+          <span class="dot done"></span><span class="dot done"></span><span class="dot done"></span><span class="dot done"></span><span class="dot done"></span><span class="dot done"></span><span class="dot done"></span><span class="dot done"></span><span class="dot done"></span><span class="dot active"></span><span class="dot"></span>
+        </div>
+      </div>
+
+      <div class="qmeta">Question 7 / 7 · Last one</div>
+      <h1 class="qhead">What should<br>we call you?</h1>
+      <p class="qsub">Your squad will see this. First name or callsign — your choice.</p>
+
+      <div class="name-input-wrap">
+        <div class="name-prefix">Hey, I'm</div>
+        <div style="border-bottom: 2px solid var(--volt); padding-bottom: 8px; margin-top: 4px;">
+          <span style="font-family: var(--font-display); font-size: 56px; color: var(--volt); letter-spacing: -0.03em; line-height: 1;">SARAH</span>
+          <span class="cursor"></span>
+        </div>
+      </div>
+
+      <div class="signature-note">
+        <b>Your commitment vow</b> will read: <em>"I, Sarah, commit to quitting on Sept 15."</em>
+      </div>
+    </div>
+
+    <div class="keyboard">
+      <div class="kbd-row">
+        <span class="key">Q</span><span class="key">W</span><span class="key">E</span><span class="key">R</span><span class="key">T</span><span class="key">Y</span><span class="key">U</span><span class="key">I</span><span class="key">O</span><span class="key">P</span>
+      </div>
+      <div class="kbd-row">
+        <span class="key">A</span><span class="key">S</span><span class="key">D</span><span class="key">F</span><span class="key">G</span><span class="key">H</span><span class="key">J</span><span class="key">K</span><span class="key">L</span>
+      </div>
+      <div class="kbd-row">
+        <span class="key is-modifier">⇧</span><span class="key">Z</span><span class="key">X</span><span class="key">C</span><span class="key">V</span><span class="key">B</span><span class="key">N</span><span class="key">M</span><span class="key is-modifier">⌫</span>
+      </div>
+      <div class="kbd-row">
+        <span class="key is-modifier">123</span><span class="key is-modifier">😀</span><span class="key is-space">space</span><span class="key is-wide" style="background: var(--volt); color: var(--volt-ink); font-weight: 700;">next</span>
+      </div>
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <div class="caption">11 NEXT · QUIT DATE</div>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HALE · 03 Social Proof</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  body { min-height: 100vh; display: grid; place-items: center; padding: 40px; gap: 24px; }
+  .caption { font-family: var(--font-body); color: var(--ash); font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; }
+  .caption strong { color: var(--volt); font-weight: 700; }
+
+  .topbar { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+  .progress.is-top { flex: 1; }
+  .head { font-family: var(--font-display); font-size: 60px; line-height: 0.92; letter-spacing: -0.03em; color: var(--chalk); margin-bottom: 8px; }
+  .head em { font-style: normal; color: var(--volt); }
+  .sub { font-family: var(--font-body); font-weight: 500; font-size: 14px; line-height: 1.5; color: var(--ash); max-width: 300px; margin-bottom: 24px; }
+
+  .quote {
+    background: var(--coal);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 20px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .quote-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .quote-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2A3530, #1A201D);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    font-family: var(--font-headline);
+    font-weight: 900;
+    color: var(--chalk);
+    font-size: 14px;
+  }
+  .quote-avatar.is-volt { background: linear-gradient(135deg, var(--volt), var(--volt-dim)); color: var(--volt-ink); border-color: var(--volt); }
+  .quote-name { font-family: var(--font-headline); font-weight: 800; font-size: 14px; color: var(--chalk); }
+  .quote-meta { font-family: var(--font-body); font-weight: 600; font-size: 11px; color: var(--ash); letter-spacing: 0.04em; }
+  .quote-meta b { color: var(--volt); }
+  .quote-text { font-family: var(--font-body); font-weight: 500; font-size: 14px; color: var(--chalk); line-height: 1.45; }
+  .quote-text::before { content: '"'; font-family: var(--font-display); font-size: 36px; color: var(--volt); line-height: 0; vertical-align: -10px; margin-right: 4px; }
+
+  .live-ticker {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    background: rgba(107, 227, 138, 0.08);
+    border: 1px solid rgba(107, 227, 138, 0.25);
+    border-radius: 14px;
+    margin-bottom: 18px;
+  }
+  .live-ticker-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 10px rgba(107,227,138,0.6); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .live-ticker-text { font-family: var(--font-body); font-weight: 600; font-size: 12px; color: var(--chalk); letter-spacing: 0.02em; }
+  .live-ticker-text b { color: var(--success); }
+  .live-ticker-text span { color: var(--ash); }
+
+  .cta-wrap { margin-top: auto; }
+  .frame-mark { position: absolute; top: 80px; right: 32px; font-family: var(--font-display); font-size: 80px; color: rgba(255,255,255,0.025); letter-spacing: -0.05em; line-height: 0.8; pointer-events: none; z-index: 1; }
+  .frame-mark small { display: block; font-family: var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: 0.2em; color: rgba(198,255,61,0.15); margin-top: 6px; }
+</style>
+</head>
+<body>
+  <div class="caption">03 · Social Proof <strong>·</strong> Act 1 · Value</div>
+
+  <div class="phone">
+    <div class="statusbar">
+      <span class="statusbar-time">9:41</span>
+      <span class="statusbar-icons">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><path d="M9 10.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM3.5 7.5a8 8 0 0111 0M1 4.5a12 12 0 0116 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="currentColor"/><rect x="22.5" y="4" width="2" height="4" rx="0.5" fill="currentColor" opacity="0.5"/></svg>
+      </span>
+    </div>
+    <div class="grain"></div>
+    <div class="phone-content">
+      <div class="frame-mark">03<small>PROOF</small></div>
+
+      <div class="topbar">
+        <button class="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="progress is-top">
+          <span class="dot done"></span><span class="dot done"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        </div>
+      </div>
+
+      <h1 class="head">Real people.<br><em>Real wins.</em></h1>
+      <p class="sub">No paid testimonials. These are people who showed up in their squad, on their hardest day.</p>
+
+      <div class="live-ticker">
+        <span class="live-ticker-dot"></span>
+        <span class="live-ticker-text"><b>23 people</b> <span>quit today · live counter</span></span>
+      </div>
+
+      <div class="quote">
+        <div class="quote-head">
+          <div class="quote-avatar is-volt">M</div>
+          <div>
+            <div class="quote-name">Marcus, 28</div>
+            <div class="quote-meta"><b>89 days</b> · ex-vape, 6 pods/wk</div>
+          </div>
+        </div>
+        <div class="quote-text">Day 4 nearly broke me. My squad pinged me at 9:14pm — 12 messages in 8 minutes. I didn't hit the vape.</div>
+      </div>
+
+      <div class="quote">
+        <div class="quote-head">
+          <div class="quote-avatar">P</div>
+          <div>
+            <div class="quote-name">Priya, 34</div>
+            <div class="quote-meta"><b>206 days</b> · ex-Zyn, 20/day</div>
+          </div>
+        </div>
+        <div class="quote-text">Every other app guilt-tripped me. HALE just showed me the money I was burning and the squad showed up. Done.</div>
+      </div>
+
+      <div class="quote">
+        <div class="quote-head">
+          <div class="quote-avatar">J</div>
+          <div>
+            <div class="quote-name">Jordan, 22</div>
+            <div class="quote-meta"><b>41 days</b> · cigs since 16</div>
+          </div>
+        </div>
+        <div class="quote-text">First app that didn't sound like my high school health class.</div>
+      </div>
+
+      <div class="cta-wrap">
+        <button class="btn-primary">Build my plan →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="caption">04 NEXT · PRODUCT TYPE</div>
+</body>
+</html>

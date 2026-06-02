@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HALE · 01 Welcome</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  body {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 40px;
+    gap: 24px;
+  }
+  .caption {
+    font-family: var(--font-body);
+    color: var(--ash);
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .caption strong { color: var(--volt); font-weight: 700; }
+
+  /* Screen-specific */
+  .welcome-pill { margin-top: 0; }
+  .welcome-hero {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-top: -20px;
+  }
+  .welcome-wordmark {
+    font-family: var(--font-display);
+    font-size: 168px;
+    line-height: 0.84;
+    letter-spacing: -0.04em;
+    color: var(--chalk);
+    /* tiny dimensional gradient — barely there, adds depth */
+    background: linear-gradient(180deg, var(--chalk) 0%, #C8CCC4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+  }
+  /* lime underline accent — magazine/editorial feel */
+  .welcome-wordmark::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 0;
+    width: 56px;
+    height: 6px;
+    background: var(--volt);
+  }
+  .welcome-tagline {
+    font-family: var(--font-headline);
+    font-weight: 900;
+    font-size: 42px;
+    line-height: 1.0;
+    letter-spacing: -0.025em;
+    color: var(--volt);
+    margin-top: 28px;
+    text-transform: uppercase;
+  }
+  .welcome-tagline em {
+    font-style: normal;
+    color: var(--chalk);
+  }
+  .welcome-sub {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--ash);
+    margin-top: 22px;
+    max-width: 280px;
+  }
+  .welcome-cta { margin-top: auto; }
+  .welcome-micro {
+    text-align: center;
+    margin-top: 14px;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--ash);
+    letter-spacing: 0.02em;
+  }
+  .welcome-micro span { color: var(--volt-dim); }
+
+  /* faint frame numerals */
+  .frame-mark {
+    position: absolute;
+    top: 80px;
+    right: 32px;
+    font-family: var(--font-display);
+    font-size: 80px;
+    color: rgba(255,255,255,0.025);
+    letter-spacing: -0.05em;
+    line-height: 0.8;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .frame-mark small {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: rgba(198,255,61,0.15);
+    margin-top: 6px;
+  }
+
+  /* Live counter strip — adds proof / movement */
+  .live-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--volt);
+    box-shadow: 0 0 8px var(--volt-glow);
+    animation: pulse 2s infinite ease-in-out;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .live-text {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--ash);
+    letter-spacing: 0.04em;
+  }
+  .live-text b { color: var(--chalk); font-weight: 700; }
+</style>
+</head>
+<body>
+
+  <div class="caption">01 · Welcome <strong>·</strong> Act 1 · Value</div>
+
+  <div class="phone">
+    <div class="statusbar">
+      <span class="statusbar-time">9:41</span>
+      <span class="statusbar-icons">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><path d="M9 10.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM3.5 7.5a8 8 0 0111 0M1 4.5a12 12 0 0116 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="currentColor"/><rect x="22.5" y="4" width="2" height="4" rx="0.5" fill="currentColor" opacity="0.5"/></svg>
+      </span>
+    </div>
+
+    <div class="grain"></div>
+
+    <div class="phone-content">
+      <div class="frame-mark">01<small>WELCOME</small></div>
+
+      <div class="welcome-pill">
+        <div class="pill">No more nicotine</div>
+      </div>
+
+      <div class="welcome-hero">
+        <h1 class="welcome-wordmark">HALE</h1>
+        <h2 class="welcome-tagline">Quit nicotine.<br><em>Together.</em></h2>
+        <p class="welcome-sub">Build a quit plan that actually sticks — and beat the cravings with people who get it.</p>
+
+        <div class="live-strip">
+          <span class="live-dot"></span>
+          <span class="live-text"><b>10,432</b> vapes broken this month</span>
+        </div>
+      </div>
+
+      <div class="welcome-cta">
+        <button class="btn-primary">Build my quit plan →</button>
+        <p class="welcome-micro">Free to start <span>·</span> 60-second setup <span>·</span> No credit card</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="caption">Mock at iPhone 17 Pro · 393 × 852 · open <strong>index.html</strong> for gallery</div>
+
+</body>
+</html>

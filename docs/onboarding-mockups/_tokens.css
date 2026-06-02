@@ -1,0 +1,278 @@
+/* HALE — Bold Momentum design tokens */
+/* Liquid Death meets Whoop. Dark + electric lime. No generic AI aesthetics. */
+
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,400;0,700;0,800;0,900;1,900&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Surfaces */
+  --void: #0A0C0B;
+  --coal: #12161A;
+  --card: #12161A;
+  --line: #1F2723;
+  --hairline: #2A332D;
+
+  /* Accent */
+  --volt: #C6FF3D;
+  --volt-dim: #9FD22E;
+  --volt-ink: #0A0C0B;
+  --volt-glow: rgba(198, 255, 61, 0.25);
+  --volt-soft: rgba(198, 255, 61, 0.12);
+  --volt-edge: rgba(198, 255, 61, 0.40);
+
+  /* Text */
+  --chalk: #F4F7F2;
+  --ash: #8A938C;
+  --ash-dim: #5A625B;
+
+  /* Semantic */
+  --sos: #FF5A4D;
+  --success: #6BE38A;
+
+  /* Type */
+  --font-display: 'Anton', 'Helvetica Neue', sans-serif;
+  --font-headline: 'Archivo', 'Helvetica Neue', sans-serif;
+  --font-body: 'Hanken Grotesk', 'Helvetica Neue', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: #060707;
+  color: var(--chalk);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Phone frame container — every mockup wraps in this */
+.phone {
+  position: relative;
+  width: 393px;
+  height: 852px;
+  background: var(--void);
+  border-radius: 56px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 14px #0a0a0a,
+    0 0 0 15px #2a2a2a,
+    0 60px 120px -20px rgba(198, 255, 61, 0.05),
+    0 40px 80px -20px rgba(0, 0, 0, 0.8);
+}
+
+/* Dynamic Island simulator */
+.phone::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 124px;
+  height: 36px;
+  background: #000;
+  border-radius: 24px;
+  z-index: 100;
+}
+
+.phone-content {
+  position: absolute;
+  inset: 0;
+  padding: 64px 32px 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Status bar simulator */
+.statusbar {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  padding: 0 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'SF Pro Text', -apple-system, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--chalk);
+  z-index: 99;
+}
+.statusbar-time { font-variant-numeric: tabular-nums; }
+.statusbar-icons { display: flex; gap: 6px; align-items: center; }
+
+/* Pill chip */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--volt-soft);
+  border: 1px solid var(--volt-edge);
+  color: var(--volt);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  width: fit-content;
+}
+.pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--volt);
+  box-shadow: 0 0 8px var(--volt-glow);
+}
+
+/* Primary CTA button — the ONE loud lime moment */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 64px;
+  background: var(--volt);
+  color: var(--volt-ink);
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-headline);
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease;
+}
+.btn-primary:hover { transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); background: var(--volt-dim); }
+
+.btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 56px;
+  background: transparent;
+  color: var(--chalk);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Display type */
+.display { font-family: var(--font-display); font-weight: 400; color: var(--chalk); letter-spacing: -0.02em; line-height: 0.88; }
+.headline-volt { font-family: var(--font-headline); font-weight: 900; color: var(--volt); letter-spacing: -0.02em; line-height: 1.05; text-transform: uppercase; }
+.headline-chalk { font-family: var(--font-headline); font-weight: 900; color: var(--chalk); letter-spacing: -0.01em; line-height: 1.1; }
+.body { font-family: var(--font-body); font-weight: 500; color: var(--ash); font-size: 16px; line-height: 1.45; }
+.label { font-family: var(--font-body); font-weight: 700; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ash); }
+
+/* Quiz option cards */
+.option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 20px;
+  background: var(--coal);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.option:hover { border-color: var(--volt-edge); background: #161A1E; }
+.option.selected {
+  background: var(--volt-soft);
+  border-color: var(--volt);
+}
+.option-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--void);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--volt);
+}
+.option-text { flex: 1; }
+.option-label { font-family: var(--font-headline); font-weight: 800; font-size: 16px; color: var(--chalk); letter-spacing: -0.01em; }
+.option-sub { font-family: var(--font-body); font-weight: 500; font-size: 13px; color: var(--ash); margin-top: 2px; }
+.option-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ash-dim);
+  flex-shrink: 0;
+}
+.option.selected .option-check {
+  background: var(--volt);
+  border-color: var(--volt);
+  position: relative;
+}
+.option.selected .option-check::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -55%) rotate(45deg);
+  width: 5px; height: 9px;
+  border: solid var(--volt-ink);
+  border-width: 0 2px 2px 0;
+}
+
+/* Progress dots */
+.progress {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.dot {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  flex: 1;
+  max-width: 40px;
+}
+.dot.active { background: var(--volt); }
+.dot.done { background: var(--volt-dim); }
+
+/* Back button */
+.back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  color: var(--ash);
+  cursor: pointer;
+}
+
+/* Scan-line / film grain texture overlay for atmosphere */
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 2px,
+      rgba(255,255,255,0.012) 2px,
+      rgba(255,255,255,0.012) 3px
+    );
+  z-index: 50;
+}
+</content>
+</invoke>

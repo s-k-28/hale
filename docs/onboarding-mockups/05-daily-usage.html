@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HALE · 05 Daily Usage</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  body { min-height: 100vh; display: grid; place-items: center; padding: 40px; gap: 24px; }
+  .caption { font-family: var(--font-body); color: var(--ash); font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; }
+  .caption strong { color: var(--volt); font-weight: 700; }
+
+  .topbar { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+  .progress.is-top { flex: 1; }
+  .qmeta { font-family: var(--font-body); font-weight: 700; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--volt); margin-bottom: 12px; }
+  .qhead { font-family: var(--font-display); font-size: 52px; line-height: 0.92; letter-spacing: -0.03em; color: var(--chalk); margin-bottom: 8px; }
+  .qsub { font-family: var(--font-body); font-weight: 500; font-size: 14px; line-height: 1.5; color: var(--ash); margin-bottom: 32px; }
+
+  /* Big number ladder */
+  .number-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .num-btn {
+    background: var(--coal);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 24px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .num-btn:hover { border-color: var(--volt-edge); }
+  .num-btn.selected {
+    background: var(--volt-soft);
+    border-color: var(--volt);
+  }
+  .num-val { font-family: var(--font-display); font-size: 44px; line-height: 1; color: var(--chalk); letter-spacing: -0.03em; }
+  .num-btn.selected .num-val { color: var(--volt); }
+  .num-unit { font-family: var(--font-body); font-weight: 600; font-size: 11px; color: var(--ash); letter-spacing: 0.08em; text-transform: uppercase; }
+
+  .anchor {
+    margin-top: 20px;
+    padding: 14px 16px;
+    background: rgba(255, 90, 77, 0.08);
+    border: 1px solid rgba(255, 90, 77, 0.2);
+    border-radius: 14px;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--ash);
+    line-height: 1.45;
+  }
+  .anchor b { color: var(--sos); font-family: var(--font-headline); font-weight: 800; font-size: 14px; }
+
+  .frame-mark { position: absolute; top: 80px; right: 32px; font-family: var(--font-display); font-size: 80px; color: rgba(255,255,255,0.025); letter-spacing: -0.05em; line-height: 0.8; pointer-events: none; z-index: 1; }
+  .frame-mark small { display: block; font-family: var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: 0.2em; color: rgba(198,255,61,0.15); margin-top: 6px; }
+  .cta-wrap { margin-top: auto; padding-top: 16px; }
+</style>
+</head>
+<body>
+  <div class="caption">05 · Daily Usage <strong>·</strong> Act 2 · Quiz (2/8)</div>
+
+  <div class="phone">
+    <div class="statusbar">
+      <span class="statusbar-time">9:41</span>
+      <span class="statusbar-icons">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><path d="M9 10.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM3.5 7.5a8 8 0 0111 0M1 4.5a12 12 0 0116 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="currentColor"/><rect x="22.5" y="4" width="2" height="4" rx="0.5" fill="currentColor" opacity="0.5"/></svg>
+      </span>
+    </div>
+    <div class="grain"></div>
+    <div class="phone-content">
+      <div class="frame-mark">05<small>USAGE</small></div>
+
+      <div class="topbar">
+        <button class="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="progress is-top">
+          <span class="dot done"></span><span class="dot done"></span><span class="dot done"></span><span class="dot done"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        </div>
+      </div>
+
+      <div class="qmeta">Question 2 / 7</div>
+      <h1 class="qhead">How many<br>pods a day?</h1>
+      <p class="qsub">Rough average is fine — we use this to size your savings.</p>
+
+      <div class="number-grid">
+        <button class="num-btn"><div class="num-val">3</div><div class="num-unit">Pods</div></button>
+        <button class="num-btn"><div class="num-val">6</div><div class="num-unit">Pods</div></button>
+        <button class="num-btn selected"><div class="num-val">10</div><div class="num-unit">Pods</div></button>
+        <button class="num-btn"><div class="num-val">15</div><div class="num-unit">Pods</div></button>
+        <button class="num-btn"><div class="num-val">20</div><div class="num-unit">Pods</div></button>
+        <button class="num-btn"><div class="num-val">30+</div><div class="num-unit">Pods</div></button>
+      </div>
+
+      <div class="anchor">
+        <b>That's 3,650/year.</b> At about $4 a pod, you're looking at ~$14,600/year. Let's get it back.
+      </div>
+
+      <div class="cta-wrap">
+        <button class="btn-primary">Continue →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="caption">06 NEXT · UNIT COST</div>
+</body>
+</html>

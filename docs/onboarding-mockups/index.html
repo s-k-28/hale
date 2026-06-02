@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HALE · Onboarding Mockups — 16 Screens</title>
+<link rel="stylesheet" href="_tokens.css">
+<style>
+  body {
+    min-height: 100vh;
+    padding: 80px 40px 80px;
+    background:
+      radial-gradient(ellipse at top, rgba(198,255,61,0.04), transparent 60%),
+      #060707;
+  }
+  .header {
+    max-width: 1400px;
+    margin: 0 auto 60px;
+  }
+  .brand-pill { margin-bottom: 18px; }
+  .page-title {
+    font-family: var(--font-display);
+    font-size: 96px;
+    line-height: 0.9;
+    color: var(--chalk);
+    letter-spacing: -0.04em;
+    margin-bottom: 8px;
+  }
+  .page-title em { font-style: normal; color: var(--volt); }
+  .page-sub {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--ash);
+    line-height: 1.5;
+    max-width: 640px;
+  }
+  .page-sub b { color: var(--chalk); }
+  .page-meta {
+    display: flex;
+    gap: 32px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+  .stat { }
+  .stat-num { font-family: var(--font-display); font-size: 32px; color: var(--volt); line-height: 1; }
+  .stat-num small { font-family: var(--font-body); font-size: 11px; color: var(--ash); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; display: block; margin-top: 4px; }
+
+  .act {
+    max-width: 1400px;
+    margin: 0 auto 80px;
+  }
+  .act-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .act-num {
+    font-family: var(--font-display);
+    font-size: 48px;
+    color: var(--volt);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .act-name {
+    font-family: var(--font-headline);
+    font-weight: 900;
+    font-size: 22px;
+    color: var(--chalk);
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+  .act-tag {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--ash);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+
+  .screens {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  .card {
+    background: var(--coal);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    overflow: hidden;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+  .card:hover {
+    border-color: var(--volt-edge);
+    transform: translateY(-4px);
+  }
+  .card-shot {
+    width: 100%;
+    aspect-ratio: 393 / 852;
+    background: var(--void);
+    object-fit: cover;
+    display: block;
+  }
+  .card-fallback {
+    width: 100%;
+    aspect-ratio: 393 / 852;
+    background: var(--void);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-size: 64px;
+    color: rgba(255,255,255,0.08);
+    letter-spacing: -0.03em;
+  }
+  .card-info {
+    padding: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .card-num {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--volt);
+  }
+  .card-name {
+    font-family: var(--font-headline);
+    font-weight: 900;
+    font-size: 18px;
+    color: var(--chalk);
+    letter-spacing: -0.01em;
+    margin-top: 4px;
+  }
+  .card-desc {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--ash);
+    line-height: 1.4;
+    margin-top: 6px;
+  }
+
+  .footer {
+    max-width: 1400px;
+    margin: 80px auto 0;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--ash);
+    line-height: 1.6;
+  }
+  .footer b { color: var(--chalk); }
+  .footer code { background: var(--coal); padding: 2px 8px; border-radius: 6px; color: var(--volt); font-family: ui-monospace, monospace; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand-pill"><div class="pill">HALE · DESIGN DELIVERABLES</div></div>
+  <h1 class="page-title">Onboarding<br><em>flow.</em></h1>
+  <p class="page-sub">16 screens · 4 acts · grounded in conversion research (17–32 day trials, paywall after aha, personalized hero number). <b>Bold Momentum aesthetic — dark + electric lime — Liquid Death meets Whoop.</b></p>
+
+  <div class="page-meta">
+    <div class="stat"><div class="stat-num">16<small>SCREENS</small></div></div>
+    <div class="stat"><div class="stat-num">4<small>ACTS</small></div></div>
+    <div class="stat"><div class="stat-num">~155s<small>EST TIME-TO-TRIAL</small></div></div>
+    <div class="stat"><div class="stat-num">14<small>DAY TRIAL</small></div></div>
+    <div class="stat"><div class="stat-num">$49.99<small>ANNUAL · SAVE 58%</small></div></div>
+  </div>
+</div>
+
+<div class="act">
+  <div class="act-header"><div class="act-num">01</div><div class="act-name">Value</div><div class="act-tag">Earn the right to ask · ~20s · 3 screens</div></div>
+  <div class="screens">
+    <a class="card" href="01-welcome.html"><img class="card-shot" src="_shots/01-welcome.png" onerror="this.outerHTML='<div class=\'card-fallback\'>01</div>'"><div class="card-info"><div class="card-num">01 · Welcome</div><div class="card-name">The brand moment</div><div class="card-desc">Massive HALE wordmark, lime tagline, live counter, CTA</div></div></a>
+    <a class="card" href="02-why-it-works.html"><img class="card-shot" src="_shots/02-why-it-works.png" onerror="this.outerHTML='<div class=\'card-fallback\'>02</div>'"><div class="card-info"><div class="card-num">02 · Why it works</div><div class="card-name">Authority numbers</div><div class="card-desc">97% / 5× / 21 — three stats, science-backed framing</div></div></a>
+    <a class="card" href="03-social-proof.html"><img class="card-shot" src="_shots/03-social-proof.png" onerror="this.outerHTML='<div class=\'card-fallback\'>03</div>'"><div class="card-info"><div class="card-num">03 · Social proof</div><div class="card-name">Real wins</div><div class="card-desc">3 quotes + live "23 quit today" ticker</div></div></a>
+  </div>
+</div>
+
+<div class="act">
+  <div class="act-header"><div class="act-num">02</div><div class="act-name">Personalization Quiz</div><div class="act-tag">Collect data, manufacture buy-in · ~90s · 8 screens</div></div>
+  <div class="screens">
+    <a class="card" href="04-product-type.html"><img class="card-shot" src="_shots/04-product-type.png" onerror="this.outerHTML='<div class=\'card-fallback\'>04</div>'"><div class="card-info"><div class="card-num">04 · Product type</div><div class="card-name">What you're quitting</div><div class="card-desc">Vape / Pouch / Cig / Mixed — large icon cards</div></div></a>
+    <a class="card" href="05-daily-usage.html"><img class="card-shot" src="_shots/05-daily-usage.png" onerror="this.outerHTML='<div class=\'card-fallback\'>05</div>'"><div class="card-info"><div class="card-num">05 · Daily usage</div><div class="card-name">How many per day</div><div class="card-desc">Number ladder 3-30+ · annual projection callout</div></div></a>
+    <a class="card" href="06-unit-cost.html"><img class="card-shot" src="_shots/06-unit-cost.png" onerror="this.outerHTML='<div class=\'card-fallback\'>06</div>'"><div class="card-info"><div class="card-num">06 · Unit cost</div><div class="card-name">Cost anchor</div><div class="card-desc">$1-$10+/unit · reveals annual $ being burned</div></div></a>
+    <a class="card" href="07-triggers.html"><img class="card-shot" src="_shots/07-triggers.png" onerror="this.outerHTML='<div class=\'card-fallback\'>07</div>'"><div class="card-info"><div class="card-num">07 · Triggers</div><div class="card-name">When cravings hit</div><div class="card-desc">12 chip multi-select · skippable</div></div></a>
+    <a class="card" href="08-hardest-hour.html"><img class="card-shot" src="_shots/08-hardest-hour.png" onerror="this.outerHTML='<div class=\'card-fallback\'>08</div>'"><div class="card-info"><div class="card-num">08 · Hardest hour</div><div class="card-name">The 9 PM commitment</div><div class="card-desc">Time picker · seeds the daily check-in</div></div></a>
+    <a class="card" href="09-motivation.html"><img class="card-shot" src="_shots/09-motivation.png" onerror="this.outerHTML='<div class=\'card-fallback\'>09</div>'"><div class="card-info"><div class="card-num">09 · Motivation</div><div class="card-name">Why you're doing this</div><div class="card-desc">6 motive cards + write-your-own · skippable</div></div></a>
+    <a class="card" href="10-first-name.html"><img class="card-shot" src="_shots/10-first-name.png" onerror="this.outerHTML='<div class=\'card-fallback\'>10</div>'"><div class="card-info"><div class="card-num">10 · First name</div><div class="card-name">"Hey, I'm ___"</div><div class="card-desc">Display-font input · keyboard visible</div></div></a>
+    <a class="card" href="11-quit-date.html"><img class="card-shot" src="_shots/11-quit-date.png" onerror="this.outerHTML='<div class=\'card-fallback\'>11</div>'"><div class="card-info"><div class="card-num">11 · Quit date</div><div class="card-name">Day 1 picker</div><div class="card-desc">Quick picks + full calendar · default today</div></div></a>
+  </div>
+</div>
+
+<div class="act">
+  <div class="act-header"><div class="act-num">03</div><div class="act-name">Reveal → Paywall</div><div class="act-tag">Aha → convert at peak motivation · ~30s · 3 screens</div></div>
+  <div class="screens">
+    <a class="card" href="12-building-plan.html"><img class="card-shot" src="_shots/12-building-plan.png" onerror="this.outerHTML='<div class=\'card-fallback\'>12</div>'"><div class="card-info"><div class="card-num">12 · Building plan</div><div class="card-name">Manufactured anticipation</div><div class="card-desc">Pulsing rings · personalized substrings · ~14s beat</div></div></a>
+    <a class="card" href="13-plan-reveal.html"><img class="card-shot" src="_shots/13-plan-reveal.png" onerror="this.outerHTML='<div class=\'card-fallback\'>13</div>'"><div class="card-info"><div class="card-num">13 · Plan reveal</div><div class="card-name">THE AHA</div><div class="card-desc">$14,600/yr hero · health timeline · 9 PM promise</div></div></a>
+    <a class="card" href="14-paywall.html"><img class="card-shot" src="_shots/14-paywall.png" onerror="this.outerHTML='<div class=\'card-fallback\'>14</div>'"><div class="card-info"><div class="card-num">14 · Paywall</div><div class="card-name">14-day free trial</div><div class="card-desc">$9.99/mo or $49.99/yr (58% off · annual default)</div></div></a>
+  </div>
+</div>
+
+<div class="act">
+  <div class="act-header"><div class="act-num">04</div><div class="act-name">Commitment</div><div class="act-tag">Cement and prep · ~15s · 2 screens</div></div>
+  <div class="screens">
+    <a class="card" href="15-commitment-vow.html"><img class="card-shot" src="_shots/15-commitment-vow.png" onerror="this.outerHTML='<div class=\'card-fallback\'>15</div>'"><div class="card-info"><div class="card-num">15 · Commitment vow</div><div class="card-name">Signed contract</div><div class="card-desc">Handwritten signature · 3.4× lift framing</div></div></a>
+    <a class="card" href="16-permission-ask.html"><img class="card-shot" src="_shots/16-permission-ask.png" onerror="this.outerHTML='<div class=\'card-fallback\'>16</div>'"><div class="card-info"><div class="card-num">16 · Permission ask</div><div class="card-name">9 PM push, help-framed</div><div class="card-desc">Live notification preview · anti-pattern list</div></div></a>
+  </div>
+</div>
+
+<div class="footer">
+  Mocked at iPhone 17 Pro · <b>393 × 852</b> · open any card to view the full screen.<br>
+  Built directly in HTML + CSS — same Tailwind classes power the real HALE React Native app. Aesthetic: <b>Bold Momentum</b> — dark + electric lime · Anton / Archivo / Hanken Grotesk · no generic AI aesthetics.<br><br>
+  Source: <code>/Users/siddarthakodithyala/hale/docs/onboarding-mockups/</code>
+</div>
+
+</body>
+</html>
