@@ -1,10 +1,29 @@
 import { Tabs } from 'expo-router';
+import { useQuery } from 'convex/react';
 import { House, Users, Sparkles, User } from 'lucide-react-native';
+import { api } from '@convex/_generated/api';
+import { usePushTags } from '@/hooks/usePushTags';
 import { colors } from '@/theme/colors';
+
+/**
+ * Mounts the OneSignal link + behavior-tag sync for the whole authed app. Lives
+ * in the tab layout so it stays mounted across tabs (not just Today) and fires
+ * once todayState resolves the user's id. Renders nothing. Degrades to a no-op
+ * when OneSignal is unconfigured (the lib helpers short-circuit on a missing
+ * app id), so it's always safe to mount.
+ */
+function PushSync() {
+  const today = useQuery(api.users.todayState, {});
+  const buddy = useQuery(api.buddies.myBuddy, {});
+  usePushTags(today?.userId ?? null, today, !!buddy?.buddy);
+  return null;
+}
 
 export default function TabsLayout() {
   return (
-    <Tabs
+    <>
+      <PushSync />
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.volt,
@@ -47,6 +66,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <User color={color} size={size} strokeWidth={2.5} />,
         }}
       />
-    </Tabs>
+      </Tabs>
+    </>
   );
 }

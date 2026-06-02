@@ -61,6 +61,12 @@ export const todayState = query({
     const currentSaved = moneySaved(profile, now - attempt.startDate);
     const trial = trialStatus(now, user.trialEndsAt, user.premium ?? false);
     return {
+      // The authed user's own _id — used client-side as the OneSignal external
+      // id (Decision: external id == Convex user _id) and to gate push linking.
+      userId,
+      // Self-reported tough hour (0–23 local) — fed to OneSignal as a targeting
+      // tag (usePushTags) and seeds the I3 proactive nudge.
+      hardestHour: user.hardestHour ?? null,
       quitStart: attempt.startDate,
       currentMoneySaved: currentSaved,
       lifetimeMoneySaved: (user.lifetimeMoneySaved ?? 0) + currentSaved,
