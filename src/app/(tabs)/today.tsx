@@ -280,9 +280,16 @@ export default function Today() {
           <StatTile label="Money saved" value={money(state.currentMoneySaved)} accent />
           <StatTile label="Lung recovery" value={`${Math.round(milestoneProgress * 100)}%`} />
         </View>
-        <Body className="mb-6 font-body text-xs text-ash">
-          {money(state.lifetimeMoneySaved)} kept in your pocket, all-time.
-        </Body>
+        {/* Lifetime line only when it ADDS info — i.e. there's history beyond this
+            run (post-relapse). On a first run current == lifetime, so showing it
+            just echoes the Money saved tile. */}
+        {state.lifetimeMoneySaved > state.currentMoneySaved ? (
+          <Body className="mb-6 font-body text-xs text-ash">
+            {money(state.lifetimeMoneySaved)} kept in your pocket, all-time.
+          </Body>
+        ) : (
+          <View className="mb-6" />
+        )}
 
         {/* Primary CTA — one-tap daily check-in */}
         <Button
