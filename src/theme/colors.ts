@@ -1,13 +1,17 @@
 // Bold Momentum palette — hex for non-className contexts (SVG, Skia, StatusBar, Rive).
+// Re-exported from the SINGLE SOURCE OF TRUTH (src/theme/tokens.js) so the className
+// tokens (tailwind.config.js) and these runtime hexes can never drift again.
+import { palette } from './tokens';
+
 export const colors = {
-  void: '#0A0C0B',
-  coal: '#12161A',
-  card: '#161B18',
-  volt: '#C6FF3D',
-  voltDim: '#9FD22E',
-  voltInk: '#0A0C0B', // text/icon color on a lime surface
-  chalk: '#F4F7F2',
-  ash: '#8A938C',
-  line: '#1F2723',
-  sos: '#FF5A4D',
+  void: palette.void,
+  coal: palette.coal,
+  card: palette.card, // #12161A — unified with tailwind `card` (previously drifted to #161B18)
+  volt: palette.volt,
+  voltDim: palette.voltDim,
+  voltInk: palette.voltInk,
+  chalk: palette.chalk,
+  ash: palette.ash,
+  line: palette.line,
+  sos: palette.sos,
 } as const;

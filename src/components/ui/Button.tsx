@@ -29,18 +29,24 @@ export function Button({
     danger: 'text-white',
   };
   const off = disabled || loading;
+  // Disabled = a solid inactive surface, never lime-at-opacity (that read as olive
+  // sludge). Loading keeps the variant color + a spinner so it still looks active-and-busy.
+  const showDisabled = disabled && !loading;
+  const boxCls = showDisabled ? 'bg-inactive border border-line' : box[variant];
+  const txtCls = showDisabled ? 'text-inactive-foreground' : txt[variant];
   return (
     <Pressable
       disabled={off}
       accessibilityRole="button"
-      className={`h-14 flex-row items-center justify-center rounded-2xl px-6 ${box[variant]} ${off ? 'opacity-40' : ''} ${className}`}
+      accessibilityState={{ disabled: off }}
+      className={`h-14 flex-row items-center justify-center rounded-2xl px-6 ${boxCls} ${className}`}
       {...rest}
     >
       {loading ? (
         <ActivityIndicator color={variant === 'primary' ? '#0A0C0B' : '#C6FF3D'} />
       ) : (
         <View>
-          <Text className={`font-heading text-[15px] uppercase tracking-wide ${txt[variant]}`}>
+          <Text className={`font-heading text-[15px] uppercase tracking-wide ${txtCls}`}>
             {label}
           </Text>
         </View>

@@ -30,3 +30,15 @@ export function Label({ className = '', ...p }: Props) {
     />
   );
 }
+
+/** Mid-tier between the giant Anton Display and Heading — the previously-missing
+ *  rung. Archivo, sized via the `title` token (24/30). For section titles. */
+export function Title({ className = '', ...p }: Props) {
+  return <RNText className={`font-heading text-title text-chalk ${className}`} {...p} />;
+}
+
+/** Small supporting text. Hanken at the `caption` token (13/18), ash by default —
+ *  a proper rung instead of ad-hoc text-xs so captions stop being inconsistent. */
+export function Caption({ className = '', ...p }: Props) {
+  return <RNText className={`font-body text-caption text-ash ${className}`} {...p} />;
+}
