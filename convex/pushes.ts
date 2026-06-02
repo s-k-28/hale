@@ -1,7 +1,8 @@
 import { v } from 'convex/values';
-import { internalAction, internalQuery } from './_generated/server';
+import { internalAction, internalMutation, internalQuery } from './_generated/server';
 import { internal } from './_generated/api';
-import { localDateOf } from './model/streak';
+import type { Id } from './_generated/dataModel';
+import { localDateOf, localHourOf } from './model/streak';
 
 /**
  * Push delivery layer (OneSignal). Follows the Sage pattern: actions hold the
@@ -112,5 +113,68 @@ export const atRiskUsers = internalQuery({
       if (user.lastCheckInLocalDate !== today) atRisk.push(user._id);
     }
     return atRisk;
+  },
+});
+
+/**
+ * Proactive hardest-hour nudge (I3). Active quitters whose CURRENT local hour ==
+ * their onboarding hardestHour, who are push-linked, and who haven't been
+ * proactively nudged yet today. "Start simple: the hardest_hour seed" (PRD I3) —
+ * per-user timezone so an hourly cron lands each user at THEIR tough hour.
+ */
+export const proactiveDueUsers = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const users = await ctx.db.query('users').collect();
+    const due: Array<{ userId: typeof users[number]['_id']; hardestHour: number; localDate: string }> = [];
+    for (const user of users) {
+      if (!user.currentAttemptId || !user.timezone) continue;
+      if (user.hardestHour == null) continue;
+      if (!user.oneSignalExternalId) continue; // not push-linked → can't reach them
+      if (localHourOf(now, user.timezone) !== user.hardestHour) continue;
+      const today = localDateOf(now, user.timezone);
+      if (user.lastProactiveNudgeLocalDate === today) continue; // once per local day
+      due.push({ userId: user._id, hardestHour: user.hardestHour, localDate: today });
+    }
+    return due;
+  },
+});
+
+/** Stamp that we proactively nudged this user today (dedup, per local day). */
+export const markProactiveNudged = internalMutation({
+  args: { userId: v.id('users'), localDate: v.string() },
+  handler: async (ctx, { userId, localDate }) => {
+    await ctx.db.patch(userId, { lastProactiveNudgeLocalDate: localDate });
+  },
+});
+
+/**
+ * Hourly proactive sweep (crons.ts). For each user at their hardest hour: send a
+ * just-in-time "ride it out with Sage" push, stamp the dedup date, and record
+ * proactive_nudge_sent. The push no-ops without OneSignal keys; the event is a
+ * server-side signal (Convex log — PostHog server capture is a follow-up, same
+ * gap as client PostHog delivery).
+ */
+export const proactiveNudgeSweep = internalAction({
+  args: {},
+  handler: async (ctx): Promise<{ nudged: number }> => {
+    const due: Array<{ userId: Id<'users'>; hardestHour: number; localDate: string }> =
+      await ctx.runQuery(internal.pushes.proactiveDueUsers, {});
+    for (const { userId, hardestHour, localDate } of due) {
+      const h12 = hardestHour % 12 === 0 ? 12 : hardestHour % 12;
+      const ampm = hardestHour < 12 ? 'am' : 'pm';
+      await ctx.scheduler.runAfter(0, internal.pushes.notifyUser, {
+        userId,
+        title: `${h12}${ampm} is usually your tough hour`,
+        body: 'Get ahead of it — 60 seconds with Sage now beats a craving later.',
+        data: { kind: 'proactive', hardestHour },
+      });
+      await ctx.runMutation(internal.pushes.markProactiveNudged, { userId, localDate });
+      // proactive_nudge_sent (I3 north-star). Server-side signal until PostHog
+      // server capture is wired (needs the key).
+      console.log('[ev:server] proactive_nudge_sent', JSON.stringify({ userId, hardestHour }));
+    }
+    return { nudged: due.length };
   },
 });

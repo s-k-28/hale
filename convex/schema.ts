@@ -34,6 +34,7 @@ export default defineSchema({
     currentStreak: v.optional(v.number()),
     longestStreak: v.optional(v.number()),
     lastCheckInLocalDate: v.optional(v.string()), // "YYYY-MM-DD" user tz
+    lastProactiveNudgeLocalDate: v.optional(v.string()), // I3 — dedup proactive nudge to 1/local-day
     freezesRemaining: v.optional(v.number()), // bounded (default 2)
     lapseGraceRemaining: v.optional(v.number()), // bounded soft-lapse grace per attempt
     // lifetime ledger — the anti-shame numbers, NEVER reset (Decision 3)

@@ -34,4 +34,11 @@ crons.daily(
   internal.email.trialReminderSweep,
 );
 
+/**
+ * proactive-nudge (I3): runs HOURLY so it can land each user at THEIR local
+ * hardestHour (pushes.proactiveNudgeSweep matches localHour == hardestHour per
+ * timezone, deduped to once/local-day). The just-in-time "your tough hour" push.
+ */
+crons.hourly('proactive-nudge', { minuteUTC: 0 }, internal.pushes.proactiveNudgeSweep);
+
 export default crons;
