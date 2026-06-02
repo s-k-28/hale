@@ -35,6 +35,9 @@ export default defineSchema({
     longestStreak: v.optional(v.number()),
     lastCheckInLocalDate: v.optional(v.string()), // "YYYY-MM-DD" user tz
     lastProactiveNudgeLocalDate: v.optional(v.string()), // I3 — dedup proactive nudge to 1/local-day
+    // push fatigue cap (§9) — at most N server pushes per user per local day
+    pushSentLocalDate: v.optional(v.string()), // "YYYY-MM-DD" user tz the count below applies to
+    pushSentCount: v.optional(v.number()), // pushes delivered on pushSentLocalDate
     freezesRemaining: v.optional(v.number()), // bounded (default 2)
     lapseGraceRemaining: v.optional(v.number()), // bounded soft-lapse grace per attempt
     // lifetime ledger — the anti-shame numbers, NEVER reset (Decision 3)

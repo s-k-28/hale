@@ -5,6 +5,15 @@ import type { Id } from './_generated/dataModel';
 import { localDateOf, localHourOf } from './model/streak';
 
 /**
+ * Push fatigue cap (§9): at most this many SERVER pushes reach a user per local
+ * day, across every class (streak-at-risk, proactive hardest-hour, buddy nudge,
+ * relapse, feed). Enforced centrally in notifyUser so no single class can
+ * over-message — see tryConsumePushBudget. A caller can opt out per-send via
+ * notifyUser({ bypassCap: true }) for a genuinely critical, user-initiated push.
+ */
+const PUSH_DAILY_CAP = 2;
+
+/**
  * Push delivery layer (OneSignal). Follows the Sage pattern: actions hold the
  * external I/O, talk to the db only via ctx.runQuery / ctx.runMutation, and
  * degrade to a no-op when keys are missing so the app stays scaffold-safe.
@@ -27,9 +36,31 @@ export const getTarget = internalQuery({
 });
 
 /**
+ * Atomically reserve one of a user's daily push slots (§9 fatigue cap). Returns
+ * true if the send is allowed (slot consumed), false if they're already at the
+ * cap for their current local day. The window is the user's OWN local day, so
+ * the count resets at their midnight, not UTC. A user without a timezone can't
+ * be placed in a day, so we deny (and notifyUser already requires linkage).
+ */
+export const tryConsumePushBudget = internalMutation({
+  args: { userId: v.id('users'), cap: v.number() },
+  handler: async (ctx, { userId, cap }): Promise<boolean> => {
+    const user = await ctx.db.get(userId);
+    if (!user || !user.timezone) return false;
+    const today = localDateOf(Date.now(), user.timezone);
+    // Count only carries within the same local day; a new day starts fresh.
+    const count = user.pushSentLocalDate === today ? (user.pushSentCount ?? 0) : 0;
+    if (count >= cap) return false; // already at the daily cap
+    await ctx.db.patch(userId, { pushSentLocalDate: today, pushSentCount: count + 1 });
+    return true;
+  },
+});
+
+/**
  * Send one push to a single user via the OneSignal REST API. Best-effort:
  *   • missing REST key / app id          → no-op (scaffold mode)
  *   • user has no OneSignal external id   → no-op (not opted in / not linked)
+ *   • at the daily fatigue cap            → no-op (unless bypassCap)
  *   • upstream/network error             → swallowed (never surfaces to caller)
  */
 export const notifyUser = internalAction({
@@ -38,14 +69,28 @@ export const notifyUser = internalAction({
     title: v.string(),
     body: v.string(),
     data: v.optional(v.any()),
+    // Skip the daily fatigue cap for a critical, user-initiated push. Defaults
+    // to false → the send counts against (and is bounded by) PUSH_DAILY_CAP.
+    bypassCap: v.optional(v.boolean()),
   },
-  handler: async (ctx, { userId, title, body, data }) => {
+  handler: async (ctx, { userId, title, body, data, bypassCap }) => {
     const REST = process.env.ONESIGNAL_REST_API_KEY;
     const APP_ID = process.env.ONESIGNAL_APP_ID;
     if (!REST || !APP_ID) return; // scaffold mode — keys not configured
 
     const { externalId } = await ctx.runQuery(internal.pushes.getTarget, { userId });
     if (!externalId) return; // user not linked to OneSignal — nothing to target
+
+    // Fatigue cap (§9): consume one of the user's daily push slots. If they're
+    // already at PUSH_DAILY_CAP, drop this send so we never spam. Consumed right
+    // before the network call so capped/un-targeted sends don't burn a slot.
+    if (!bypassCap) {
+      const allowed = await ctx.runMutation(internal.pushes.tryConsumePushBudget, {
+        userId,
+        cap: PUSH_DAILY_CAP,
+      });
+      if (!allowed) return; // daily cap reached — protect the user from over-messaging
+    }
 
     try {
       await fetch('https://api.onesignal.com/notifications', {
