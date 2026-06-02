@@ -6,7 +6,7 @@ import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { Check, X, Bot, LineChart, Users, LayoutGrid } from 'lucide-react-native';
 import { presentPaywall } from '@/lib/paywall';
 import { track, Ev } from '@/lib/analytics';
-import { Display, Heading, Body, Label } from '@/components/ui/Text';
+import { Display, Heading, Body, Caption } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Pill } from '@/components/ui/Pill';
 import { colors } from '@/theme/colors';
@@ -118,7 +118,7 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
   return (
     <SafeAreaView className="flex-1 bg-void" edges={['top', 'bottom']}>
       {/* Close — top right, hairline coal chip */}
-      <View className="px-6 pt-3">
+      <View className="px-gutter pt-3">
         <View className="flex-row items-center justify-end">
           <Pressable
             onPress={onMaybeLater}
@@ -132,65 +132,59 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
         </View>
       </View>
 
+      {/* The whole value stack scrolls — it can never be clipped by the CTA. */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pb-6"
+        contentContainerClassName="px-gutter pb-8"
         showsVerticalScrollIndicator={false}
       >
-        {/* Loud hero — lime badge, Anton wordmark, punchy promise */}
-        <View className="mt-2">
+        {/* Hero — tightened (text-5xl, single line) so all four benefits sit above the fold */}
+        <View className="mt-1">
           <Pill tone="volt">HALE+</Pill>
 
-          <Display className="mt-5 text-chalk text-6xl leading-tight tracking-tight">
-            GO ALL{'\n'}IN.
+          <Display className="mt-4 text-chalk text-5xl leading-tight tracking-tight">
+            GO ALL IN.
           </Display>
 
-          <Heading className="mt-4 text-volt text-xl leading-snug">
+          <Heading className="mt-3 text-volt text-xl leading-snug">
             Quitting sticks when you stop holding back.
           </Heading>
 
-          <Body className="mt-3 text-ash text-base leading-relaxed">
+          <Body className="mt-2 text-ash text-base leading-relaxed">
             Unlock the full toolkit — your coach, your data, and your people.
           </Body>
         </View>
 
-        {/* Benefits — sticker tiles on coal surfaces */}
-        <View className="mt-8 gap-3">
+        {/* Benefits — one tight group */}
+        <View className="mt-7 gap-3">
           {BENEFITS.map((b) => (
             <Benefit key={b.title} title={b.title} detail={b.detail} Icon={b.Icon} />
           ))}
         </View>
+
+        {/* Reassurance */}
+        <Caption className="mt-5 text-center leading-relaxed">
+          Less than a single pack — billed annually, cancel anytime.
+        </Caption>
       </ScrollView>
 
-      {/* Price + CTA pinned to the bottom */}
-      <View className="px-6 pb-2">
-        <View className="rounded-3xl bg-card border border-line px-5 py-5">
-          <View className="flex-row items-end justify-between">
-            <View>
-              <Display className="text-chalk text-5xl leading-tight tracking-tight">$39.99</Display>
-              <Label className="mt-2 text-ash normal-case tracking-normal">per year</Label>
-            </View>
-            <View className="items-end">
-              <Display className="text-volt text-2xl leading-tight tracking-tight">$0.77</Display>
-              <Label className="mt-1 text-ash normal-case tracking-normal">a week</Label>
-            </View>
-          </View>
-          <View className="mt-4 h-px bg-line" />
-          <Body className="mt-4 text-ash text-xs leading-relaxed">
-            Less than a single pack — billed annually, cancel anytime.
-          </Body>
+      {/* Pinned footer: price stays visible WITH the CTA, and it's slim enough
+          that it never covers a benefit. Focal point = the lime START HALE+ action. */}
+      <View className="px-gutter pt-3 pb-2 border-t border-line bg-void">
+        <View className="mb-3 flex-row items-baseline justify-center">
+          <Display className="text-chalk text-2xl leading-tight tracking-tight">$39.99</Display>
+          <Body className="ml-1 text-ash text-sm">/yr</Body>
+          <Body className="ml-2 font-body-bold text-volt text-sm">· $0.77/wk</Body>
         </View>
 
-        <View className="mt-4">
-          <Button label="START HALE+" variant="primary" onPress={onMaybeLater} />
-        </View>
+        <Button label="START HALE+" variant="primary" onPress={onMaybeLater} />
 
         <Pressable
           onPress={onMaybeLater}
           accessibilityRole="button"
-          className="mt-3 items-center py-3 active:opacity-70"
+          className="mt-2 items-center py-3 active:opacity-70"
         >
-          <Label className="text-ash normal-case tracking-normal">Maybe later</Label>
+          <Caption className="text-ash">Maybe later</Caption>
         </Pressable>
       </View>
     </SafeAreaView>
