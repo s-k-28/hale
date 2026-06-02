@@ -398,7 +398,10 @@ export default function Quiz() {
 
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-6 pt-8 pb-4"
+          // grow + justify-center = "center the question when it's short, scroll when
+          // it's long." Kills the top-clustered chips + dead-space void on the
+          // short questions (pods/day, cost, name) without clipping the tall ones.
+          contentContainerClassName="grow px-gutter py-6 justify-center"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
