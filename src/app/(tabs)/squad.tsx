@@ -54,7 +54,7 @@ export default function Squad() {
     <Screen>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pb-16 pt-4"
+        contentContainerClassName="px-gutter pb-16 pt-4"
         showsVerticalScrollIndicator={false}
       >
         <Heading className="text-4xl">SQUAD</Heading>
@@ -106,7 +106,9 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
 
   return (
     <View className="mt-6">
-      {/* Hero invite card */}
+      {/* One focal hero: the invite is the single action, and the "why it works"
+          proof sits INSIDE the card (not a competing second card) so the screen has
+          one clear block instead of a stack of equal-weight brochure cards. */}
       <View className="overflow-hidden rounded-3xl border border-line bg-coal px-6 py-8">
         <View className="h-14 w-14 items-center justify-center rounded-2xl bg-volt">
           <Users color={colors.voltInk} size={26} strokeWidth={2.5} />
@@ -117,22 +119,21 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
           other’s streaks and send support when it’s hard.
         </Body>
 
+        {/* Proof, folded in — supporting the action, not competing with it. */}
+        <View className="mt-6 border-t border-line pt-5">
+          <BenefitRow text="People with a buddy stay quit longer." />
+          <BenefitRow text="A nudge at the right moment beats a craving." />
+          <BenefitRow text="Private by design — they never see your slip-ups." />
+        </View>
+
         <Button
           variant="primary"
           label="SHARE MY INVITE LINK"
           loading={sharing}
           onPress={onInvite}
           accessibilityLabel="Invite a buddy"
-          className="mt-6"
+          className="mt-7"
         />
-      </View>
-
-      {/* Why it works */}
-      <View className="mt-5 rounded-2xl border border-line bg-coal px-5 py-4">
-        <Label className="text-chalk">WHY PAIR UP?</Label>
-        <BenefitRow text="People with a buddy stay quit longer." />
-        <BenefitRow text="A nudge at the right moment beats a craving." />
-        <BenefitRow text="Private by design — they never see your slip-ups." />
       </View>
     </View>
   );
