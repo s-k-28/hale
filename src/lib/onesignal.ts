@@ -7,10 +7,16 @@ export function initOneSignal() {
   OneSignal.initialize(env.oneSignalAppId);
 }
 
-/** Link OneSignal user to the Convex user _id so server pushes can target them. */
-export function loginOneSignal(externalId: string) {
-  if (!has('oneSignalAppId')) return;
+/**
+ * Link OneSignal user to the Convex user _id so server pushes can target them.
+ * Returns true when the SDK login actually ran (OneSignal configured), false in
+ * scaffold mode — callers use this to decide whether to persist the link
+ * server-side (we must not flag an unreachable device as push-linked).
+ */
+export function loginOneSignal(externalId: string): boolean {
+  if (!has('oneSignalAppId')) return false;
   OneSignal.login(externalId);
+  return true;
 }
 
 /** Call AFTER the help-framed in-app explainer (Decision 2: protect opt-in). */

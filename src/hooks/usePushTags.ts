@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { useMutation } from 'convex/react';
+import { api } from '@convex/_generated/api';
 import { loginOneSignal, setUserTags } from '@/lib/onesignal';
 
 /**
@@ -37,14 +39,25 @@ export function usePushTags(
   // Remember what we last pushed so reactive re-renders don't spam OneSignal.
   const lastLoginRef = useRef<string | null>(null);
   const lastTagsRef = useRef<string | null>(null);
+  const linkOneSignal = useMutation(api.users.linkOneSignal);
 
   // Link device → Convex user id (idempotent; only on change).
   useEffect(() => {
     if (!userId) return;
     if (lastLoginRef.current === userId) return;
     lastLoginRef.current = userId;
-    loginOneSignal(userId);
-  }, [userId]);
+    // Log the device into OneSignal under the Convex user _id, then mirror that
+    // link server-side so push targeting can reach this user. Only persist when
+    // the SDK actually logged in (configured) — never flag an unreachable
+    // scaffold-mode device as push-linked.
+    if (loginOneSignal(userId)) {
+      linkOneSignal({ externalId: userId }).catch(() => {
+        // Best-effort: a failed write just means server pushes skip this user
+        // until we retry. Clear the guard so the next render re-attempts.
+        lastLoginRef.current = null;
+      });
+    }
+  }, [userId, linkOneSignal]);
 
   // Mirror behavior-targeting tags.
   useEffect(() => {

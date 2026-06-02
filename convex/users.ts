@@ -68,6 +68,31 @@ export const todayState = query({
   },
 });
 
+/**
+ * Persist the OneSignal link so server-side pushes can target this user.
+ *
+ * The client calls this right after OneSignal.login(externalId) succeeds, with
+ * externalId == the Convex user _id (Decision: external id IS the user _id). The
+ * push layer (pushes.getTarget / atRiskUsers / proactiveDueUsers) reads
+ * `oneSignalExternalId` both to address the device AND as the "is this user
+ * push-reachable?" flag — so it must only be written once the SDK has actually
+ * logged the device in, never in scaffold mode.
+ *
+ * Idempotent: re-mounts re-call this, so we no-op when the value is unchanged.
+ */
+export const linkOneSignal = mutation({
+  args: { externalId: v.string() },
+  handler: async (ctx, { externalId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Sign in before linking push notifications');
+    const user = await ctx.db.get(userId);
+    if (!user) return { linked: false, changed: false };
+    if (user.oneSignalExternalId === externalId) return { linked: true, changed: false };
+    await ctx.db.patch(userId, { oneSignalExternalId: externalId });
+    return { linked: true, changed: true };
+  },
+});
+
 /** RC webhook mirror (internal). externalId == Convex user _id. */
 export const setPremiumByExternalId = internalMutation({
   args: { externalId: v.string(), premium: v.boolean() },
