@@ -9,10 +9,12 @@ export const palette: {
   volt: string;
   voltDim: string;
   voltInk: string;
+  voltEdge: string;
   chalk: string;
   ash: string;
   line: string;
   sos: string;
+  sosEdge: string;
   white: string;
   inactive: string;
   inactiveInk: string;

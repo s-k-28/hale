@@ -17,10 +17,12 @@ const palette = {
   volt: '#C6FF3D', // electric lime accent
   voltDim: '#9FD22E', // pressed / dimmed lime
   voltInk: '#0A0C0B', // text + icon color on a lime surface
+  voltEdge: '#7B9E29', // darker-volt BOTTOM EDGE — the chunky "pressable key" depth
   chalk: '#F4F7F2', // primary text on dark
   ash: '#8A938C', // muted text
   line: '#1F2723', // hairline borders
   sos: '#FF5A4D', // craving / crisis red
+  sosEdge: '#C7332A', // darker-coral bottom edge for danger buttons
   white: '#FFFFFF',
   inactive: '#1B201D', // solid disabled surface — NEVER lime-at-opacity (read as olive sludge)
   inactiveInk: '#5C635D', // disabled label / icon — muted but legible
@@ -40,11 +42,11 @@ const tailwindColors = {
   void: palette.void,
   coal: palette.coal,
   card: palette.card,
-  volt: { DEFAULT: palette.volt, dim: palette.voltDim, ink: palette.voltInk },
+  volt: { DEFAULT: palette.volt, dim: palette.voltDim, ink: palette.voltInk, edge: palette.voltEdge },
   chalk: palette.chalk,
   ash: palette.ash,
   line: palette.line,
-  sos: palette.sos,
+  sos: { DEFAULT: palette.sos, edge: palette.sosEdge },
   inactive: { DEFAULT: palette.inactive, foreground: palette.inactiveInk },
   // shadcn / React Native Reusables semantic aliases → Bold Momentum
   background: palette.void,

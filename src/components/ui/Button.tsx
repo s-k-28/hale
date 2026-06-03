@@ -1,4 +1,5 @@
 import { Pressable, Text, ActivityIndicator, View, type PressableProps } from 'react-native';
+import { colors } from '@/theme/colors';
 
 type Variant = 'primary' | 'ghost' | 'surface' | 'danger';
 
@@ -9,6 +10,7 @@ export function Button({
   loading = false,
   disabled = false,
   className = '',
+  style,
   ...rest
 }: PressableProps & {
   label: string;
@@ -17,10 +19,14 @@ export function Button({
   className?: string;
 }) {
   const box: Record<Variant, string> = {
-    primary: 'bg-volt active:bg-volt-dim',
+    // Chunky "pressable key": a darker-volt bottom edge + (below) an accent-tinted
+    // lift. On press the face drops 2px and the edge shrinks 4->2px so the bottom
+    // stays put and it reads as physically depressing. RN borders sit INSIDE the
+    // box, so total height is unchanged — no layout jump.
+    primary: 'bg-volt border-b-4 border-volt-edge active:bg-volt-dim active:border-b-2 active:translate-y-0.5',
     ghost: 'bg-transparent border border-line active:bg-coal',
     surface: 'bg-coal active:bg-card border border-line',
-    danger: 'bg-sos active:opacity-90',
+    danger: 'bg-sos border-b-4 border-sos-edge active:opacity-90 active:border-b-2 active:translate-y-0.5',
   };
   const txt: Record<Variant, string> = {
     primary: 'text-volt-ink',
@@ -34,12 +40,24 @@ export function Button({
   const showDisabled = disabled && !loading;
   const boxCls = showDisabled ? 'bg-inactive border border-line' : box[variant];
   const txtCls = showDisabled ? 'text-inactive-foreground' : txt[variant];
+  // Soft accent-tinted lift so the enabled chunky key floats above the dark
+  // canvas. Disabled stays flat (recessed), reinforcing active-vs-inactive depth.
+  const lift =
+    !off && (variant === 'primary' || variant === 'danger')
+      ? {
+          shadowColor: variant === 'primary' ? colors.volt : colors.sos,
+          shadowOpacity: 0.22,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
+        }
+      : undefined;
   return (
     <Pressable
       disabled={off}
       accessibilityRole="button"
       accessibilityState={{ disabled: off }}
       className={`h-14 flex-row items-center justify-center rounded-2xl px-6 ${boxCls} ${className}`}
+      style={typeof style === 'function' ? style : [lift, style]}
       {...rest}
     >
       {loading ? (

@@ -10,6 +10,7 @@ export const colors = {
   volt: palette.volt,
   voltDim: palette.voltDim,
   voltInk: palette.voltInk,
+  voltEdge: palette.voltEdge,
   chalk: palette.chalk,
   ash: palette.ash,
   line: palette.line,
