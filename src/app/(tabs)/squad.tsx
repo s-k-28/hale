@@ -19,6 +19,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Pill } from '@/components/ui/Pill';
+import { Surface } from '@/components/ui/Surface';
 import { colors } from '@/theme/colors';
 
 /**
@@ -110,7 +111,7 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
       {/* One focal hero: the invite is the single action, and the "why it works"
           proof sits INSIDE the card (not a competing second card) so the screen has
           one clear block instead of a stack of equal-weight brochure cards. */}
-      <View className="overflow-hidden rounded-3xl border border-line bg-coal px-6 py-8">
+      <Surface level="raised" className="overflow-hidden px-6 py-8">
         <View className="h-14 w-14 items-center justify-center rounded-2xl bg-volt">
           <Users color={colors.voltInk} size={26} strokeWidth={2.5} />
         </View>
@@ -135,7 +136,7 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
           accessibilityLabel="Invite a buddy"
           className="mt-7"
         />
-      </View>
+      </Surface>
     </View>
   );
 }
@@ -192,7 +193,7 @@ function PairedState({
       </View>
 
       {/* Buddy card — sanitized */}
-      <View className="mt-4 rounded-3xl border border-line bg-coal px-6 py-6">
+      <Surface level="raised" className="mt-4 px-6 py-6">
         <View className="flex-row items-center">
           <View className="h-12 w-12 items-center justify-center rounded-full bg-volt">
             <Display className="text-xl text-volt-ink">{monogram(name)}</Display>
@@ -226,7 +227,7 @@ function PairedState({
             They’ll see your cheer — never your private details.
           </Body>
         </View>
-      </View>
+      </Surface>
     </View>
   );
 }
@@ -235,19 +236,24 @@ function PairedState({
 
 function Phase2Links() {
   return (
-    <View className="mt-6 gap-3">
-      <NavRow
-        icon={<Users color={colors.volt} size={22} strokeWidth={2.5} />}
-        title="Squads & challenges"
-        sub="Quit alongside a group — start a 6-week challenge."
-        onPress={() => router.push('/squads')}
-      />
-      <NavRow
-        icon={<Trophy color={colors.volt} size={22} strokeWidth={2.5} />}
-        title="Weekly league"
-        sub="Climb the consistency board for your stage."
-        onPress={() => router.push('/leagues')}
-      />
+    <View className="mt-8">
+      {/* Metadata eyebrow groups the two RECESSED rows as a subordinate plane,
+          clearly behind the elevated invite hero above. */}
+      <Label className="mb-3 ml-1">More ways to connect</Label>
+      <View className="gap-3">
+        <NavRow
+          icon={<Users color={colors.ash} size={22} strokeWidth={2.5} />}
+          title="Squads & challenges"
+          sub="Quit alongside a group — start a 6-week challenge."
+          onPress={() => router.push('/squads')}
+        />
+        <NavRow
+          icon={<Trophy color={colors.ash} size={22} strokeWidth={2.5} />}
+          title="Weekly league"
+          sub="Climb the consistency board for your stage."
+          onPress={() => router.push('/leagues')}
+        />
+      </View>
     </View>
   );
 }
@@ -268,7 +274,7 @@ function NavRow({
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
-      className="flex-row items-center rounded-2xl border border-line bg-coal px-5 py-4 active:bg-card"
+      className="flex-row items-center rounded-2xl bg-coal/40 px-5 py-4 active:bg-coal"
     >
       {icon}
       <View className="ml-3 flex-1">
