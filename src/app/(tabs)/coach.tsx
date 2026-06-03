@@ -102,7 +102,10 @@ export default function Coach() {
             data={messages}
             keyExtractor={(m) => m._id}
             renderItem={({ item }) => <Bubble message={item} />}
-            contentContainerClassName="px-4 py-6"
+            // grow + justify-end bottom-anchors a short transcript just above the
+            // composer (chat-natural headroom on top) instead of stranding it at
+            // the top with a dead void below.
+            contentContainerClassName="px-4 py-6 grow justify-end"
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -130,8 +133,15 @@ export default function Coach() {
             accessibilityRole="button"
             accessibilityLabel="Send message to Sage"
             className={`h-12 w-12 items-center justify-center rounded-full ${
-              canSend ? 'bg-volt active:bg-volt-dim' : 'bg-coal border border-line'
+              canSend
+                ? 'bg-volt border-b-[3px] border-volt-edge active:bg-volt-dim active:translate-y-0.5'
+                : 'bg-coal border border-line'
             }`}
+            style={
+              canSend
+                ? { shadowColor: colors.volt, shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }
+                : undefined
+            }
           >
             {sending ? (
               <ActivityIndicator size="small" color={colors.voltInk} />
@@ -159,7 +169,21 @@ function Bubble({ message }: { message: SageMessage }) {
         className={
           isUser
             ? 'rounded-3xl rounded-br-md bg-volt px-4 py-3'
-            : 'rounded-3xl rounded-bl-md border border-line bg-coal px-4 py-3'
+            : 'rounded-3xl rounded-bl-md border-l-2 border-volt/50 bg-raised px-4 py-3'
+        }
+        // Sage's reply is elevated onto the raised plane (lighter fill + soft
+        // shadow) with a volt voice-rule on its leading edge, so the coach's
+        // words read as the lit, prominent object — not the dimmest thing on
+        // screen. The user's bubble keeps its lime identity.
+        style={
+          isUser
+            ? undefined
+            : {
+                shadowColor: '#000000',
+                shadowOpacity: 0.35,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 6 },
+              }
         }
       >
         <Body
