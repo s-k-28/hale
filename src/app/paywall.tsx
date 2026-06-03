@@ -10,6 +10,16 @@ import { Display, Heading, Body, Caption } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Pill } from '@/components/ui/Pill';
 import { colors } from '@/theme/colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 /**
  * HALE+ paywall — modal screen (Phase-1 step 8).
@@ -182,7 +192,7 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
           <Body className="ml-2 text-ash text-sm">/yr · $0.77/wk</Body>
         </View>
 
-        <Button label="START HALE+" variant="primary" onPress={onMaybeLater} />
+        <SheenButton onPress={onMaybeLater} />
 
         <Pressable
           onPress={onMaybeLater}
@@ -193,6 +203,69 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
         </Pressable>
       </View>
     </SafeAreaView>
+  );
+}
+
+/**
+ * START HALE+ with a premium sheen: a soft, skewed white highlight sweeps across
+ * the lime button every few seconds (Reanimated translateX over a clipped
+ * LinearGradient), then pauses. Light-touch — draws the eye to the conversion CTA
+ * without nagging. The sheen is clipped to the button's rounded rect; the Button's
+ * own press physics + lift shadow are untouched (the clip only wraps the highlight).
+ */
+function SheenButton({ onPress }: { onPress: () => void }) {
+  const [w, setW] = useState(0);
+  const x = useSharedValue(0);
+  const BAND = 110;
+
+  useEffect(() => {
+    if (w === 0) return;
+    x.value = 0;
+    x.value = withRepeat(
+      withSequence(
+        // Sweep across (~1s), then hold off-screen right for a calm few-second pause.
+        withTiming(1, { duration: 1050, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 2600 }),
+      ),
+      -1,
+      false,
+    );
+  }, [w, x]);
+
+  const sheenStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: interpolate(x.value, [0, 1], [-BAND, w + BAND]) },
+      { skewX: '-18deg' },
+    ],
+  }));
+
+  return (
+    <View className="relative" onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+      <Button label="START HALE+" variant="primary" onPress={onPress} />
+      {/* Clip the sheen to the button's rounded rect; pointerEvents none so the
+          highlight never eats a tap. Inset clip only — the Button's lift shadow,
+          which lives on the Button itself, is not clipped. */}
+      <View className="absolute inset-0 overflow-hidden rounded-2xl" style={{ pointerEvents: 'none' }}>
+        {w > 0 ? (
+          <Animated.View style={[{ position: 'absolute', top: -12, bottom: -12, width: BAND }, sheenStyle]}>
+            <LinearGradient
+              // Bright near-white core — the lime button is already light, so the
+              // streak has to push toward white to read as a premium shine.
+              colors={[
+                'rgba(255,255,255,0)',
+                'rgba(255,255,255,0.35)',
+                'rgba(255,255,255,0.85)',
+                'rgba(255,255,255,0.35)',
+                'rgba(255,255,255,0)',
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ flex: 1 }}
+            />
+          </Animated.View>
+        ) : null}
+      </View>
+    </View>
   );
 }
 
