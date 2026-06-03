@@ -251,27 +251,35 @@ export default function Today() {
         {/* Friend-sourced nudge inbox (S2) — shows when a buddy has reached out. */}
         <NudgeInbox />
 
-        {/* HERO — live clean-time counter inside the lime RingGauge */}
-        <View className="mb-6 items-center">
-          <RingGauge progress={milestoneProgress} size={272} stroke={12}>
-            <Label className="text-ash">Clean for</Label>
-            <HeroDays days={t.days} />
-            <Label className="-mt-1 text-volt">
-              {t.days === 1 ? 'Day' : 'Days'}
-            </Label>
-            <View className="mt-3 flex-row items-end">
-              <CounterUnit value={pad(t.hours)} label="h" />
-              <Dot />
-              <CounterUnit value={pad(t.minutes)} label="m" />
-              <Dot />
-              <CounterUnit value={pad(t.seconds)} label="s" />
-            </View>
-          </RingGauge>
+        {/* HERO — live clean-time counter inside the lime RingGauge. A faint volt
+            bloom behind it lifts the focal element onto its own plane (lime light =
+            focus); it carries the most breathing room on the screen. */}
+        <View className="mb-8 items-center">
+          <View className="relative items-center justify-center">
+            <View
+              className="absolute -inset-4 rounded-full bg-volt/[0.05]"
+              style={{ pointerEvents: 'none' }}
+            />
+            <RingGauge progress={milestoneProgress} size={272} stroke={12}>
+              <Label className="text-ash">Clean for</Label>
+              <HeroDays days={t.days} />
+              <Label className="-mt-1 text-volt">
+                {t.days === 1 ? 'Day' : 'Days'}
+              </Label>
+              <View className="mt-3 flex-row items-end">
+                <CounterUnit value={pad(t.hours)} label="h" />
+                <Dot />
+                <CounterUnit value={pad(t.minutes)} label="m" />
+                <Dot />
+                <CounterUnit value={pad(t.seconds)} label="s" />
+              </View>
+            </RingGauge>
+          </View>
         </View>
 
         {/* Next health milestone strip */}
         {milestone ? (
-          <View className="mb-6 rounded-3xl border border-line bg-coal px-5 py-4">
+          <View className="mb-3 rounded-3xl border border-line bg-coal px-5 py-4">
             <View className="flex-row items-center justify-between">
               <Label>Next milestone</Label>
               <Display className="text-2xl text-volt">
@@ -292,7 +300,7 @@ export default function Today() {
             </View>
           </View>
         ) : (
-          <View className="mb-6 rounded-3xl border border-line bg-coal px-5 py-4">
+          <View className="mb-3 rounded-3xl border border-line bg-coal px-5 py-4">
             <Label className="text-volt">Fully recovered</Label>
             <Body className="mt-1.5 font-body-medium text-[15px] text-chalk">
               Every milestone reached. Your body has come a long way.
@@ -302,18 +310,18 @@ export default function Today() {
 
         {/* Stat tiles — money saved (lime accent) + lung recovery */}
         <View className="mb-3 flex-row gap-3">
-          <StatTile label="Money saved" value={money(state.currentMoneySaved)} accent />
+          <StatTile label="Money saved" value={money(state.currentMoneySaved)} />
           <StatTile label="Recovery" value={`${recoveryPct}%`} />
         </View>
         {/* Lifetime line only when it ADDS info — i.e. there's history beyond this
             run (post-relapse). On a first run current == lifetime, so showing it
             just echoes the Money saved tile. */}
         {state.lifetimeMoneySaved > state.currentMoneySaved ? (
-          <Body className="mb-6 font-body text-xs text-ash">
+          <Body className="mb-7 font-body text-xs text-ash">
             {money(state.lifetimeMoneySaved)} kept in your pocket, all-time.
           </Body>
         ) : (
-          <View className="mb-6" />
+          <View className="mb-7" />
         )}
 
         {/* Primary CTA — one-tap daily check-in. Wrapper is the positioning context
