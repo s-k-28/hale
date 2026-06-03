@@ -278,13 +278,9 @@ export default function CravingSos() {
               router.push('/(tabs)/coach');
             }}
           />
-          <Option
-            icon={Users}
-            title="Ping my buddy"
-            subtitle="Send a quiet rally. (Coming soon)"
-            disabled
-            onPress={() => {}}
-          />
+          {/* "Ping my buddy" hidden until it ships — a disabled "(Coming soon)" row
+              on the most emotionally critical screen read as unfinished. Restore
+              this Option when buddy-ping is live. */}
         </View>
 
         <Pressable
