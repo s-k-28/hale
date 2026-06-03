@@ -20,13 +20,13 @@ const palette = {
   voltInk: '#0A0C0B', // text + icon color on a lime surface
   voltEdge: '#7B9E29', // darker-volt BOTTOM EDGE — the chunky "pressable key" depth
   chalk: '#F4F7F2', // primary text on dark
-  ash: '#8A938C', // muted text
-  line: '#1F2723', // hairline borders
+  ash: '#9AA39D', // muted text — bumped from #8A938C for legible secondary contrast
+  line: '#2C332E', // hairline borders — bumped from #1F2723 so radios/checks/dividers read as intentional
   sos: '#FF5A4D', // craving / crisis red
   sosEdge: '#C7332A', // darker-coral bottom edge for danger buttons
   white: '#FFFFFF',
-  inactive: '#1B201D', // solid disabled surface — NEVER lime-at-opacity (read as olive sludge)
-  inactiveInk: '#5C635D', // disabled label / icon — muted but legible
+  inactive: '#21242A', // solid disabled surface — clean NEUTRAL dark grey (was #1B201D, read as olive sludge)
+  inactiveInk: '#7C828A', // disabled label / icon — neutral + legible (was #5C635D)
 };
 
 const haleTeal = {
