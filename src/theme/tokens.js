@@ -14,6 +14,7 @@ const palette = {
   coal: '#12161A', // elevated surface
   card: '#12161A', // cards / surfaces
   surface2: '#161B18', // secondary / muted surface
+  raised: '#1C232A', // RAISED/elevated plane — a clear step lighter than coal (focal/hero cards)
   volt: '#C6FF3D', // electric lime accent
   voltDim: '#9FD22E', // pressed / dimmed lime
   voltInk: '#0A0C0B', // text + icon color on a lime surface
@@ -42,6 +43,7 @@ const tailwindColors = {
   void: palette.void,
   coal: palette.coal,
   card: palette.card,
+  raised: palette.raised,
   volt: { DEFAULT: palette.volt, dim: palette.voltDim, ink: palette.voltInk, edge: palette.voltEdge },
   chalk: palette.chalk,
   ash: palette.ash,

@@ -6,6 +6,7 @@ export const palette: {
   coal: string;
   card: string;
   surface2: string;
+  raised: string;
   volt: string;
   voltDim: string;
   voltInk: string;
