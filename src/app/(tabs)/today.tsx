@@ -16,7 +16,7 @@ import { StatTile } from '@/components/ui/StatTile';
 import { Pill } from '@/components/ui/Pill';
 import { RingGauge } from '@/components/ui/RingGauge';
 import MilestoneCelebration from '@/components/MilestoneCelebration';
-import CheckInBurst from '@/components/CheckInBurst';
+import RingBurst from '@/components/RingBurst';
 import { RiseIn } from '@/components/motion';
 import { colors } from '@/theme/colors';
 import * as Haptics from 'expo-haptics';
@@ -112,9 +112,8 @@ export default function Today() {
 
   const now = useNow();
   const [checking, setChecking] = useState(false);
-  // One-shot celebratory burst over the CTA — mounts on a fresh check-in, self-unmounts.
-  const [showBurst, setShowBurst] = useState(false);
-  // Increments on a successful check-in to fire one RingGauge surge.
+  // Increments on a successful check-in to fire one RingGauge flare + one Skia
+  // RingBurst (the radial lime-particle celebration emanating from the ring).
   const [ringSurge, setRingSurge] = useState(0);
 
   // COUNTER_VIEWED — once, when the screen mounts with real data.
@@ -195,7 +194,6 @@ export default function Today() {
         if (res.usedFreeze) track(Ev.STREAK_FREEZE_USED, { streak: res.streak });
         // Reward beat: success haptic + flame/spark burst over the CTA.
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        setShowBurst(true);
         setRingSurge((n) => n + 1);
         // No success toast here: the lime burst + the inline "Locked in for today"
         // confirmation already say it. A 3rd toast was redundant AND lingered onto
@@ -289,6 +287,9 @@ export default function Today() {
                 <CounterUnit value={pad(t.seconds)} label="s" />
               </View>
             </RingGauge>
+            {/* Skia radial lime-particle burst on check-in, centered on the ring.
+                Keyed on the surge counter so each check-in remounts + re-fires it. */}
+            {ringSurge > 0 ? <RingBurst key={ringSurge} /> : null}
           </View>
         </View>
 
@@ -357,8 +358,8 @@ export default function Today() {
           <View className="mb-7" />
         )}
 
-        {/* Primary CTA — one-tap daily check-in. Wrapper is the positioning context
-            for the celebratory burst overlay (absolute, pointerEvents none). */}
+        {/* Primary CTA — one-tap daily check-in. The celebratory burst now fires
+            at the hero ring (RingBurst), where the streak lives, not over the CTA. */}
         <View className="mb-3">
           <Button
             label={alreadyCheckedIn ? 'Checked in — clean today' : 'Check in — clean today'}
@@ -367,7 +368,6 @@ export default function Today() {
             disabled={alreadyCheckedIn}
             onPress={onCheckIn}
           />
-          {showBurst ? <CheckInBurst onDone={() => setShowBurst(false)} /> : null}
         </View>
         {alreadyCheckedIn ? (
           <View className="mb-3 flex-row items-center justify-center gap-1.5">
