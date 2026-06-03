@@ -129,16 +129,10 @@ export default function MilestoneCelebration({
               </Pressable>
             </View>
 
-            {/* Title */}
+            {/* Title — demoted to a small overline so the card's huge "N DAYS"
+                is the SINGLE hero (was a competing text-3xl headline). */}
             <View className="mt-1 items-center">
-              <View className="rounded-full bg-volt px-3 py-1">
-                <Label className="text-volt-ink" style={{ color: colors.void }}>
-                  Milestone reached
-                </Label>
-              </View>
-              <Heading className="mt-4 text-center text-3xl leading-[1.05] text-chalk">
-                {copy.title}
-              </Heading>
+              <Label className="text-center text-volt">{copy.title} · Milestone reached</Label>
               <Body className="mt-2 text-center text-base text-ash">
                 {copy.sub}
               </Body>

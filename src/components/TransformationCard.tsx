@@ -294,11 +294,15 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
                 ) : null}
               </View>
 
+              {/* Brand attribution — this card is screenshotted + shared, so the
+                  wordmark is the viral hook and must read clearly. Phrase in a
+                  legible mid-tone, HALE itself in chalk so the brand pops. */}
               <Text
-                className="mt-4 text-center text-[11px] uppercase tracking-[3px] text-ash"
-                style={{ fontFamily: FONTS.bodyBold, color: colors.ash }}
+                className="mt-4 text-center text-[12px] uppercase tracking-[3px]"
+                style={{ fontFamily: FONTS.bodyBold, color: '#C4CCC6' }}
               >
-                Quit nicotine with HALE
+                Quit nicotine with{' '}
+                <Text style={{ color: colors.chalk }}>HALE</Text>
               </Text>
             </View>
           </View>
