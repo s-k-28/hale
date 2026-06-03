@@ -195,8 +195,13 @@ function PairedState({
       {/* Buddy card — sanitized */}
       <Surface level="raised" className="mt-4 px-6 py-6">
         <View className="flex-row items-center">
-          <View className="h-12 w-12 items-center justify-center rounded-full bg-volt">
-            <Display className="text-xl text-volt-ink">{monogram(name)}</Display>
+          {/* Warmer avatar: a lime disc with a soft volt glow so the buddy reads as
+              a person, not a flat form field. */}
+          <View
+            className="h-14 w-14 items-center justify-center rounded-full bg-volt"
+            style={{ shadowColor: colors.volt, shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } }}
+          >
+            <Display className="text-2xl text-volt-ink">{monogram(name)}</Display>
           </View>
           <View className="ml-4 flex-1">
             <Heading className="text-xl normal-case">{displayName}</Heading>
@@ -204,11 +209,20 @@ function PairedState({
           </View>
         </View>
 
-        <View className="mt-5 flex-row items-center rounded-2xl bg-void px-5 py-4">
-          <Display className="text-4xl text-volt">{currentStreak}</Display>
-          <Body className="ml-3 flex-1 text-sm leading-5 text-ash">
-            {currentStreak === 1 ? 'day' : 'days'} clean.{' '}
-            {currentStreak > 0 ? 'Cheer them on.' : 'Send some support.'}
+        {/* Their clean time, framed as a person's progress — NOT a giant lime "0"
+            that read like an alert. Number demoted to chalk; a warm relational line
+            carries the meaning. */}
+        <View className="mt-5 rounded-2xl bg-void px-5 py-4">
+          <View className="flex-row items-baseline gap-1.5">
+            <Display className="text-2xl text-chalk">{currentStreak}</Display>
+            <Body className="font-body-semibold text-sm text-ash">
+              {currentStreak === 1 ? 'day' : 'days'} clean
+            </Body>
+          </View>
+          <Body className="mt-1.5 text-sm leading-5 text-ash">
+            {currentStreak > 0
+              ? `Cheer ${displayName} on — a nudge lands right when it's hardest.`
+              : `${displayName} just started out. A little support right now goes a long way.`}
           </Body>
         </View>
 
