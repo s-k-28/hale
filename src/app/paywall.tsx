@@ -157,8 +157,8 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
 
         {/* Benefits — one tight group */}
         <View className="mt-7 gap-3">
-          {BENEFITS.map((b) => (
-            <Benefit key={b.title} title={b.title} detail={b.detail} Icon={b.Icon} />
+          {BENEFITS.map((b, i) => (
+            <Benefit key={b.title} title={b.title} detail={b.detail} Icon={b.Icon} elevated={i === 0} />
           ))}
         </View>
 
@@ -170,11 +170,16 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
 
       {/* Pinned footer: price stays visible WITH the CTA, and it's slim enough
           that it never covers a benefit. Focal point = the lime START HALE+ action. */}
-      <View className="px-gutter pt-3 pb-2 border-t border-line bg-void">
+      <View
+        className="border-t border-line bg-coal px-gutter pb-2 pt-4"
+        style={{ shadowColor: '#000000', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: -8 } }}
+      >
+        {/* Price promoted to the ANTON value-hero so the conversion moment finally
+            lands a massive numeral; the footer is a raised coal plane so the cards
+            recede UNDER it (no more sliced 4th card). Price value unchanged. */}
         <View className="mb-3 flex-row items-baseline justify-center">
-          <Display className="text-chalk text-2xl leading-tight tracking-tight">$39.99</Display>
-          <Body className="ml-1 text-ash text-sm">/yr</Body>
-          <Body className="ml-2 font-body-bold text-volt text-sm">· $0.77/wk</Body>
+          <Display className="text-chalk text-5xl leading-tight tracking-tight">$39.99</Display>
+          <Body className="ml-2 text-ash text-sm">/yr · $0.77/wk</Body>
         </View>
 
         <Button label="START HALE+" variant="primary" onPress={onMaybeLater} />
@@ -191,9 +196,31 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
   );
 }
 
-function Benefit({ title, detail, Icon }: { title: string; detail: string; Icon: IconCmp }) {
+function Benefit({
+  title,
+  detail,
+  Icon,
+  elevated = false,
+}: {
+  title: string;
+  detail: string;
+  Icon: IconCmp;
+  elevated?: boolean;
+}) {
+  // The first benefit (the Sage coach — HALE's identity hook) is elevated onto the
+  // raised plane so the value stack has a leader; the rest recede. Checkmarks drop
+  // to ash so peak volt is reserved for the CTA. Order/labels unchanged.
   return (
-    <View className="flex-row items-start rounded-2xl bg-coal border border-line px-4 py-4">
+    <View
+      className={`flex-row items-start rounded-2xl px-4 py-4 ${
+        elevated ? 'border border-volt/25 bg-raised' : 'bg-coal/50'
+      }`}
+      style={
+        elevated
+          ? { shadowColor: colors.volt, shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } }
+          : undefined
+      }
+    >
       <View className="mr-4 h-10 w-10 items-center justify-center rounded-xl bg-volt">
         <Icon color={colors.void} size={20} strokeWidth={2.5} />
       </View>
@@ -201,7 +228,7 @@ function Benefit({ title, detail, Icon }: { title: string; detail: string; Icon:
         <Body className="font-body-bold text-chalk text-base">{title}</Body>
         <Body className="mt-1 text-ash text-sm leading-relaxed">{detail}</Body>
       </View>
-      <Check color={colors.volt} size={18} strokeWidth={3} className="mt-1" />
+      <Check color={colors.ash} size={18} strokeWidth={3} className="mt-1" />
     </View>
   );
 }
