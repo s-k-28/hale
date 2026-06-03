@@ -75,7 +75,11 @@ export default function RootLayout() {
     <ConvexAuthProvider client={convex} storage={secureStorage}>
       <TamaguiProvider config={tamaguiConfig} defaultTheme="dark">
         <StatusBar style="light" />
-        <Stack screenOptions={{ headerShown: false }}>
+        {/* Global screen transition: content fades + slides up on enter
+            (translateY + opacity), replacing the default right-push. Native
+            preset = 60fps on the UI thread; modals below opt into their own
+            slide-up presentation. */}
+        <Stack screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(onboarding)" />
           <Stack.Screen name="(tabs)" />

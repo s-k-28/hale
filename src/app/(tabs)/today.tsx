@@ -17,6 +17,7 @@ import { Pill } from '@/components/ui/Pill';
 import { RingGauge } from '@/components/ui/RingGauge';
 import MilestoneCelebration from '@/components/MilestoneCelebration';
 import CheckInBurst from '@/components/CheckInBurst';
+import { RiseIn } from '@/components/motion';
 import { colors } from '@/theme/colors';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -292,6 +293,7 @@ export default function Today() {
         </View>
 
         {/* Next health milestone strip */}
+        <RiseIn index={1}>
         {milestone ? (
           <View
             className={`mb-3 rounded-3xl border px-5 py-4 ${
@@ -334,13 +336,16 @@ export default function Today() {
             </Body>
           </View>
         )}
+        </RiseIn>
 
         {/* Stat tiles — money saved (lime accent) + lung recovery */}
+        <RiseIn index={2}>
         <View className="mb-3 flex-row gap-3">
           <StatTile label="Money saved" value={money(state.currentMoneySaved)} />
           {/* Soften the bare "0%" on day 0 — frame it as the start, not a void. */}
           <StatTile label="Recovery" value={recoveryPct === 0 ? 'Day 1' : `${recoveryPct}%`} />
         </View>
+        </RiseIn>
         {/* Lifetime line only when it ADDS info — i.e. there's history beyond this
             run (post-relapse). On a first run current == lifetime, so showing it
             just echoes the Money saved tile. */}
@@ -385,6 +390,7 @@ export default function Today() {
         )}
 
         {/* SOS — loud red craving button */}
+        <RiseIn index={3}>
         <Pressable
           onPress={() => {
             // craving_sos_opened fires once, on the SOS screen mount (avoids a double-count).
@@ -407,9 +413,12 @@ export default function Today() {
           </View>
           <ChevronRight color="#ffffff" size={22} strokeWidth={2.5} />
         </Pressable>
+        </RiseIn>
 
         {/* Buddy status row */}
+        <RiseIn index={4}>
         <BuddyRow data={buddy} streak={streak} landmark={landmark} longestStreak={state.longestStreak} />
+        </RiseIn>
       </ScrollView>
 
       {/* Bottom scrim — fades scrolling content into the void before the tab bar so

@@ -1,7 +1,23 @@
-import { Pressable, Text, ActivityIndicator, View, type PressableProps } from 'react-native';
+import {
+  Pressable,
+  Text,
+  ActivityIndicator,
+  View,
+  type GestureResponderEvent,
+  type PressableProps,
+} from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { colors } from '@/theme/colors';
+import { PRESS_IN_SPRING, PRESS_OUT_SPRING } from '@/components/motion';
 
 type Variant = 'primary' | 'ghost' | 'surface' | 'danger';
+
+// Pressable driven by Reanimated so the press transform runs on the UI thread.
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /** Bold Momentum button. Primary = electric lime block with near-black caps. */
 export function Button({
@@ -11,6 +27,8 @@ export function Button({
   disabled = false,
   className = '',
   style,
+  onPressIn,
+  onPressOut,
   ...rest
 }: PressableProps & {
   label: string;
@@ -19,14 +37,14 @@ export function Button({
   className?: string;
 }) {
   const box: Record<Variant, string> = {
-    // Chunky "pressable key": a darker-volt bottom edge + (below) an accent-tinted
-    // lift. On press the face drops 2px and the edge shrinks 4->2px so the bottom
-    // stays put and it reads as physically depressing. RN borders sit INSIDE the
-    // box, so total height is unchanged — no layout jump.
-    primary: 'bg-volt border-b-4 border-volt-edge active:bg-volt-dim active:border-b-2 active:translate-y-0.5',
+    // Chunky "pressable key": a darker-volt bottom edge that shrinks 4->2px on
+    // press while the face dims, so it reads as physically depressing. The
+    // spring scale-down (below, Reanimated) owns the transform — NativeWind only
+    // touches color + border here, so the two never fight over `transform`.
+    primary: 'bg-volt border-b-4 border-volt-edge active:bg-volt-dim active:border-b-2',
     ghost: 'bg-transparent border border-line active:bg-coal',
     surface: 'bg-coal active:bg-card border border-line',
-    danger: 'bg-sos border-b-4 border-sos-edge active:opacity-90 active:border-b-2 active:translate-y-0.5',
+    danger: 'bg-sos border-b-4 border-sos-edge active:opacity-90 active:border-b-2',
   };
   const txt: Record<Variant, string> = {
     primary: 'text-volt-ink',
@@ -51,18 +69,34 @@ export function Button({
           shadowOffset: { width: 0, height: 6 },
         }
       : undefined;
+
+  // Universal press physics: spring scale-down to 0.96 on press, spring back on
+  // release. Runs on the UI thread; pass-through to any caller's press handlers.
+  const scale = useSharedValue(1);
+  const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const handlePressIn = (e: GestureResponderEvent) => {
+    scale.value = withSpring(0.96, PRESS_IN_SPRING);
+    onPressIn?.(e);
+  };
+  const handlePressOut = (e: GestureResponderEvent) => {
+    scale.value = withSpring(1, PRESS_OUT_SPRING);
+    onPressOut?.(e);
+  };
+
   return (
-    <Pressable
+    <AnimatedPressable
       // Remount (not in-place update) across the disabled<->enabled boundary: the
       // NativeWind interop throws "navigation context" when it upgrades an already-
       // mounted Pressable from non-interactive (disabled, no active: variants) to
       // interactive in place. A keyed remount makes it a fresh mount, which works.
       key={off ? 'btn-off' : 'btn-on'}
       disabled={off}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       accessibilityRole="button"
       accessibilityState={{ disabled: off }}
       className={`h-14 flex-row items-center justify-center rounded-2xl px-6 ${boxCls} ${className}`}
-      style={typeof style === 'function' ? style : [lift, style]}
+      style={typeof style === 'function' ? style : [lift, pressStyle, style]}
       {...rest}
     >
       {loading ? (
@@ -74,6 +108,6 @@ export function Button({
           </Text>
         </View>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }

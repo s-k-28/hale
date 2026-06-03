@@ -47,6 +47,10 @@ export default function TabsLayout() {
       <Tabs
       screenOptions={{
         headerShown: false,
+        // Cross-fade between tabs instead of an instant cut — the per-tab screen
+        // transition. Pairs with each screen's content RiseIn (translateY+opacity)
+        // so switching tabs feels like the new screen settling in, not snapping.
+        animation: 'fade',
         tabBarActiveTintColor: colors.volt,
         tabBarInactiveTintColor: colors.ash,
         tabBarStyle: {
