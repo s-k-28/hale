@@ -84,8 +84,9 @@ export default function RootLayout() {
         </Stack>
         {/* App-wide transient feedback (sonner-native). Sibling of the navigator so
             toasts overlay every screen; SafeArea/GestureHandler contexts come from
-            expo-router's root. */}
-        <Toaster />
+            expo-router's root. Short duration so a toast can't linger onto the next
+            screen after navigation (e.g. a check-in toast bleeding onto Coach). */}
+        <Toaster duration={2500} />
       </TamaguiProvider>
     </ConvexAuthProvider>
   );
