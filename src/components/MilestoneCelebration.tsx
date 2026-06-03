@@ -6,10 +6,12 @@ import Animated, {
   Easing,
   cancelAnimation,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
+import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
 import { X } from 'lucide-react-native';
 import { LANDMARK_DAYS } from '@convex/model/plan';
 import { track, Ev } from '@/lib/analytics';
@@ -73,9 +75,6 @@ function celebrationCopy(day: number): { title: string; sub: string } {
 }
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-// Electric-lime confetti — the one loud accent, with chalk + dim sparks.
-const CONFETTI_COLORS = ['#C6FF3D', '#C6FF3D', '#9FD22E', '#F4F7F2', '#8A938C'];
-const CONFETTI_COUNT = 24;
 
 export default function MilestoneCelebration({
   visible,
@@ -186,16 +185,12 @@ export default function MilestoneCelebration({
           </View>
         </SafeAreaView>
 
-        {/* Confetti burst — rendered ON TOP so the directed pop emanating from the
-            card is actually visible (behind the card it was hidden). pointerEvents
-            none lives in style (Fabric-reliable) so taps pass through to the CTA. */}
-        <View
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}
-        >
-          {Array.from({ length: CONFETTI_COUNT }).map((_, i) => (
-            <ConfettiPiece key={i} index={i} />
-          ))}
-        </View>
+        {/* Custom Skia particle burst — lime + white flakes (rotated rects) and
+            sparks (circles) erupt from behind the hero numeral, fan out with varied
+            velocity/size/spin, then arc down under gravity and fade over ~2s. Fires
+            once. Rendered ON TOP so the directed burst reads clearly; pointerEvents
+            none (Fabric-reliable) so taps pass through to the CTA. */}
+        <MilestoneParticles />
       </View>
     </Modal>
   );
@@ -228,76 +223,109 @@ function PoppedCard({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * A single confetti flake in a DIRECTED burst: it launches from the card's centre,
- * fans outward (decelerating), then arcs down under gravity and fades — a premium
- * confetti-pop converged on the hero, not scattered top-down rain. Fires once.
- * Deterministic per-index pseudo-randomness keeps the render cheap.
+ * Custom Skia particle system for the milestone celebration. A DIRECTED burst
+ * launches from behind the hero numeral (the floating card's centre), fans outward
+ * decelerating, then arcs down under gravity and fades over ~2s — a premium pop
+ * converged on the hero, NOT a uniform sprinkle. Lime + white flakes (rotated
+ * rects) and sparks (circles) with varied velocity / size / spin. Every particle
+ * is drawn in ONE Skia Picture (a single UI-thread worklet redraws the whole field
+ * per frame), driven by one linear `elapsed` clock, so it stays cheap. Fires once.
  */
 const BURST_ORIGIN_X = SCREEN_W / 2;
 const BURST_ORIGIN_Y = SCREEN_H * 0.46; // ≈ the floating card's centre
+const PARTICLE_COUNT = 60;
+const BURST_TOTAL_MS = 2200; // max delay (~180) + max lifetime (~2000)
+// Electric-lime is the loud accent; voltDim + white + a dim grey give depth.
+const PARTICLE_PALETTE: Array<[number, number, number]> = [
+  [198, 255, 61], // volt
+  [198, 255, 61], // volt (weighted)
+  [159, 210, 46], // voltDim
+  [244, 247, 242], // chalk/white spark
+  [138, 147, 140], // dim
+];
 
-function ConfettiPiece({ index }: { index: number }) {
-  const params = useMemo(() => {
-    const seed = (n: number) => {
-      const x = Math.sin((index + 1) * 9301 + n * 49297) * 233280;
-      return x - Math.floor(x); // 0..1
-    };
-    return {
-      angle: seed(1) * Math.PI * 2, // full-circle emission
-      speed: 150 + seed(2) * 240, // outward reach
-      size: 8 + seed(3) * 9,
-      color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
-      delay: seed(4) * 140, // tight stagger → reads as one pop, not a drizzle
-      duration: 1400 + seed(5) * 800,
-      rounded: seed(6) > 0.5,
-      spin: seed(7) > 0.5 ? 1 : -1,
-      gravity: 340 + seed(8) * 280,
-    };
-  }, [index]);
+function MilestoneParticles() {
+  const recorder = useMemo(() => Skia.PictureRecorder(), []);
+  const paint = useMemo(() => Skia.Paint(), []);
+  // Precompute every particle's physics ONCE (deterministic per-index pseudo-random
+  // → cheap + stable). Varied angle/speed/size/spin/gravity reads organic.
+  const particles = useMemo(
+    () =>
+      Array.from({ length: PARTICLE_COUNT }, (_, i) => {
+        const seed = (n: number) => {
+          const x = Math.sin((i + 1) * 9301 + n * 49297) * 233280;
+          return x - Math.floor(x); // 0..1
+        };
+        const angle = seed(1) * Math.PI * 2; // full-circle emission
+        const c = PARTICLE_PALETTE[Math.floor(seed(9) * PARTICLE_PALETTE.length) % PARTICLE_PALETTE.length];
+        return {
+          cos: Math.cos(angle),
+          sin: Math.sin(angle),
+          speed: 170 + seed(2) * 300, // outward reach
+          size: 7 + seed(3) * 11,
+          r: c[0],
+          g: c[1],
+          b: c[2],
+          delay: seed(4) * 180, // tight stagger → one pop, not a drizzle
+          duration: 1500 + seed(5) * 650,
+          circle: seed(6) > 0.62, // ~38% sparks, rest flakes
+          spin: (seed(7) > 0.5 ? 1 : -1) * (1.5 + seed(10) * 2), // rad/s-ish factor
+          gravity: 340 + seed(8) * 300,
+        };
+      }),
+    [],
+  );
 
-  const t = useSharedValue(0);
+  const elapsed = useSharedValue(0);
   useEffect(() => {
-    t.value = withDelay(
-      params.delay,
-      withTiming(1, { duration: params.duration, easing: Easing.out(Easing.cubic) }),
-    );
-    return () => cancelAnimation(t);
-  }, [t, params.delay, params.duration]);
+    elapsed.value = withTiming(BURST_TOTAL_MS, {
+      duration: BURST_TOTAL_MS,
+      easing: Easing.linear,
+    });
+    return () => cancelAnimation(elapsed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const style = useAnimatedStyle(() => {
-    const tv = t.value; // already eased-out
-    const reach = params.speed * tv;
-    const x = BURST_ORIGIN_X + Math.cos(params.angle) * reach;
-    const y = BURST_ORIGIN_Y + Math.sin(params.angle) * reach + params.gravity * tv * tv;
-    const rot = params.spin * tv * 480;
-    const opacity = tv < 0.08 ? tv / 0.08 : tv > 0.72 ? Math.max(0, (1 - tv) / 0.28) : 1;
-    const scale = 0.5 + Math.min(1, tv * 3) * 0.6; // quick pop-in at launch
-    return {
-      transform: [
-        { translateX: x },
-        { translateY: y },
-        { rotate: `${rot}deg` },
-        { scale },
-      ],
-      opacity,
-    };
+  const picture = useDerivedValue(() => {
+    'worklet';
+    const canvas = recorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    const e = elapsed.value;
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const pa = particles[i];
+      const local = e - pa.delay;
+      if (local <= 0) continue;
+      let p = local / pa.duration;
+      if (p > 1) p = 1;
+      // Eased outward reach (decelerating fan) + gravity arc on the vertical.
+      const ep = 1 - Math.pow(1 - p, 3);
+      const reach = pa.speed * ep;
+      const x = BURST_ORIGIN_X + pa.cos * reach;
+      const y = BURST_ORIGIN_Y + pa.sin * reach + pa.gravity * p * p;
+      // Pop in fast, hold, fade out over the back ~28%.
+      const op = p < 0.08 ? p / 0.08 : p > 0.72 ? (1 - p) / 0.28 : 1;
+      const a = Math.max(0, Math.min(1, op));
+      if (a <= 0) continue;
+      paint.setColor(Skia.Color(`rgba(${pa.r}, ${pa.g}, ${pa.b}, ${a})`));
+      if (pa.circle) {
+        canvas.drawCircle(x, y, pa.size * 0.42, paint);
+      } else {
+        // Rotated rectangular flake (varied spin) for physical, non-uniform motion.
+        canvas.save();
+        canvas.translate(x, y);
+        canvas.rotate(pa.spin * p * 320, 0, 0);
+        canvas.drawRect(Skia.XYWHRect(-pa.size / 2, -pa.size * 0.32, pa.size, pa.size * 0.64), paint);
+        canvas.restore();
+      }
+    }
+    return recorder.finishRecordingAsPicture();
   });
 
   return (
-    <Animated.View
-      style={[
-        {
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: params.size,
-          height: params.size,
-          backgroundColor: params.color,
-          borderRadius: params.rounded ? params.size / 2 : 2,
-        },
-        style,
-      ]}
-    />
+    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
+      <Canvas style={{ flex: 1 }}>
+        <Picture picture={picture} />
+      </Canvas>
+    </View>
   );
 }
 
