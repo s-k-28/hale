@@ -1,10 +1,82 @@
 # HALE — Phase-1 Build Handoff (resume after context clear)
 
-**Repo:** `~/hale` · git `main` (remote `s-k-28/hale`, **pushed through `91cbeb7`** as of 2026-06-02 evening).
+**Repo:** `~/hale` · git `main` (remote `s-k-28/hale`, **pushed through the 2026-06-02 NIGHT design/animation pass** — latest feature commit `e77ffec`, Today living-progress ring; see "⭐ LATEST" below).
 **Stack (LOCKED):** Expo ~56.0.8 · RN 0.85.3 · React 19.2.3 · Hermes v1 · New Arch · **NativeWind ^4.2.4** · Convex (`good-canary-630`) · `@convex-dev/auth` (anonymous) · expo-router (typedRoutes + reactCompiler) · `react-native-onesignal` 5.x + `onesignal-expo-plugin` · `react-native-purchases` · `posthog-react-native`.
 
 ## The bar
 Ultrathink before code. Done-gate = run live, screenshot, confirm `[ev]` AND (now) confirm delivery in PostHog. No placeholders/hardcoded. Commit each increment. **A feature is "passed" only at its PRD exit criteria + live confirmation, not when it compiles.**
+
+---
+
+## ⭐ LATEST (2026-06-02 NIGHT) — animation + Duolingo-architecture design pass (DONE, pushed)
+
+A two-part craft pass ON TOP of the passed Phase-1 build below. Every change is ADDITIVE/visual,
+kept 100% inside "Bold Momentum" identity (void `#0A0C0B` + electric-lime volt `#C6FF3D` + coral
+SOS) — NO Duolingo green/cartoon/light-canvas. Locked architecture + verified SOS/paywall flow
+LOGIC untouched. `tsc --noEmit` clean + live-verified on device per commit.
+
+### Part A — four animated "emotional peak" moments (Reanimated 4 + expo-haptics)
+- Check-in: flame ignite + lime spark burst over the CTA + impact/success haptics — `2d3ee65`
+- Milestone: hero numbers count up (days / money / recovery bar) — `cac5130`
+- Live counter: h/m/s digits spring-tick + big day numeral breathes — `79fefba`
+- Relapse: gentle warm fade-rise entrance + a beating Heart — `d0cdd7e`
+(Reanimated 4 needs `react-native-worklets`; lottie/rive/skia/haptics all linked in the dev
+client. Burst component: `src/components/CheckInBurst.tsx`.)
+
+### Part B — Duolingo STRUCTURAL architecture pass, all 7 screens (user-approved, system-first)
+Extracted Duolingo's structure (focal hierarchy, depth/layering, type ramp, spacing rhythm,
+directed motion, mascot-warmth) applied HALE's way. Two cross-cutting rules the user set:
+**clipping/containment = a P0 fixed FIRST on every screen**, and **lime rationed to ONE focal
+element + the CTA** (supporting numbers demoted to chalk).
+
+Phase 0 — shared primitives (built once, reused everywhere):
+- `Button` chunky pressable depth: darker-volt bottom edge + accent lift + active press-collapse;
+  new `voltEdge`/`sosEdge` tokens — `45821de`
+- `Surface` (raised/recessed elevation on the dark canvas; new `raised` token) + `SageNote`
+  (Sage voice as a flat typographic chip — NEVER a bubble/face) + `FeedbackFlood` (semantic
+  volt-success / coral-warning wash, observe-only) — `05c015a`
+
+Screens (each verified live, committed):
+- **Today** `7d827b4` — ring lifted onto a volt-bloom plane (lone hero); MONEY SAVED lime→chalk; ranked spacing
+- **Squad** `4b3a3f8` — two planes: invite card raised, nav rows recessed w/ ash icons; metadata eyebrow
+- **Coach** `6351fae` — Sage reply elevated + volt voice-rule; thread bottom-anchored; chunky send
+- **Milestone** `7c3f0ed` + **REBUILT per review `d1bbde7`** — lone "DAYS" hero; $money→chalk; no-clip via
+  a `fitContent` taller-aspect card; directed confetti BURST from the card centre, rendered on top so it's visible
+- **Relapse** `ba779e8` — beating Heart promoted to a centred glowing hero; lime rationed; earned card
+  elevated + stats equalized; reassurance framed as Sage's voice — visual-only, SOS flow untouched
+- **Paywall** `7b2e878` — **LOCKED / visual-only**: $39.99 → ANTON value-hero; footer = raised plane so cards
+  recede under it (no sliced card); lead benefit elevated; checks→ash. NO reorder/relabel/price/logic change
+- **Onboarding** `40d6487` — Sage-framed "SAGE · n/7" eyebrow; hero question title (text-5xl); elevated selected card
+
+### Part C — Today "living progress" ring (LATEST, `e77ffec`)
+RingGauge is now a REAL animated progress arc toward the next milestone (Reanimated 4
+`useAnimatedProps` on an `AnimatedCircle` `strokeDashoffset` — pulled current v4 docs via
+context7, not stale v3): spring-fills on load, re-animates on advance; + slow stroke shimmer;
++ check-in SURGE (brightness flood + scale pop of the ring & the numeral it wraps). Timer
+demoted (small/ash) so "0 DAYS" is the lone hero. Coral SOS bleed behind the tab bar contained
+with a bottom void-scrim (`expo-linear-gradient`). All observe-only.
+
+### ⚠️ OPEN follow-ups from this pass
+1. **REMOVE `convex/_devtest.ts` before launch** — temp dev helper (`uncheckIn` clears today's
+   `checkIns` rows so CHECK IN re-enables; `backdateQuit(days)` backdates the active quit to fire
+   milestones). It is UNCOMMITTED (untracked) and its codegen entry in `convex/_generated/api.d.ts`
+   is uncommitted, so it does NOT ship — but delete the file + revert/regenerate api.d.ts before release.
+2. **You-tab "SAVED, LIFETIME" StatTile is still lime** — demote to chalk for full lime-rationing
+   consistency (You wasn't one of the 7 named screens, so it was intentionally left). `src/app/(tabs)/you.tsx`.
+
+### Infra notes (this session)
+- **UI driver: ExecBro MCP worked this session** (`mcp__execbro__ios_screenshot` / `tap` / `swipe`).
+  For TIMED motion capture (catching an animation mid-flight) use `xcrun simctl io <udid> screenshot
+  <path>` INSIDE a bash command (no model→tool latency); for sub-perceptual motion, exaggerate →
+  capture → REVERT to production values (used for arc-fill, shimmer, counter tick, surge).
+- **Recurring crash:** the NativeWind tailwind-v3 watcher + Metro Haste map crash Metro on rapid
+  multi-save edits (`DependencyGraph._onHasteChange` undefined `addedFiles`). Workaround: restart
+  `nohup npx expo start --port 8081 > /tmp/hale-metro2.log 2>&1 &` (add `--clear` only when tokens
+  changed) + reconnect the dev client via
+  `xcrun simctl openurl <UDID> "com.haleapp.hale://expo-development-client/?url=http://192.168.1.96:8081"`.
+  Onboarding live-verify via `openurl "hale://quiz"` (tapping an option there throws "no navigation
+  context" — a deep-link artifact, not a bug). Metro log THIS session: `/tmp/hale-metro2.log`.
+- Sim UDID, Convex/RC/PostHog harness details in the older "Verification harness" section still apply.
 
 ---
 
