@@ -8,7 +8,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 import { X } from 'lucide-react-native';
@@ -76,7 +75,7 @@ function celebrationCopy(day: number): { title: string; sub: string } {
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 // Electric-lime confetti — the one loud accent, with chalk + dim sparks.
 const CONFETTI_COLORS = ['#C6FF3D', '#C6FF3D', '#9FD22E', '#F4F7F2', '#8A938C'];
-const CONFETTI_COUNT = 30;
+const CONFETTI_COUNT = 24;
 
 export default function MilestoneCelebration({
   visible,
@@ -115,16 +114,6 @@ export default function MilestoneCelebration({
       onRequestClose={onClose}
     >
       <View className="flex-1 bg-void" style={{ backgroundColor: colors.void }}>
-        {/* Confetti layer — sits behind the content, above the background. */}
-        <View
-          pointerEvents="none"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-        >
-          {Array.from({ length: CONFETTI_COUNT }).map((_, i) => (
-            <ConfettiPiece key={i} index={i} />
-          ))}
-        </View>
-
         <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
           <View className="flex-1 px-6 pb-6">
             {/* Dismiss */}
@@ -180,6 +169,7 @@ export default function MilestoneCelebration({
                   recoveryPct={recoveryPct}
                   name={name}
                   animate
+                  fitContent
                 />
               </View>
             </PoppedCard>
@@ -201,6 +191,17 @@ export default function MilestoneCelebration({
             </View>
           </View>
         </SafeAreaView>
+
+        {/* Confetti burst — rendered ON TOP so the directed pop emanating from the
+            card is actually visible (behind the card it was hidden). pointerEvents
+            none lives in style (Fabric-reliable) so taps pass through to the CTA. */}
+        <View
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}
+        >
+          {Array.from({ length: CONFETTI_COUNT }).map((_, i) => (
+            <ConfettiPiece key={i} index={i} />
+          ))}
+        </View>
       </View>
     </Modal>
   );
@@ -233,26 +234,30 @@ function PoppedCard({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * A single confetti flake: falls from above the top edge to below the bottom,
- * drifting and spinning. Deterministic per-index pseudo-randomness keeps the
- * render cheap and avoids re-seeding on every frame.
+ * A single confetti flake in a DIRECTED burst: it launches from the card's centre,
+ * fans outward (decelerating), then arcs down under gravity and fades — a premium
+ * confetti-pop converged on the hero, not scattered top-down rain. Fires once.
+ * Deterministic per-index pseudo-randomness keeps the render cheap.
  */
+const BURST_ORIGIN_X = SCREEN_W / 2;
+const BURST_ORIGIN_Y = SCREEN_H * 0.46; // ≈ the floating card's centre
+
 function ConfettiPiece({ index }: { index: number }) {
-  // Stable pseudo-random params from the index (no Math.random in render path).
   const params = useMemo(() => {
     const seed = (n: number) => {
       const x = Math.sin((index + 1) * 9301 + n * 49297) * 233280;
       return x - Math.floor(x); // 0..1
     };
     return {
-      startX: seed(1) * SCREEN_W,
-      drift: (seed(2) - 0.5) * 120,
-      size: 7 + seed(3) * 8,
+      angle: seed(1) * Math.PI * 2, // full-circle emission
+      speed: 150 + seed(2) * 240, // outward reach
+      size: 8 + seed(3) * 9,
       color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
-      delay: seed(4) * 900,
-      duration: 2600 + seed(5) * 1600,
+      delay: seed(4) * 140, // tight stagger → reads as one pop, not a drizzle
+      duration: 1400 + seed(5) * 800,
       rounded: seed(6) > 0.5,
       spin: seed(7) > 0.5 ? 1 : -1,
+      gravity: 340 + seed(8) * 280,
     };
   }, [index]);
 
@@ -260,26 +265,25 @@ function ConfettiPiece({ index }: { index: number }) {
   useEffect(() => {
     t.value = withDelay(
       params.delay,
-      withRepeat(
-        withTiming(1, { duration: params.duration, easing: Easing.linear }),
-        -1,
-        false,
-      ),
+      withTiming(1, { duration: params.duration, easing: Easing.out(Easing.cubic) }),
     );
     return () => cancelAnimation(t);
   }, [t, params.delay, params.duration]);
 
   const style = useAnimatedStyle(() => {
-    const y = -40 + t.value * (SCREEN_H + 80);
-    const x = params.drift * Math.sin(t.value * Math.PI * 2);
-    const rot = params.spin * t.value * 360 * 2;
-    // Fade out near the very bottom so pieces don't pop off-screen.
-    const opacity = t.value > 0.92 ? (1 - t.value) / 0.08 : 1;
+    const tv = t.value; // already eased-out
+    const reach = params.speed * tv;
+    const x = BURST_ORIGIN_X + Math.cos(params.angle) * reach;
+    const y = BURST_ORIGIN_Y + Math.sin(params.angle) * reach + params.gravity * tv * tv;
+    const rot = params.spin * tv * 480;
+    const opacity = tv < 0.08 ? tv / 0.08 : tv > 0.72 ? Math.max(0, (1 - tv) / 0.28) : 1;
+    const scale = 0.5 + Math.min(1, tv * 3) * 0.6; // quick pop-in at launch
     return {
       transform: [
         { translateX: x },
         { translateY: y },
         { rotate: `${rot}deg` },
+        { scale },
       ],
       opacity,
     };
@@ -290,7 +294,7 @@ function ConfettiPiece({ index }: { index: number }) {
       style={[
         {
           position: 'absolute',
-          left: params.startX,
+          left: 0,
           top: 0,
           width: params.size,
           height: params.size,

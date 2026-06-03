@@ -40,6 +40,9 @@ export type TransformationCardProps = {
    *  Default false → fully static, so the persistent profile card AND every share
    *  capture render the exact final values. */
   animate?: boolean;
+  /** Celebration-only: drop the fixed 9:16 aspect ratio so the card sizes to its
+   *  content and NOTHING clips. The share / profile usages keep the fixed aspect. */
+  fitContent?: boolean;
 };
 
 // Capture-safe font families (mirror tailwind.config.js fontFamily entries).
@@ -102,7 +105,7 @@ function useCountUp(target: number, active: boolean, durationMs = 950, delayMs =
  * the built-in shareCard helper) can snapshot exactly this node.
  */
 const TransformationCard = forwardRef<RNView, TransformationCardProps>(
-  function TransformationCard({ days, moneySaved, recoveryPct, name, animate }, ref) {
+  function TransformationCard({ days, moneySaved, recoveryPct, name, animate, fitContent }, ref) {
     const wholeDays = Math.max(0, Math.floor(days));
     const pct = recoveryPct === undefined ? null : clampPct(recoveryPct);
     const firstName = name?.trim().split(/\s+/)[0] || null;
@@ -118,9 +121,12 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
       <View
         ref={ref}
         collapsable={false}
-        // 9:16-ish proof card; fixed aspect so the capture is share-ready.
+        // 9:16-ish proof card; fixed aspect so the capture is share-ready. The
+        // inner gradient is flex:1, so the card MUST keep a defined aspect ratio —
+        // in the celebration we use a TALLER ratio (fitContent) so the content has
+        // room to breathe and the footer tagline can never clip.
         className="w-full overflow-hidden rounded-3xl bg-void"
-        style={{ aspectRatio: 0.72, backgroundColor: colors.void }}
+        style={{ aspectRatio: fitContent ? 0.64 : 0.72, backgroundColor: colors.void }}
       >
         {/* Base near-black wash with a faint lime-tinted floor. */}
         <LinearGradient
@@ -244,12 +250,12 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
                 </Text>
                 <View className="mt-1 flex-row items-baseline">
                   <Text
-                    className="text-volt"
+                    className="text-chalk"
                     style={{
                       fontFamily: FONTS.display,
                       fontSize: 54,
                       lineHeight: 58,
-                      color: colors.volt,
+                      color: colors.chalk,
                     }}
                   >
                     {fmtMoney(dispMoney)}
