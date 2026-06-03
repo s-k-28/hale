@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Share, View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery } from 'convex/react';
@@ -6,6 +6,7 @@ import {
   Check,
   ChevronRight,
   Flame,
+  Heart,
   HeartHandshake,
   Share2,
   Trophy,
@@ -21,6 +22,15 @@ import { Button } from '@/components/ui/Button';
 import { Pill } from '@/components/ui/Pill';
 import { Surface } from '@/components/ui/Surface';
 import { colors } from '@/theme/colors';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 /**
  * Squad (S1/S2) — the social wedge. Two states off a single reactive query.
@@ -164,12 +174,15 @@ function PairedState({
   sharedStreak: number;
 }) {
   const [cheered, setCheered] = useState(false);
+  // Increments on a cheer tap to fire one floating-heart burst from the button.
+  const [heartBurst, setHeartBurst] = useState(0);
   const displayName = useMemo(() => name?.trim() || 'Your buddy', [name]);
   const cheer = useMutation(api.nudges.cheer);
 
   const onCheer = useCallback(() => {
     if (cheered) return;
     setCheered(true);
+    setHeartBurst((n) => n + 1);
     track(Ev.NUDGE_SENT, { type: 'cheer', surface: 'squad' });
     cheer({ type: 'cheer' })
       .then(() => toast.success("Support sent 💪"))
@@ -183,7 +196,7 @@ function PairedState({
     <View className="mt-6">
       {/* Shared-streak banner */}
       <View className="flex-row items-center rounded-2xl border border-volt/30 bg-volt/10 px-5 py-4">
-        <Flame color={colors.volt} size={26} strokeWidth={2.5} />
+        <PulsingFlame />
         <View className="ml-3">
           <Label className="text-volt">SHARED STREAK</Label>
           <Body className="font-body-bold text-lg text-chalk">
@@ -226,14 +239,18 @@ function PairedState({
           </Body>
         </View>
 
-        <Button
-          variant={cheered ? 'surface' : 'primary'}
-          label={cheered ? 'SUPPORT SENT' : 'SEND SUPPORT'}
-          disabled={cheered}
-          onPress={onCheer}
-          accessibilityLabel={cheered ? 'Support sent' : 'Send support to your buddy'}
-          className="mt-5"
-        />
+        <View className="relative mt-5">
+          <Button
+            variant={cheered ? 'surface' : 'primary'}
+            label={cheered ? 'SUPPORT SENT' : 'SEND SUPPORT'}
+            disabled={cheered}
+            onPress={onCheer}
+            accessibilityLabel={cheered ? 'Support sent' : 'Send support to your buddy'}
+          />
+          {/* Lime heart scales up, floats up, and fades from the button on each
+              cheer tap. Keyed on the burst counter so it re-fires; overlay only. */}
+          {heartBurst > 0 ? <FloatingHeart key={heartBurst} /> : null}
+        </View>
 
         <View className="mt-3 flex-row items-center justify-center">
           <HeartHandshake color={colors.ash} size={13} />
@@ -243,6 +260,53 @@ function PairedState({
         </View>
       </Surface>
     </View>
+  );
+}
+
+/** Shared-streak flame, slow warm pulse — the bond reads as alive, not a static icon. */
+function PulsingFlame() {
+  const scale = useSharedValue(1);
+  useEffect(() => {
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.12, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+      false,
+    );
+  }, [scale]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <Animated.View style={style}>
+      <Flame color={colors.volt} size={26} strokeWidth={2.5} />
+    </Animated.View>
+  );
+}
+
+/** A lime heart that pops in, floats up, and fades — the tactile "support sent" beat. */
+function FloatingHeart() {
+  const p = useSharedValue(0);
+  useEffect(() => {
+    p.value = withTiming(1, { duration: 950, easing: Easing.out(Easing.cubic) });
+  }, [p]);
+  const style = useAnimatedStyle(() => ({
+    opacity: p.value < 0.15 ? p.value / 0.15 : Math.max(0, 1 - (p.value - 0.15) / 0.85),
+    transform: [
+      { translateY: -72 * p.value },
+      // Quick pop past 1, settle back — a heartbeat, not a balloon.
+      { scale: interpolate(p.value, [0, 0.25, 1], [0.4, 1.2, 1.0]) },
+    ],
+  }));
+  return (
+    <Animated.View
+      style={[
+        { position: 'absolute', alignSelf: 'center', top: 8, pointerEvents: 'none' },
+        style,
+      ]}
+    >
+      <Heart color={colors.volt} fill={colors.volt} size={30} strokeWidth={2} />
+    </Animated.View>
   );
 }
 
