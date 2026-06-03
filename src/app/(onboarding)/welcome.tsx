@@ -13,7 +13,7 @@ export default function Welcome() {
             <Pill tone="volt">NO MORE NICOTINE</Pill>
           </YStack>
 
-          <Display color="$chalk" fontSize={96} lineHeight={100} letterSpacing={-4}>
+          <Display color="$chalk" fontSize={96} lineHeight={100} letterSpacing={1}>
             HALE
           </Display>
 

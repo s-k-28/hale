@@ -11,11 +11,16 @@ export function Display({ className = '', ...p }: Props) {
   // from clipping glyph tops. Callers must stay ≥ ~1.1x (leading-tight/snug) —
   // leading-none / leading-[0.9x] clips on Anton (see paywall/sos which use
   // leading-tight). A later leading-* in `className` overrides this default.
-  return <RNText className={`font-display text-chalk leading-tight ${className}`} {...p} />;
+  // Small positive tracking so multi-word Anton headlines ("GO ALL IN", "THIS
+  // PASSES") don't visually collide; negligible on the big numerals/counter.
+  return <RNText className={`font-display text-chalk leading-tight tracking-[0.01em] ${className}`} {...p} />;
 }
 
 export function Heading({ className = '', ...p }: Props) {
-  return <RNText className={`font-heading uppercase tracking-tight text-chalk ${className}`} {...p} />;
+  // Uppercase Archivo headings need POSITIVE tracking, not tight — negative
+  // tracking made caps collide into one word ("AREYOU", "HEALSFAST"). Proportional
+  // em keeps small sub-headings subtle while clearly separating big hero titles.
+  return <RNText className={`font-heading uppercase tracking-[0.02em] text-chalk ${className}`} {...p} />;
 }
 
 export function Body({ className = '', ...p }: Props) {
