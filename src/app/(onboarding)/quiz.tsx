@@ -35,6 +35,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Pill } from '@/components/ui/Pill';
+import { RiseIn } from '@/components/motion';
 import { colors } from '@/theme/colors';
 import { track, Ev } from '@/lib/analytics';
 import { requestPushPermission } from '@/lib/onesignal';
@@ -628,6 +629,24 @@ function BuildingPlan({ name }: { name: string }) {
   );
 }
 
+/** One-shot eased count-up from 0 → target (~1.1s) — the celebratory reveal of the $ number. */
+function useCountUp(target: number, duration = 1100) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    const start = Date.now();
+    const tick = () => {
+      const t = Math.min(1, (Date.now() - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setN(Math.round(target * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return n;
+}
+
 /** PLAN REVEAL — hero $ number + health recovery timeline + medical disclaimer. */
 function PlanReveal({
   name,
@@ -644,6 +663,8 @@ function PlanReveal({
   milestones: { hours: number; label: string }[];
   onContinue: () => void;
 }) {
+  // Hero savings counts up on mount; the milestone rows stagger-rise below it.
+  const animatedAnnual = useCountUp(annual);
   return (
     <Screen edges={['top', 'bottom']}>
       <ScrollView
@@ -663,7 +684,7 @@ function PlanReveal({
         <View className="mt-7 overflow-hidden rounded-3xl border border-volt/30 bg-volt/10 p-6">
           <Label className="text-volt/80">Projected savings this year</Label>
           <Display className="mt-1 text-7xl leading-tight text-volt">
-            ${annual.toLocaleString()}
+            ${animatedAnnual.toLocaleString()}
           </Display>
           <View className="mt-5 flex-row gap-3">
             <View className="flex-1 rounded-2xl border border-line bg-coal p-4">
@@ -688,18 +709,19 @@ function PlanReveal({
         </View>
         <View className="mt-4 gap-2.5">
           {milestones.map((m, i) => (
-            <View
-              key={m.label}
-              className="flex-row items-center gap-4 rounded-2xl border border-line bg-coal p-4"
-            >
-              <View className="h-9 w-9 items-center justify-center rounded-full border border-line bg-card">
-                <Display className="text-lg leading-tight text-volt">{i + 1}</Display>
+            // Rows fade-rise in sequence (40ms stagger) so the recovery timeline
+            // reveals itself on mount — the body healing, step by step.
+            <RiseIn key={m.label} index={i}>
+              <View className="flex-row items-center gap-4 rounded-2xl border border-line bg-coal p-4">
+                <View className="h-9 w-9 items-center justify-center rounded-full border border-line bg-card">
+                  <Display className="text-lg leading-tight text-volt">{i + 1}</Display>
+                </View>
+                <View className="flex-1">
+                  <Label className="text-ash">{formatHours(m.hours)}</Label>
+                  <Body className="mt-0.5 font-body-semibold text-base text-chalk">{m.label}</Body>
+                </View>
               </View>
-              <View className="flex-1">
-                <Label className="text-ash">{formatHours(m.hours)}</Label>
-                <Body className="mt-0.5 font-body-semibold text-base text-chalk">{m.label}</Body>
-              </View>
-            </View>
+            </RiseIn>
           ))}
         </View>
 
