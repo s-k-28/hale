@@ -196,7 +196,9 @@ export default function Today() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         setShowBurst(true);
         setRingSurge((n) => n + 1);
-        toast.success("Locked in for today 🔥");
+        // No success toast here: the lime burst + the inline "Locked in for today"
+        // confirmation already say it. A 3rd toast was redundant AND lingered onto
+        // other tabs across navigation. (Error path keeps its toast — see catch.)
       }
     } catch {
       // Surface what was a silent failure — a failed tap shouldn't be a dead end.
@@ -219,6 +221,9 @@ export default function Today() {
 
   const cleanMs = now - state.quitStart;
   const t = breakdown(cleanMs);
+  // Cold-start window (day 0): reframe the hero as a beginning, not a void —
+  // encouraging ring floor, "first milestone" framing, softened bare zeros.
+  const freshStart = t.days === 0;
 
   // Milestone progress: fraction of the way through the CURRENT health window.
   const milestone = state.nextMilestone;
@@ -238,7 +243,7 @@ export default function Today() {
   return (
     <Screen edges={['top']}>
       <ScrollView
-        contentContainerClassName="px-5 pb-14 pt-3"
+        contentContainerClassName="px-5 pb-24 pt-3"
         showsVerticalScrollIndicator={false}
       >
         {/* Header — loud uppercase, lime status flag */}
@@ -264,7 +269,12 @@ export default function Today() {
               className="absolute -inset-4 rounded-full bg-volt/[0.05]"
               style={{ pointerEvents: 'none' }}
             />
-            <RingGauge progress={milestoneProgress} size={272} stroke={12} surge={ringSurge}>
+            <RingGauge
+              progress={freshStart ? Math.max(milestoneProgress, 0.08) : milestoneProgress}
+              size={272}
+              stroke={12}
+              surge={ringSurge}
+            >
               <Label className="text-ash">Clean for</Label>
               <HeroDays days={t.days} />
               <Label className="-mt-1 text-volt">
@@ -283,9 +293,15 @@ export default function Today() {
 
         {/* Next health milestone strip */}
         {milestone ? (
-          <View className="mb-3 rounded-3xl border border-line bg-coal px-5 py-4">
+          <View
+            className={`mb-3 rounded-3xl border px-5 py-4 ${
+              freshStart ? 'border-volt/25 bg-volt/[0.06]' : 'border-line bg-coal'
+            }`}
+          >
             <View className="flex-row items-center justify-between">
-              <Label>Next milestone</Label>
+              <Label className={freshStart ? 'text-volt' : undefined}>
+                {freshStart ? 'First milestone' : 'Next milestone'}
+              </Label>
               <Display className="text-2xl text-volt">
                 {countdownLabel(milestoneRemainingMs)}
               </Display>
@@ -296,10 +312,17 @@ export default function Today() {
             >
               {milestone.label}
             </Body>
+            {freshStart ? (
+              <Body className="mt-1 font-body-medium text-[13px] text-volt">
+                You've already started — your body is responding right now.
+              </Body>
+            ) : null}
             <View className="mt-3 h-2 w-full overflow-hidden rounded-full bg-void">
               <View
                 className="h-full rounded-full bg-volt"
-                style={{ width: `${Math.round(milestoneProgress * 100)}%` }}
+                style={{
+                  width: `${Math.round(Math.max(milestoneProgress, freshStart ? 0.08 : 0) * 100)}%`,
+                }}
               />
             </View>
           </View>
@@ -315,7 +338,8 @@ export default function Today() {
         {/* Stat tiles — money saved (lime accent) + lung recovery */}
         <View className="mb-3 flex-row gap-3">
           <StatTile label="Money saved" value={money(state.currentMoneySaved)} />
-          <StatTile label="Recovery" value={`${recoveryPct}%`} />
+          {/* Soften the bare "0%" on day 0 — frame it as the start, not a void. */}
+          <StatTile label="Recovery" value={recoveryPct === 0 ? 'Day 1' : `${recoveryPct}%`} />
         </View>
         {/* Lifetime line only when it ADDS info — i.e. there's history beyond this
             run (post-relapse). On a first run current == lifetime, so showing it
@@ -391,8 +415,8 @@ export default function Today() {
       {/* Bottom scrim — fades scrolling content into the void before the tab bar so
           the coral SOS card never peeks as a sliver behind it (layering fix). */}
       <LinearGradient
-        colors={['transparent', colors.void]}
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56, pointerEvents: 'none' }}
+        colors={['transparent', colors.void, colors.void]}
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 96, pointerEvents: 'none' }}
       />
 
       {/* Milestone celebration overlay — fires once per landmark day reached. */}
