@@ -29,6 +29,8 @@ import { track, Ev } from '@/lib/analytics';
 import { Screen } from '@/components/ui/Screen';
 import { Body, Display, Heading, Label } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { Surface } from '@/components/ui/Surface';
+import { SageNote } from '@/components/ui/SageNote';
 import { RingGauge } from '@/components/ui/RingGauge';
 import { colors } from '@/theme/colors';
 
@@ -778,10 +780,13 @@ function WarmHeart() {
   const style = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   return (
     <Animated.View
-      className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-volt/40 bg-volt/10"
-      style={style}
+      className="mb-6 h-20 w-20 items-center justify-center self-center rounded-3xl border border-volt/40 bg-volt/10"
+      style={[
+        style,
+        { shadowColor: colors.volt, shadowOpacity: 0.3, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } },
+      ]}
     >
-      <Heart color={colors.volt} size={24} strokeWidth={2.5} />
+      <Heart color={colors.volt} size={38} strokeWidth={2.5} />
     </Animated.View>
   );
 }
@@ -802,15 +807,15 @@ function RecoverKindly({
     <Screen edges={['top', 'bottom']}>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-5 pb-10"
+        contentContainerClassName="px-5 pb-14"
         showsVerticalScrollIndicator={false}
       >
         <SoftRise>
-          <View className="pt-12">
+          <View className="items-center pt-12">
             <WarmHeart />
-            <Heading className="text-4xl leading-[0.95]">This isn't a reset.</Heading>
-            <Display className="mt-2 text-6xl leading-tight text-volt">FRESH RUN.</Display>
-            <Body className="mt-5 text-base leading-relaxed text-ash">
+            <Heading className="text-center text-4xl leading-[0.95]">This isn't a reset.</Heading>
+            <Display className="mt-2 text-center text-6xl leading-tight text-chalk">FRESH RUN.</Display>
+            <Body className="mt-5 text-center text-base leading-relaxed text-ash">
               Quitting nicotine almost never happens in one clean line. What you've built so far
               doesn't disappear — it's still yours.
             </Body>
@@ -819,14 +824,14 @@ function RecoverKindly({
 
         <SoftRise delay={140}>
         {/* What you've already earned — loud lifetime stats, NEVER a zero feel. */}
-        <View className="mt-9 overflow-hidden rounded-3xl border border-line bg-coal">
-          <View className="border-b border-line px-5 pt-5">
+        <Surface level="raised" className="mt-9 overflow-hidden">
+          <View className="border-b border-line px-5 pb-4 pt-5">
             <Label>What you've already earned</Label>
           </View>
           <View className="flex-row">
             <View className="flex-1 border-r border-line px-5 py-5">
-              <Display className="text-5xl leading-tight text-volt">{fmtUsd(lifetimeMoneySaved)}</Display>
-              <Body className="mt-1.5 text-sm text-ash">saved, lifetime</Body>
+              <Display className="text-5xl leading-tight text-chalk">{fmtUsd(lifetimeMoneySaved)}</Display>
+              <Label className="mt-2">Saved · lifetime</Label>
             </View>
             <View className="flex-1 px-5 py-5">
               <View className="flex-row items-baseline gap-1.5">
@@ -835,16 +840,16 @@ function RecoverKindly({
                   {bestStreak === 1 ? 'day' : 'days'}
                 </Body>
               </View>
-              <Body className="mt-1.5 text-sm text-ash">your best streak</Body>
+              <Label className="mt-2">Best streak</Label>
             </View>
           </View>
           <View className="border-t border-line px-5 py-4">
-            <Body className="text-sm leading-relaxed text-chalk/80">
+            <SageNote chip={false}>
               You already proved you can do this for {bestStreak > 0 ? `${bestStreak} ` : 'a '}
               {bestStreak === 1 ? 'day' : 'days'}. You can do it again — starting now.
-            </Body>
+            </SageNote>
           </View>
-        </View>
+        </Surface>
         </SoftRise>
 
         <SoftRise delay={260}>
