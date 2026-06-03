@@ -823,14 +823,15 @@ function Question({
 }) {
   return (
     <View>
-      <Label className="text-volt">
-        Question {index + 1} / {QUESTION_STEPS.length}
-      </Label>
-      <Heading className="mt-3 text-4xl leading-[1.05]">{title}</Heading>
+      {/* Sage frames every question (HALE's mascot-warmth equivalent) as a flat
+          typographic eyebrow — never a bubble/face — with the step folded in so
+          the prompt reads as the coach asking it. The title is the screen hero. */}
+      <Label className="text-volt">Sage · {index + 1}/{QUESTION_STEPS.length}</Label>
+      <Heading className="mt-2 text-5xl leading-[0.98]">{title}</Heading>
       {subtitle ? (
-        <Body className="mt-3 font-body-medium text-base leading-6 text-ash">{subtitle}</Body>
+        <Body className="mt-3 font-body-medium text-sm leading-6 text-ash">{subtitle}</Body>
       ) : null}
-      <View className="mt-7 gap-3">{children}</View>
+      <View className="mt-8 gap-3">{children}</View>
     </View>
   );
 }
@@ -851,8 +852,15 @@ function ChoiceCard({
       onPress={onPress}
       className={
         selected
-          ? 'flex-row items-center gap-4 rounded-2xl border border-volt bg-volt/10 px-5 py-4'
+          ? 'flex-row items-center gap-4 rounded-2xl border border-volt bg-raised px-5 py-4'
           : 'flex-row items-center gap-4 rounded-2xl border border-line bg-coal px-5 py-4 active:bg-card'
+      }
+      // Selected answer rises onto the raised plane with a volt lift — depth
+      // carries the choice, not just a hue tint.
+      style={
+        selected
+          ? { shadowColor: colors.volt, shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 5 } }
+          : undefined
       }
     >
       {Icon ? (
