@@ -20,11 +20,21 @@ export const checkIn = mutation({
     const now = Date.now();
     const today = localDateOf(now, user.timezone);
 
-    const existing = await ctx.db
+    // Multiple checkIns rows per (userId, localDate) are LEGITIMATE: logRelapse writes
+    // a 'lapse'/'relapse' status row for today, and a relapse opens a NEW attempt that
+    // can still check in on the same calendar day. So we must NOT use .unique() here
+    // (it throws "Expected 0 or 1, got N" on 2+ rows — the real cause of the spurious
+    // "Couldn't check in" failures). Gate "already checked in" on a CLEAN row for the
+    // CURRENT attempt instead, via .collect().
+    const todayRows = await ctx.db
       .query('checkIns')
       .withIndex('by_user_date', (q) => q.eq('userId', userId).eq('localDate', today))
-      .unique();
-    if (existing) return { alreadyCheckedIn: true, streak: user.currentStreak ?? 0, usedFreeze: false };
+      .collect();
+    const alreadyCleanToday = todayRows.some(
+      (r) => r.status === 'clean' && r.attemptId === user.currentAttemptId,
+    );
+    if (alreadyCleanToday)
+      return { alreadyCheckedIn: true, streak: user.currentStreak ?? 0, usedFreeze: false };
 
     const upd = computeStreakOnCheckIn({
       lastCheckInLocalDate: user.lastCheckInLocalDate,
