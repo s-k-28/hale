@@ -128,6 +128,13 @@ export default function Coach() {
             />
           </View>
           <Pressable
+            // Remount across the disabled<->enabled boundary instead of an in-place
+            // update: NativeWind's interop throws "navigation context" when it
+            // upgrades an already-mounted Pressable to interactive (gaining
+            // active: + a shadow style) in place — typing here crashed the whole
+            // Coach screen. A keyed remount makes it a fresh mount, which works.
+            // (Same root cause + fix as src/components/ui/Button.tsx.)
+            key={canSend ? 'send-on' : 'send-off'}
             onPress={onSend}
             disabled={!canSend}
             accessibilityRole="button"
