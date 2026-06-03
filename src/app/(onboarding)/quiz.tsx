@@ -648,7 +648,7 @@ function PlanReveal({
     <Screen edges={['top', 'bottom']}>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pt-6 pb-4"
+        contentContainerClassName="px-6 pt-6 pb-10"
         showsVerticalScrollIndicator={false}
       >
         <View className="mb-5">
@@ -784,7 +784,7 @@ function PushOptIn({ onDecide }: { onDecide: (granted: boolean) => void }) {
         </View>
 
         <Heading className="text-4xl leading-tight">
-          WANT A NUDGE WHEN{'\n'}IT&apos;S HARDEST?
+          WANT A NUDGE{'\n'}WHEN IT&apos;S{'\n'}HARDEST?
         </Heading>
         <Body className="mt-5 font-body-medium text-base leading-6 text-ash">
           The people who quit for good get a little support right before their toughest hour — a
