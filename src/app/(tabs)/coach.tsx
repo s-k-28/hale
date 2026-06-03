@@ -16,6 +16,16 @@ import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { Body, Display, Heading, Label } from '@/components/ui/Text';
 import { colors } from '@/theme/colors';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { RiseIn } from '@/components/motion';
 
 type SageMessage = NonNullable<ReturnType<typeof useQuery<typeof api.sage.messages>>>[number];
 
@@ -72,6 +82,12 @@ export default function Coach() {
   const canSend = draft.trim().length > 0 && !sending;
   const loading = authLoading || (isAuthenticated && messages === undefined);
 
+  // "Sage is thinking" — tied to REAL backend state: the user's turn is the last
+  // message and Sage's reactive reply row hasn't landed yet (or the send mutation
+  // is still in flight). Clears the instant the sage reply row arrives.
+  const awaitingReply =
+    sending || (!!messages && messages.length > 0 && messages[messages.length - 1].role === 'user');
+
   return (
     <SafeAreaView className="flex-1 bg-void" edges={['top', 'left', 'right']}>
       {/* Header — Sage's identity. Loud caps wordmark, lime presence dot. */}
@@ -101,7 +117,21 @@ export default function Coach() {
             ref={listRef}
             data={messages}
             keyExtractor={(m) => m._id}
-            renderItem={({ item }) => <Bubble message={item} />}
+            // Sage's reply fade-rises in as it lands (its row arrives reactively);
+            // the user's own turn appears instantly, no animation.
+            renderItem={({ item }) =>
+              item.role === 'sage' ? (
+                <RiseIn>
+                  <Bubble message={item} />
+                </RiseIn>
+              ) : (
+                <Bubble message={item} />
+              )
+            }
+            // The typing indicator sits at the tail while Sage composes — a Sage-
+            // styled bubble with three stagger-bouncing dots, gone the moment the
+            // reply row lands (awaitingReply flips false).
+            ListFooterComponent={awaitingReply ? <TypingIndicator /> : null}
             // grow + justify-end bottom-anchors a short transcript just above the
             // composer (chat-natural headroom on top) instead of stranding it at
             // the top with a dead void below.
@@ -207,13 +237,91 @@ function Bubble({ message }: { message: SageMessage }) {
 function EmptyState() {
   return (
     <View className="flex-1 items-center justify-center px-9">
-      <SageMark size={112} />
+      <BreathingSage />
       <Display className="mt-6 text-center text-5xl text-chalk">HEY,{'\n'}I&apos;M SAGE</Display>
       <Body className="mt-4 max-w-[300px] text-center text-base leading-6 text-ash">
         Here the second a craving hits. Tell me what&apos;s going on — no judgment,
         just backup to ride it out. It peaks, then it passes.
       </Body>
       <Label className="mt-8 text-ash">Cravings pass · you don&apos;t quit on yourself</Label>
+    </View>
+  );
+}
+
+/**
+ * Sage's mascot, gently breathing (~4s scale cycle) so the empty state reads as a
+ * calm presence waiting with you, not a frozen icon. Scale-only → no layout shift.
+ */
+function BreathingSage() {
+  const scale = useSharedValue(1);
+  useEffect(() => {
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.045, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+      false,
+    );
+  }, [scale]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <Animated.View style={style}>
+      <SageMark size={112} />
+    </Animated.View>
+  );
+}
+
+/** One dot in the typing indicator — bounces up then settles, on a loop. */
+function TypingDot({ delay }: { delay: number }) {
+  const y = useSharedValue(0);
+  useEffect(() => {
+    y.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(-5, { duration: 280, easing: Easing.out(Easing.quad) }),
+          withTiming(0, { duration: 280, easing: Easing.in(Easing.quad) }),
+          // Hold low so the three dots read as a travelling wave, not a buzz.
+          withTiming(0, { duration: 360 }),
+        ),
+        -1,
+        false,
+      ),
+    );
+  }, [y, delay]);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateY: y.value }],
+    opacity: 0.45 + (-y.value / 5) * 0.45,
+  }));
+  return (
+    <Animated.View
+      style={[{ width: 7, height: 7, borderRadius: 4, backgroundColor: colors.ash }, style]}
+    />
+  );
+}
+
+/**
+ * "Sage is thinking" — three stagger-bouncing dots inside a Sage-styled bubble
+ * (raised plane, volt voice-rule), so it reads as Sage composing a reply. Mounted
+ * only while awaitingReply (real backend state); removed the instant the reply lands.
+ */
+function TypingIndicator() {
+  return (
+    <View className="mb-3 max-w-[82%] self-start">
+      <View
+        className="flex-row items-center gap-1.5 rounded-3xl rounded-bl-md border-l-2 border-volt/50 bg-raised px-4 py-4"
+        style={{
+          shadowColor: '#000000',
+          shadowOpacity: 0.35,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 6 },
+        }}
+      >
+        <TypingDot delay={0} />
+        <TypingDot delay={140} />
+        <TypingDot delay={280} />
+      </View>
     </View>
   );
 }
