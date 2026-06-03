@@ -19,6 +19,7 @@ import MilestoneCelebration from '@/components/MilestoneCelebration';
 import CheckInBurst from '@/components/CheckInBurst';
 import { colors } from '@/theme/colors';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -112,6 +113,8 @@ export default function Today() {
   const [checking, setChecking] = useState(false);
   // One-shot celebratory burst over the CTA — mounts on a fresh check-in, self-unmounts.
   const [showBurst, setShowBurst] = useState(false);
+  // Increments on a successful check-in to fire one RingGauge surge.
+  const [ringSurge, setRingSurge] = useState(0);
 
   // COUNTER_VIEWED — once, when the screen mounts with real data.
   const viewedRef = useRef(false);
@@ -192,6 +195,7 @@ export default function Today() {
         // Reward beat: success haptic + flame/spark burst over the CTA.
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         setShowBurst(true);
+        setRingSurge((n) => n + 1);
         toast.success("Locked in for today 🔥");
       }
     } catch {
@@ -260,7 +264,7 @@ export default function Today() {
               className="absolute -inset-4 rounded-full bg-volt/[0.05]"
               style={{ pointerEvents: 'none' }}
             />
-            <RingGauge progress={milestoneProgress} size={272} stroke={12}>
+            <RingGauge progress={milestoneProgress} size={272} stroke={12} surge={ringSurge}>
               <Label className="text-ash">Clean for</Label>
               <HeroDays days={t.days} />
               <Label className="-mt-1 text-volt">
@@ -384,6 +388,13 @@ export default function Today() {
         <BuddyRow data={buddy} streak={streak} landmark={landmark} longestStreak={state.longestStreak} />
       </ScrollView>
 
+      {/* Bottom scrim — fades scrolling content into the void before the tab bar so
+          the coral SOS card never peeks as a sliver behind it (layering fix). */}
+      <LinearGradient
+        colors={['transparent', colors.void]}
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56, pointerEvents: 'none' }}
+      />
+
       {/* Milestone celebration overlay — fires once per landmark day reached. */}
       <MilestoneCelebration
         visible={celebrateDay !== null}
@@ -476,7 +487,7 @@ function CounterUnit({ value, label }: { value: string; label: string }) {
   return (
     <View className="items-center">
       <Animated.View style={style}>
-        <Display className="text-3xl text-chalk">{value}</Display>
+        <Display className="text-xl text-ash">{value}</Display>
       </Animated.View>
       <Label className="mt-0.5 text-ash">{label}</Label>
     </View>
