@@ -147,7 +147,7 @@ export default function MilestoneCelebration({
                   Milestone reached
                 </Label>
               </View>
-              <Heading className="mt-4 text-center text-4xl leading-[1.05] text-chalk">
+              <Heading className="mt-4 text-center text-3xl leading-[1.05] text-chalk">
                 {copy.title}
               </Heading>
               <Body className="mt-2 text-center text-base text-ash">
@@ -157,7 +157,22 @@ export default function MilestoneCelebration({
 
             {/* The shareable artifact, popped in. */}
             <PoppedCard>
-              <View style={{ width: Math.min(300, SCREEN_W - 96) }}>
+              {/* Float the shareable card on its own plane with a volt-glow halo
+                  (the card's own surface is intentionally left untouched — it is
+                  the share artifact). The glow + the demoted headline above make
+                  the card's "30" the single hero. */}
+              <View
+                style={{
+                  // Wider here (celebration-only) so the fixed-aspect card is tall
+                  // enough to show its footer tagline — fixes the clipped
+                  // "QUIT NICOTINE WITH HALE" without touching the shared artifact.
+                  width: Math.min(330, SCREEN_W - 56),
+                  shadowColor: colors.volt,
+                  shadowOpacity: 0.2,
+                  shadowRadius: 26,
+                  shadowOffset: { width: 0, height: 14 },
+                }}
+              >
                 <TransformationCard
                   ref={cardRef}
                   days={day}
