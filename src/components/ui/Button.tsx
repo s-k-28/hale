@@ -53,6 +53,11 @@ export function Button({
       : undefined;
   return (
     <Pressable
+      // Remount (not in-place update) across the disabled<->enabled boundary: the
+      // NativeWind interop throws "navigation context" when it upgrades an already-
+      // mounted Pressable from non-interactive (disabled, no active: variants) to
+      // interactive in place. A keyed remount makes it a fresh mount, which works.
+      key={off ? 'btn-off' : 'btn-on'}
       disabled={off}
       accessibilityRole="button"
       accessibilityState={{ disabled: off }}
