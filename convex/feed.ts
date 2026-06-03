@@ -90,6 +90,12 @@ export const sendStrength = mutation({
     const fromUser = await getAuthUserId(ctx);
     if (!fromUser) throw new Error('Not authenticated');
 
+    // Only the caller's ACTIVE buddy can be the recipient — prevents an
+    // authenticated client from rallying/push-spamming arbitrary users.
+    const link = await findActiveLink(ctx, fromUser);
+    const buddyId = link ? (link.userA === fromUser ? link.userB : link.userA) : null;
+    if (!buddyId || buddyId !== toUser) return { sent: false };
+
     await ctx.db.insert('nudges', {
       fromUser,
       toUser,

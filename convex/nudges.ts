@@ -49,6 +49,24 @@ export const send = mutation({
     const fromUser = await getAuthUserId(ctx);
     if (!fromUser) throw new Error('Not authenticated');
 
+    // Only the caller's ACTIVE buddy can be nudged — prevents an authenticated
+    // client from push-spamming arbitrary users (cheer() already derives the
+    // recipient from the link; send() must validate the passed toUser the same way).
+    const asA = await ctx.db
+      .query('buddyLinks')
+      .withIndex('by_userA', (q) => q.eq('userA', fromUser))
+      .filter((q) => q.eq(q.field('status'), 'active'))
+      .first();
+    const link =
+      asA ??
+      (await ctx.db
+        .query('buddyLinks')
+        .withIndex('by_userB', (q) => q.eq('userB', fromUser))
+        .filter((q) => q.eq(q.field('status'), 'active'))
+        .first());
+    const buddyId = link ? (link.userA === fromUser ? link.userB : link.userA) : null;
+    if (!buddyId || buddyId !== toUser) return { sent: false };
+
     await ctx.db.insert('nudges', { fromUser, toUser, type, ts: Date.now() });
 
     const sender = await ctx.db.get(fromUser);
