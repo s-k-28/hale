@@ -119,7 +119,7 @@ function YouContent({
   return (
     <Screen>
       <ScrollView
-        contentContainerClassName="px-5 pb-16 pt-3"
+        contentContainerClassName="px-5 pb-24 pt-4"
         showsVerticalScrollIndicator={false}
       >
         {/* Header — loud uppercase wordmark, HALE+ badge anchored right. */}
@@ -134,6 +134,15 @@ function YouContent({
               <Label className="text-volt">HALE+</Label>
             </Pill>
           ) : null}
+        </View>
+
+        {/* Profile framing — distinguishes the persistent "your story" card here
+            from the momentary milestone-celebration card (which leads with a
+            'milestone reached' overline + confetti). Same share artifact, different
+            context. */}
+        <View className="mb-3 flex-row items-center gap-2">
+          <Sparkles color={colors.volt} size={14} strokeWidth={2.75} />
+          <Label className="text-volt">Your story so far</Label>
         </View>
 
         {/* Shareable transformation card (NEVER gated) — the viral artifact. */}
