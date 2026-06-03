@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/Button';
 import { Surface } from '@/components/ui/Surface';
 import { SageNote } from '@/components/ui/SageNote';
 import { RingGauge } from '@/components/ui/RingGauge';
+import { Canvas, Circle, RadialGradient, vec } from '@shopify/react-native-skia';
 import { colors } from '@/theme/colors';
 
 /**
@@ -535,14 +536,19 @@ function RideItOut({
         <Header title="Ride it out" onBack={onBack} />
 
         <View className="flex-1 items-center justify-center">
-          <RingGauge progress={progress} size={264} stroke={12}>
-            <View className="items-center">
-              <Label className="text-volt">{done ? 'Made it' : 'It crests, then fades'}</Label>
-              <Display className="mt-1 text-7xl leading-tight tabular-nums text-chalk">
-                {fmtClock(remaining)}
-              </Display>
-            </View>
-          </RingGauge>
+          <View className="items-center justify-center">
+            {/* Slow ambient coral glow breathing behind the timer — the crisis
+                accent, kept very subtle so it never competes with the countdown. */}
+            <CoralGlow />
+            <RingGauge progress={progress} size={264} stroke={12}>
+              <View className="items-center">
+                <Label className="text-volt">{done ? 'Made it' : 'It crests, then fades'}</Label>
+                <Display className="mt-1 text-7xl leading-tight tabular-nums text-chalk">
+                  {fmtClock(remaining)}
+                </Display>
+              </View>
+            </RingGauge>
+          </View>
           <Body className="mt-10 px-4 text-center text-lg leading-relaxed text-ash">
             {reassurance}
           </Body>
@@ -565,6 +571,37 @@ function RideItOut({
         <Disclaimer />
       </View>
     </Screen>
+  );
+}
+
+/**
+ * Ambient coral glow behind the ride-it-out timer. A soft Skia radial gradient
+ * (coral → transparent, no hard edge) that slowly breathes (scale + opacity,
+ * ~5s cycle). Deliberately faint — it warms the crisis screen without pulling
+ * focus from the countdown. Overlay only, behind the ring.
+ */
+function CoralGlow() {
+  const p = useSharedValue(0);
+  useEffect(() => {
+    p.value = withRepeat(withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) }), -1, true);
+  }, [p]);
+  const style = useAnimatedStyle(() => ({
+    opacity: 0.5 + p.value * 0.5,
+    transform: [{ scale: 0.92 + p.value * 0.14 }],
+  }));
+  const S = 360;
+  return (
+    <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: S, height: S }, style]}>
+      <Canvas style={{ flex: 1 }}>
+        <Circle cx={S / 2} cy={S / 2} r={S / 2}>
+          <RadialGradient
+            c={vec(S / 2, S / 2)}
+            r={S / 2}
+            colors={['rgba(255,90,77,0.22)', 'rgba(255,90,77,0.0)']}
+          />
+        </Circle>
+      </Canvas>
+    </Animated.View>
   );
 }
 
