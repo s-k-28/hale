@@ -19,6 +19,7 @@ import type * as feed from "../feed.js";
 import type * as goals from "../goals.js";
 import type * as http from "../http.js";
 import type * as leagues from "../leagues.js";
+import type * as model_cohort from "../model/cohort.js";
 import type * as model_plan from "../model/plan.js";
 import type * as model_sage from "../model/sage.js";
 import type * as model_streak from "../model/streak.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   goals: typeof goals;
   http: typeof http;
   leagues: typeof leagues;
+  "model/cohort": typeof model_cohort;
   "model/plan": typeof model_plan;
   "model/sage": typeof model_sage;
   "model/streak": typeof model_streak;
