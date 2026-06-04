@@ -192,6 +192,15 @@ export default function Today() {
         track(Ev.CHECKIN_COMPLETED, { streak: res.streak, usedFreeze: res.usedFreeze });
         // P2 exit-criteria event: only when a bounded freeze actually forgave a missed day.
         if (res.usedFreeze) track(Ev.STREAK_FREEZE_USED, { streak: res.streak });
+        // Activation instrumentation (P2): mirror the server-detected candidate
+        // activation events to PostHog (the authoritative copy is in activationEvents).
+        if (res.firstCheckIn)
+          track(Ev.FIRST_CHECK_IN, { pairing_method: res.pairingMethod ?? undefined });
+        if (res.activatedPairedQuitter)
+          track(Ev.ACTIVATED_PAIRED_QUITTER, {
+            pairing_method: res.pairingMethod ?? undefined,
+            hours_pair_to_checkin: res.hoursPairToCheckin ?? undefined,
+          });
         // Reward beat: success haptic + flame/spark burst over the CTA.
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         setRingSurge((n) => n + 1);

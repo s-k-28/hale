@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SageMark } from '@/components/SageMark';
 import { ArrowUp, Wind } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
@@ -69,6 +70,13 @@ export default function Coach() {
     setSending(true);
     setDraft('');
     track(Ev.COACH_MESSAGE_SENT);
+    // first_sage_message ONCE per user (candidate activation event, q1 split).
+    AsyncStorage.getItem('hale:firstSage').then((seen) => {
+      if (!seen) {
+        track(Ev.FIRST_SAGE_MESSAGE, {});
+        AsyncStorage.setItem('hale:firstSage', '1').catch(() => {});
+      }
+    });
     try {
       await send({ content });
     } catch {

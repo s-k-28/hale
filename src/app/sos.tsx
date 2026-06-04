@@ -24,6 +24,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { useMutation } from 'convex/react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { Screen } from '@/components/ui/Screen';
@@ -96,9 +97,16 @@ export default function CravingSos() {
   // round-trip. One commit per SOS session; the ref resets when the modal remounts.
   const slipBusyRef = useRef(false);
 
-  // Fire SOS-opened once on mount.
+  // Fire SOS-opened once on mount. Also emit first_sos ONCE per user (candidate
+  // activation event for the q1 D30 retention-split), guarded by a device flag.
   useEffect(() => {
     track(Ev.CRAVING_SOS_OPENED);
+    AsyncStorage.getItem('hale:firstSos').then((seen) => {
+      if (!seen) {
+        track(Ev.FIRST_SOS, {});
+        AsyncStorage.setItem('hale:firstSos', '1').catch(() => {});
+      }
+    });
   }, []);
 
   const close = useCallback(() => {
@@ -111,7 +119,11 @@ export default function CravingSos() {
    *  event. Trigger is optional — never block the user from moving on. */
   const completeRecovery = useCallback(
     (trigger: string | null) => {
-      if (trigger) noteRelapseTrigger({ trigger }).catch(() => {});
+      if (trigger) {
+        noteRelapseTrigger({ trigger }).catch(() => {});
+        // q4 relapse-prediction signal: the named trigger tied to the closed attempt.
+        track(Ev.RELAPSE_TRIGGER_NAMED, { trigger });
+      }
       track(Ev.RELAPSE_RECOVERED, trigger ? { trigger } : {});
       close();
     },
@@ -202,7 +214,11 @@ export default function CravingSos() {
           slipBusyRef.current = true;
           try {
             const res = await logRelapse({ kind: 'relapse' });
-            track(Ev.RELAPSE_LOGGED, { kind: 'relapse' });
+            track(Ev.RELAPSE_LOGGED, {
+              kind: 'relapse',
+              streak_at_relapse: res?.streakAtRelapse,
+              lapses_before_relapse: res?.lapsesBeforeRelapse,
+            });
             setView({
               kind: 'recover',
               lifetimeMoneySaved: res?.lifetimeMoneySaved ?? 0,

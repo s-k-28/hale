@@ -47,7 +47,24 @@ export const logRelapse = mutation({
     const bankedDays = Math.floor(cleanMs / 86_400_000);
     const bankedMoney = moneySaved(profile, cleanMs);
 
-    await ctx.db.patch(attempt._id, { active: false, endDate: now, endReason: 'relapse' });
+    // q4 relapse-prediction signals: streak at the moment of relapse + how many
+    // lapses this attempt accrued before the full relapse. Captured on the closing
+    // attempt (queryable) and returned so the client mirrors them to PostHog.
+    const streakAtRelapse = user.currentStreak ?? 0;
+    const attemptCheckIns = await ctx.db
+      .query('checkIns')
+      .withIndex('by_user_date', (q) => q.eq('userId', userId))
+      .collect();
+    const lapsesBeforeRelapse = attemptCheckIns.filter(
+      (r) => r.attemptId === attempt._id && r.status === 'lapse',
+    ).length;
+
+    await ctx.db.patch(attempt._id, {
+      active: false,
+      endDate: now,
+      endReason: 'relapse',
+      lapseCountBeforeRelapse: lapsesBeforeRelapse,
+    });
     await ctx.db.insert('checkIns', {
       userId,
       attemptId: attempt._id,
@@ -115,6 +132,9 @@ export const logRelapse = mutation({
       lifetimeCleanDays: (user.lifetimeCleanDays ?? 0) + bankedDays,
       lifetimeMoneySaved: (user.lifetimeMoneySaved ?? 0) + bankedMoney,
       bestStreak: user.longestStreak ?? 0, // shown instead of a zero-void
+      // q4 relapse-prediction signals for the client to mirror to PostHog.
+      streakAtRelapse,
+      lapsesBeforeRelapse,
     };
   },
 });

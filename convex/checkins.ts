@@ -2,6 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 import { mutation } from './_generated/server';
 import { localDateOf, computeStreakOnCheckIn } from './model/streak';
+import { quitStage } from './model/cohort';
 
 /**
  * Daily check-in (P2). Transactional: dedups by local date, advances the streak
@@ -57,6 +58,80 @@ export const checkIn = mutation({
       lastCheckInLocalDate: today,
       freezesRemaining: upd.freezesRemaining,
     });
-    return { alreadyCheckedIn: false, streak: upd.newStreak, usedFreeze: upd.usedFreeze };
+
+    // ── Activation instrumentation (P2) ──────────────────────────────────────
+    // Detect the candidate activation events server-side (authoritative), write
+    // them idempotently to activationEvents (the queryable moat for the q1 D30
+    // retention-split), and RETURN flags so the client mirrors them to PostHog
+    // (no server PostHog key needed).
+    const attempt = await ctx.db.get(user.currentAttemptId);
+    const stage = quitStage(attempt?.startDate ?? now, now);
+    const linkA = await ctx.db
+      .query('buddyLinks')
+      .withIndex('by_userA', (q) => q.eq('userA', userId))
+      .filter((q) => q.eq(q.field('status'), 'active'))
+      .first();
+    const link =
+      linkA ??
+      (await ctx.db
+        .query('buddyLinks')
+        .withIndex('by_userB', (q) => q.eq('userB', userId))
+        .filter((q) => q.eq(q.field('status'), 'active'))
+        .first());
+    const pairedSolo: 'solo' | 'paired' = link ? 'paired' : 'solo';
+
+    // first_check_in — idempotent via by_user_kind.
+    let firstCheckIn = false;
+    const existingFirst = await ctx.db
+      .query('activationEvents')
+      .withIndex('by_user_kind', (q) => q.eq('userId', userId).eq('kind', 'first_check_in'))
+      .first();
+    if (!existingFirst) {
+      await ctx.db.insert('activationEvents', {
+        userId,
+        kind: 'first_check_in',
+        ts: now,
+        pairedSolo,
+        pairingMethod: link?.pairingMethod,
+        quitStage: stage,
+      });
+      firstCheckIn = true;
+    }
+
+    // activated_paired_quitter (NORTH-STAR activation) — checked in while paired
+    // within 48h of the pairing edge. Idempotent.
+    let activatedPairedQuitter = false;
+    if (link?.pairedAt && now - link.pairedAt <= 48 * 3_600_000) {
+      const existingAct = await ctx.db
+        .query('activationEvents')
+        .withIndex('by_user_kind', (q) =>
+          q.eq('userId', userId).eq('kind', 'activated_paired_quitter'),
+        )
+        .first();
+      if (!existingAct) {
+        await ctx.db.insert('activationEvents', {
+          userId,
+          kind: 'activated_paired_quitter',
+          ts: now,
+          pairedSolo: 'paired',
+          pairingMethod: link.pairingMethod,
+          quitStage: stage,
+        });
+        activatedPairedQuitter = true;
+      }
+    }
+
+    return {
+      alreadyCheckedIn: false,
+      streak: upd.newStreak,
+      usedFreeze: upd.usedFreeze,
+      // Activation signals — the client mirrors these to PostHog (q1 dataset).
+      firstCheckIn,
+      activatedPairedQuitter,
+      pairedSolo,
+      quitStage: stage,
+      pairingMethod: link?.pairingMethod ?? null,
+      hoursPairToCheckin: link?.pairedAt ? Math.round((now - link.pairedAt) / 3_600_000) : null,
+    };
   },
 });

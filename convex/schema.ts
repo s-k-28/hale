@@ -59,8 +59,32 @@ export default defineSchema({
     endDate: v.optional(v.number()), // set on relapse
     endReason: v.optional(v.union(v.literal('relapse'), v.literal('restart'))),
     endTrigger: v.optional(v.string()), // I4 — what pulled them back (trigger intelligence)
+    // Relapse-prediction signal (q4): # of lapse check-ins this attempt accrued
+    // before it ended in a relapse. Set in relapse.logRelapse on the closing attempt.
+    lapseCountBeforeRelapse: v.optional(v.number()),
     active: v.boolean(),
   }).index('by_user_active', ['userId', 'active']),
+
+  // activationEvents — the compounding data moat (P2). Makes activation a DISTINCT,
+  // queryable Convex fact so a post-launch D30 retention-split can COMPARE the four
+  // candidate activation events directly (q1), not reconstruct them. Written
+  // idempotently server-side (one row per user per kind); the client mirrors each to
+  // PostHog so the same fact is sliceable behaviorally too.
+  activationEvents: defineTable({
+    userId: v.id('users'),
+    kind: v.union(
+      v.literal('activated_paired_quitter'), // north-star activation
+      v.literal('first_check_in'),
+      v.literal('first_sos'),
+      v.literal('first_sage_message'),
+    ),
+    ts: v.number(),
+    pairedSolo: v.union(v.literal('solo'), v.literal('paired')),
+    pairingMethod: v.optional(v.string()),
+    quitStage: v.string(),
+  })
+    .index('by_user_kind', ['userId', 'kind']) // idempotent first-time guard
+    .index('by_kind_ts', ['kind', 'ts']), // cohort / retention-split queries
 
   checkIns: defineTable({
     userId: v.id('users'),
