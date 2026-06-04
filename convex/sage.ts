@@ -8,8 +8,24 @@ import {
   internalQuery,
 } from './_generated/server';
 import { internal } from './_generated/api';
-import { SAGE_PERSONA, sageContextLine, SAGE_MODEL } from './model/sage';
+import {
+  SAGE_PERSONA,
+  sageContextLine,
+  SAGE_MODEL,
+  SAGE_DAILY_CAP,
+  SAGE_COST_PER_INPUT_TOKEN,
+  SAGE_COST_PER_OUTPUT_TOKEN,
+  SAGE_MAX_CONTEXT_TURNS,
+} from './model/sage';
 import { moneySaved } from './model/plan';
+import { localDateOf } from './model/streak';
+import { trialStatus } from './model/trial';
+
+/** Resolve a user's access tier for Sage gating + cost attribution. */
+function tierOf(user: { premium?: boolean; trialEndsAt?: number } | null, now: number): 'free' | 'trial' | 'paid' {
+  if (user?.premium) return 'paid';
+  return trialStatus(now, user?.trialEndsAt, user?.premium ?? false).trialActive ? 'trial' : 'free';
+}
 
 /**
  * Sage — the in-app coach (I2). Production Convex pattern for talking to an
@@ -40,14 +56,36 @@ export const messages = query({
   },
 });
 
-/** Send a message to Sage: persist the user turn, then schedule the reply. */
+/**
+ * Send a message to Sage (P3 cost-controlled): resolve the user's tier, enforce a
+ * per-tier DAILY message cap (reset on local-date rollover), and only then persist
+ * the user turn + schedule the reply. Over quota → returns accepted:false WITHOUT
+ * writing or scheduling (no LLM compute spent); the client fires sage_cap_hit.
+ * Returns tier + dailyCount + capType so the client can enrich coach_message_sent.
+ */
 export const send = mutation({
   args: { content: v.string() },
   handler: async (ctx, { content }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
-    await ctx.db.insert('sageMessages', { userId, role: 'user', content, ts: Date.now() });
+    const user = await ctx.db.get(userId);
+    const now = Date.now();
+    const tier = tierOf(user, now);
+    const today = user?.timezone
+      ? localDateOf(now, user.timezone)
+      : new Date(now).toISOString().slice(0, 10);
+    const count = user?.sageMsgLocalDate === today ? user?.sageMsgCount ?? 0 : 0;
+    const cap = SAGE_DAILY_CAP[tier];
+
+    if (count >= cap) {
+      // Daily quota reached — block before any compute. Client fires sage_cap_hit.
+      return { accepted: false as const, tier, dailyCount: count, capType: 'daily_quota' as const };
+    }
+
+    await ctx.db.insert('sageMessages', { userId, role: 'user', content, ts: now });
+    await ctx.db.patch(userId, { sageMsgLocalDate: today, sageMsgCount: count + 1 });
     await ctx.scheduler.runAfter(0, internal.sage.generate, { userId });
+    return { accepted: true as const, tier, dailyCount: count + 1, capType: null };
   },
 });
 
@@ -62,6 +100,9 @@ export const generate = internalAction({
     const c = await ctx.runQuery(internal.sage.contextFor, { userId });
 
     let content = FALLBACK_REPLY;
+    // Token/cost usage for the per-message ledger (P3). Stays 0 on the fallback
+    // path (no key / error) — real numbers require Anthropic credits (real-world).
+    let usage = { inputTokens: 0, outputTokens: 0, cacheHit: false };
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (apiKey) {
       try {
@@ -88,6 +129,15 @@ export const generate = internalAction({
           const json = await res.json();
           const text = json?.content?.[0]?.text;
           if (typeof text === 'string' && text.trim()) content = text.trim();
+          const u = json?.usage;
+          if (u) {
+            const cacheRead = u.cache_read_input_tokens ?? 0;
+            usage = {
+              inputTokens: (u.input_tokens ?? 0) + cacheRead,
+              outputTokens: u.output_tokens ?? 0,
+              cacheHit: cacheRead > 0,
+            };
+          }
         } else {
           // Surface WHY we fell back. Without this, a misconfig (bad/credit-less
           // key, rate limit, bad model) is invisible and Sage serves the canned
@@ -113,7 +163,13 @@ export const generate = internalAction({
       }
     }
 
-    await ctx.runMutation(internal.sage.writeReply, { userId, content });
+    await ctx.runMutation(internal.sage.writeReply, {
+      userId,
+      content,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cacheHit: usage.cacheHit,
+    });
   },
 });
 
@@ -159,7 +215,8 @@ export const contextFor = internalQuery({
         moneySaved: moneySavedTotal,
         recentCravings: recentCravings.length,
       },
-      history: messageRows.map((m) => ({
+      // Sliding window (P3): cap history so a long thread can't bloat input tokens.
+      history: messageRows.slice(-SAGE_MAX_CONTEXT_TURNS).map((m) => ({
         role: m.role === 'sage' ? ('assistant' as const) : ('user' as const),
         content: m.content,
       })),
@@ -167,10 +224,38 @@ export const contextFor = internalQuery({
   },
 });
 
-/** Persist Sage's turn. Called only by the generate action. */
+/**
+ * Persist Sage's turn + the per-message cost ledger (P3). Called only by generate.
+ * Stamps tokens/cost/tier/model on the sage row and rolls the month-to-date cost
+ * proxy onto the user — so real Sage cost-per-payer is measurable from data.
+ */
 export const writeReply = internalMutation({
-  args: { userId: v.id('users'), content: v.string() },
-  handler: async (ctx, { userId, content }) => {
-    await ctx.db.insert('sageMessages', { userId, role: 'sage', content, ts: Date.now() });
+  args: {
+    userId: v.id('users'),
+    content: v.string(),
+    inputTokens: v.optional(v.number()),
+    outputTokens: v.optional(v.number()),
+    cacheHit: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { userId, content, inputTokens, outputTokens, cacheHit }) => {
+    const user = await ctx.db.get(userId);
+    const now = Date.now();
+    const tier = tierOf(user, now);
+    const cost =
+      (inputTokens ?? 0) * SAGE_COST_PER_INPUT_TOKEN +
+      (outputTokens ?? 0) * SAGE_COST_PER_OUTPUT_TOKEN;
+    await ctx.db.insert('sageMessages', {
+      userId,
+      role: 'sage',
+      content,
+      ts: now,
+      inputTokens,
+      outputTokens,
+      costUsdProxy: cost,
+      userTier: tier,
+      cacheHit,
+      model: SAGE_MODEL,
+    });
+    await ctx.db.patch(userId, { sageCostMtdUsd: (user?.sageCostMtdUsd ?? 0) + cost });
   },
 });

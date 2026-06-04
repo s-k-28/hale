@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { toast } from 'sonner-native';
 import { SageMark } from '@/components/SageMark';
 import { ArrowUp, Wind } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
@@ -69,16 +70,33 @@ export default function Coach() {
     if (!content || sending) return;
     setSending(true);
     setDraft('');
-    track(Ev.COACH_MESSAGE_SENT);
-    // first_sage_message ONCE per user (candidate activation event, q1 split).
-    AsyncStorage.getItem('hale:firstSage').then((seen) => {
-      if (!seen) {
-        track(Ev.FIRST_SAGE_MESSAGE, {});
-        AsyncStorage.setItem('hale:firstSage', '1').catch(() => {});
-      }
-    });
     try {
-      await send({ content });
+      const res = await send({ content });
+      const capState = res?.accepted === false ? 'blocked_quota' : 'under';
+      // Enrich with tier + today's count + cap state (P3 — usage by tier).
+      track(Ev.COACH_MESSAGE_SENT, {
+        tier: res?.tier,
+        messages_today_count: res?.dailyCount,
+        cap_state: capState,
+      });
+      if (res?.accepted === false) {
+        // Daily Sage quota reached (no compute spent) — restore draft + surface it.
+        track(Ev.SAGE_CAP_HIT, {
+          tier: res.tier,
+          cap_type: res.capType,
+          daily_count: res.dailyCount,
+        });
+        setDraft((prev) => (prev.length > 0 ? prev : content));
+        toast.error("You've reached today's Sage limit — back tomorrow.");
+      } else {
+        // first_sage_message ONCE per user (candidate activation event, q1 split).
+        AsyncStorage.getItem('hale:firstSage').then((seen) => {
+          if (!seen) {
+            track(Ev.FIRST_SAGE_MESSAGE, {});
+            AsyncStorage.setItem('hale:firstSage', '1').catch(() => {});
+          }
+        });
+      }
     } catch {
       // Restore the draft so a transient failure never loses what they typed.
       setDraft((prev) => (prev.length > 0 ? prev : content));

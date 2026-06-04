@@ -41,4 +41,26 @@ export function sageSystemPrompt(c: SageContext): string {
   return `${SAGE_PERSONA} ${sageContextLine(c)}`;
 }
 
-export const SAGE_MODEL = 'claude-sonnet-4-6';
+// Cheap-tier model (P3): Haiku is the low-cost Anthropic tier — same API, ~5x
+// cheaper than Sonnet — so Sage's empathetic coaching turns stay margin-safe. A
+// frontier model is NOT needed for short supportive replies.
+export const SAGE_MODEL = 'claude-haiku-4-5-20251001';
+
+// Per-tier DAILY message cap (P3). Free is small (post-trial non-payers shouldn't
+// run up LLM cost); trial is generous-but-bounded (let them feel Sage without an
+// uncapped compute subsidy); paid is high. Tunable from real usage data.
+export const SAGE_DAILY_CAP: Record<'free' | 'trial' | 'paid', number> = {
+  free: 5,
+  trial: 15,
+  paid: 50,
+};
+
+// Cost-proxy rates ($ per token) for the cheap tier — used to log a per-message
+// cost estimate so real Sage cost-per-payer is MEASURABLE from data, not guessed.
+// (Haiku list price ~ $0.80 / 1M input, $4.00 / 1M output, 2026.)
+export const SAGE_COST_PER_INPUT_TOKEN = 0.8 / 1_000_000;
+export const SAGE_COST_PER_OUTPUT_TOKEN = 4.0 / 1_000_000;
+
+// Cap the chat history sent each turn (sliding window) so a long thread can't
+// bloat input tokens (the real margin driver for chat apps) unbounded.
+export const SAGE_MAX_CONTEXT_TURNS = 12;

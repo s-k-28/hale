@@ -38,6 +38,10 @@ export default defineSchema({
     // push fatigue cap (§9) — at most N server pushes per user per local day
     pushSentLocalDate: v.optional(v.string()), // "YYYY-MM-DD" user tz the count below applies to
     pushSentCount: v.optional(v.number()), // pushes delivered on pushSentLocalDate
+    // Sage daily cap + cost ledger (P3) — mirror the pushSent* pattern.
+    sageMsgLocalDate: v.optional(v.string()), // "YYYY-MM-DD" user tz the count applies to
+    sageMsgCount: v.optional(v.number()), // Sage messages sent on sageMsgLocalDate (cap check)
+    sageCostMtdUsd: v.optional(v.number()), // month-to-date Sage cost proxy ($)
     freezesRemaining: v.optional(v.number()), // bounded (default 2)
     lapseGraceRemaining: v.optional(v.number()), // bounded soft-lapse grace per attempt
     // lifetime ledger — the anti-shame numbers, NEVER reset (Decision 3)
@@ -175,7 +179,17 @@ export default defineSchema({
     role: v.union(v.literal('user'), v.literal('sage')),
     content: v.string(),
     ts: v.number(),
-  }).index('by_user_ts', ['userId', 'ts']),
+    // Per-message token/cost ledger (P3) — set on the SAGE reply row so real
+    // Sage cost-per-payer is queryable by tier (the brief: measure, don't guess).
+    inputTokens: v.optional(v.number()),
+    outputTokens: v.optional(v.number()),
+    costUsdProxy: v.optional(v.number()),
+    userTier: v.optional(v.union(v.literal('free'), v.literal('trial'), v.literal('paid'))),
+    cacheHit: v.optional(v.boolean()),
+    model: v.optional(v.string()),
+  })
+    .index('by_user_ts', ['userId', 'ts'])
+    .index('by_user_tier_ts', ['userId', 'userTier', 'ts']),
 
   // feedEvents — typed scope (not polymorphic) + SANITIZED payload (privacy).
   feedEvents: defineTable({
