@@ -90,6 +90,11 @@ export default function CravingSos() {
   const noteRelapseTrigger = useMutation(api.relapse.noteRelapseTrigger);
 
   const [view, setView] = useState<View_>({ kind: 'home' });
+  // Re-entry guard for the slip → lapse/relapse commit. logRelapse is re-entrant
+  // (a second call would bank a ~0-day attempt and write a duplicate relapse row
+  // + orphan an attempt), and the choice buttons stay mounted during the mutation
+  // round-trip. One commit per SOS session; the ref resets when the modal remounts.
+  const slipBusyRef = useRef(false);
 
   // Fire SOS-opened once on mount.
   useEffect(() => {
@@ -182,6 +187,8 @@ export default function CravingSos() {
           // 'lapse' preserves the streak (bounded grace). logRelapse is the source
           // of truth; we don't fabricate a craving row with a guessed intensity —
           // trigger naming lives on the recovery screen.
+          if (slipBusyRef.current) return; // double-tap guard — never double-commit
+          slipBusyRef.current = true;
           try {
             await logRelapse({ kind: 'lapse' });
             track(Ev.RELAPSE_LOGGED, { kind: 'lapse' });
@@ -191,6 +198,8 @@ export default function CravingSos() {
           close();
         }}
         onRelapse={async () => {
+          if (slipBusyRef.current) return; // double-tap guard — never double-commit a relapse
+          slipBusyRef.current = true;
           try {
             const res = await logRelapse({ kind: 'relapse' });
             track(Ev.RELAPSE_LOGGED, { kind: 'relapse' });
