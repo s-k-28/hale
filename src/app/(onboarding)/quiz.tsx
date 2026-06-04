@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Share,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useConvexAuth, useMutation } from 'convex/react';
@@ -156,7 +157,7 @@ const QUESTION_STEPS: StepKey[] = [
   'name',
 ];
 
-type Phase = 'questions' | 'building' | 'reveal' | 'commit' | 'push';
+type Phase = 'questions' | 'building' | 'reveal' | 'commit' | 'invitebuddy' | 'push';
 
 /* ------------------------------------------------------------------------- */
 
@@ -308,17 +309,22 @@ export default function Quiz() {
       // App-managed 14-day trial begins now (§8) — granted server-side in
       // completeOnboarding. Mark the activation→trial transition for funnel math.
       track(Ev.TRIAL_STARTED, { trial_days: 14 });
-      // Redeem a pending buddy invite (S1: auto-pair on first open).
+      // Redeem a pending buddy invite (S1: auto-pair on first open via deep link).
+      let pairedInOnboarding = false;
       const pendingBuddy = await takePendingBuddy();
       if (pendingBuddy) {
         try {
-          await pairWith({ inviterId: pendingBuddy as Id<'users'> });
-          track(Ev.BUDDY_PAIRED, { via: 'invite_onboard' });
+          await pairWith({ inviterId: pendingBuddy as Id<'users'>, pairingMethod: 'invite_squad' });
+          track(Ev.BUDDY_PAIRED, { via: 'invite_onboard', pairing_method: 'invite_squad' });
+          pairedInOnboarding = true;
         } catch {
           // Best-effort; never block landing in the app.
         }
       }
-      setPhase('push'); // help-framed opt-in before we land on Today
+      // Pairing is the ACTIVATION event: if they didn't already arrive paired (deep
+      // link), route to the dedicated invite/matchmaking step so the default path
+      // leads to a buddy in session one — then the push opt-in.
+      setPhase(pairedInOnboarding ? 'push' : 'invitebuddy');
     } catch (e) {
       setError('Something went wrong starting your plan. Please try again.');
       setSubmitting(false);
@@ -357,6 +363,10 @@ export default function Quiz() {
         onCommit={commit}
       />
     );
+  }
+
+  if (phase === 'invitebuddy') {
+    return <InviteBuddyStep onDone={() => setPhase('push')} />;
   }
 
   if (phase === 'push') {
@@ -797,6 +807,111 @@ function CommitScreen({
 }
 
 /** Help-framed push opt-in — explainer FIRST, then the OS prompt (Decision 2). */
+/**
+ * Buddy-pairing as the ACTIVATION event (P1). Shown right after commitment for
+ * users who didn't arrive already paired via a deep link. The default path leads
+ * to a buddy in session one — invite a friend (prefilled deep link) or matchmaking
+ * (pair with a waiting quitter by product/stage/timezone); a solo bridge is allowed
+ * but de-emphasized. Every path emits clean events (invite_offered, buddy_invited,
+ * matchmaking_*, buddy_paired, solo_bridge_taken) so K-factor + the paired-vs-solo
+ * wedge are measurable from the first cohort.
+ */
+function InviteBuddyStep({ onDone }: { onDone: () => void }) {
+  const invite = useMutation(api.buddies.invite);
+  const requestMatch = useMutation(api.buddies.requestMatch);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    track(Ev.INVITE_OFFERED, { invite_source: 'onboarding', is_default_path: true });
+  }, []);
+
+  const onInvite = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const { userId } = await invite();
+      const link = `hale://u/${userId}`;
+      track(Ev.BUDDY_INVITED, { invite_source: 'onboarding', pairing_method: 'invite', link_id: userId });
+      await Share.share({
+        message: `I'm quitting nicotine with HALE — be my accountability buddy? We'll keep each other on streak. ${link}`,
+        url: link,
+      });
+    } catch {
+      // Share dismissed / invite failed — still land in the app (invite is pending).
+    }
+    setBusy(false);
+    onDone();
+  };
+
+  const onMatch = async () => {
+    if (busy) return;
+    setBusy(true);
+    track(Ev.MATCHMAKING_REQUESTED, {});
+    try {
+      const res = await requestMatch({});
+      if (res?.matched) {
+        track(Ev.MATCHMAKING_MATCHED, { pairing_method: 'matchmaking', pool_size: res.poolSize ?? 0 });
+        track(Ev.BUDDY_PAIRED, { via: 'matchmaking', pairing_method: 'matchmaking' });
+      } else {
+        track(Ev.MATCHMAKING_NO_MATCH, { pool_size: res?.poolSize ?? 0 });
+      }
+    } catch {
+      // best-effort; land in the app either way
+    }
+    setBusy(false);
+    onDone();
+  };
+
+  const onSolo = () => {
+    track(Ev.SOLO_BRIDGE_TAKEN, { reason: 'user_chose_solo' });
+    onDone();
+  };
+
+  return (
+    <Screen edges={['top', 'bottom']}>
+      <View className="flex-1 justify-center px-7">
+        <View className="mb-7 h-20 w-20 items-center justify-center rounded-3xl border border-volt/30 bg-volt/10">
+          <Users color={colors.volt} size={38} strokeWidth={2.5} />
+        </View>
+        <Heading className="text-4xl leading-tight">QUIT WITH{'\n'}A BUDDY</Heading>
+        <Body className="mt-5 font-body-medium text-base leading-6 text-ash">
+          People with a buddy are far likelier to stay quit. Pair with someone who&apos;ll keep you
+          honest — they only ever see your streak, never your slip-ups.
+        </Body>
+
+        <View className="mt-9 gap-3">
+          <Button
+            variant="primary"
+            label="INVITE A BUDDY"
+            loading={busy}
+            onPress={onInvite}
+            accessibilityLabel="Invite a buddy"
+          />
+          <Pressable
+            onPress={onMatch}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Find me a buddy"
+            className="h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-line bg-coal px-6 active:opacity-80"
+          >
+            <Shuffle color={colors.chalk} size={18} strokeWidth={2.5} />
+            <Heading className="text-sm text-chalk">FIND ME A BUDDY</Heading>
+          </Pressable>
+        </View>
+
+        <Pressable
+          onPress={onSolo}
+          disabled={busy}
+          accessibilityRole="button"
+          className="mt-7 items-center py-2"
+        >
+          <Body className="text-sm text-ash">I&apos;ll start on my own</Body>
+        </Pressable>
+      </View>
+    </Screen>
+  );
+}
+
 function PushOptIn({ onDecide }: { onDecide: (granted: boolean) => void }) {
   return (
     <Screen edges={['top', 'bottom']}>

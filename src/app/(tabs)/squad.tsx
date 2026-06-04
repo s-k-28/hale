@@ -104,7 +104,7 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
     try {
       const { userId } = await invite();
       const link = `${DEEP_LINK_SCHEME}${userId}`;
-      track(Ev.BUDDY_INVITED, { method: 'share_sheet' });
+      track(Ev.BUDDY_INVITED, { method: 'share_sheet', invite_source: 'squad_tab', pairing_method: 'invite', link_id: userId });
       await Share.share({
         message: `I’m quitting nicotine with HALE — be my accountability buddy? We’ll keep each other on streak. ${link}`,
         url: link,

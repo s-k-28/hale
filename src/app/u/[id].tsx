@@ -46,8 +46,8 @@ export default function AcceptInvite() {
     ranRef.current = true
     ;(async () => {
       try {
-        await pairWith({ inviterId: id as Id<'users'> })
-        track(Ev.BUDDY_PAIRED, { via: 'deep_link' })
+        await pairWith({ inviterId: id as Id<'users'>, pairingMethod: 'invite_squad' })
+        track(Ev.BUDDY_PAIRED, { via: 'deep_link', pairing_method: 'invite_squad' })
         router.replace('/(tabs)/squad')
       } catch {
         setError(true)

@@ -84,6 +84,9 @@ export default defineSchema({
   }).index('by_user_ts', ['userId', 'ts']),
 
   // buddyLinks — symmetric-safe pairing (Decision 1). pairKey = sorted "idA_idB".
+  // pairedAt/pairingMethod/initiatorId capture the WHEN + HOW + WHO of the edge —
+  // the buddy-graph data the brief flags as "hard to change after launch" and the
+  // basis for K-factor (invite→accept timing) + the 48h activation window.
   buddyLinks: defineTable({
     pairKey: v.string(),
     userA: v.id('users'),
@@ -91,10 +94,49 @@ export default defineSchema({
     status: v.union(v.literal('pending'), v.literal('active'), v.literal('ended')),
     sharedStreak: v.number(),
     lastSharedLocalDate: v.optional(v.string()),
+    pairedAt: v.optional(v.number()), // epoch ms the link first went active (WHEN)
+    pairingMethod: v.optional(
+      v.union(
+        v.literal('invite_onboard'),
+        v.literal('invite_squad'),
+        v.literal('matchmaking'),
+      ),
+    ), // HOW the pair formed (path)
+    initiatorId: v.optional(v.id('users')), // WHO initiated (K-factor: invites→accepts)
   })
     .index('by_pair', ['pairKey'])
     .index('by_userA', ['userA'])
     .index('by_userB', ['userB']),
+
+  // matchRequests — matchmaking pool + audit (P1). A solo onboarding user with no
+  // invite gets matched to another waiting quitter by product type + quit-stage +
+  // timezone. Persisted (not ephemeral) so pool dynamics + match paths are queryable.
+  matchRequests: defineTable({
+    userId: v.id('users'),
+    productType: v.union(
+      v.literal('vape'),
+      v.literal('pouch'),
+      v.literal('cig'),
+      v.literal('mixed'),
+    ),
+    stageBucket: v.union(
+      v.literal('d0_7'),
+      v.literal('d8_30'),
+      v.literal('d31_90'),
+      v.literal('d90plus'),
+    ),
+    timezone: v.string(),
+    status: v.union(
+      v.literal('waiting'),
+      v.literal('matched'),
+      v.literal('unmatched'),
+      v.literal('expired'),
+    ),
+    matchedLinkId: v.optional(v.id('buddyLinks')),
+    createdAt: v.number(),
+  })
+    .index('by_status_match', ['status', 'productType', 'stageBucket', 'timezone'])
+    .index('by_user', ['userId']),
 
   nudges: defineTable({
     fromUser: v.id('users'),

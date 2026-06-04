@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
+import { quitStage } from './model/cohort';
 
 /**
  * Buddies (S1/S2) — the social wedge. One symmetric buddyLink per pair,
@@ -92,8 +93,15 @@ export const invite = mutation({
  * link. Self-pairing is rejected. track(BUDDY_PAIRED) is fired client-side.
  */
 export const pairWith = mutation({
-  args: { inviterId: v.id('users') },
-  handler: async (ctx, { inviterId }) => {
+  args: {
+    inviterId: v.id('users'),
+    // HOW this pair formed — defaults to a squad/deep-link invite. The accepter
+    // calls this, so the INVITER (inviterId) is the graph initiator (K-factor).
+    pairingMethod: v.optional(
+      v.union(v.literal('invite_onboard'), v.literal('invite_squad'), v.literal('matchmaking')),
+    ),
+  },
+  handler: async (ctx, { inviterId, pairingMethod }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
     if (inviterId === userId) throw new Error('Cannot pair with yourself');
@@ -102,6 +110,8 @@ export const pairWith = mutation({
     const inviter = await ctx.db.get(inviterId);
     if (!inviter) throw new Error('Inviter not found');
 
+    const method = pairingMethod ?? 'invite_squad';
+    const now = Date.now();
     const pairKey = pairKeyFor(userId, inviterId);
     const [userA, userB] = [userId, inviterId].sort() as [Id<'users'>, Id<'users'>];
 
@@ -112,7 +122,13 @@ export const pairWith = mutation({
 
     if (existing) {
       if (existing.status !== 'active') {
-        await ctx.db.patch(existing._id, { status: 'active' });
+        // Re-pair after an 'ended' link — stamp a fresh WHEN/HOW/WHO for the new edge.
+        await ctx.db.patch(existing._id, {
+          status: 'active',
+          pairedAt: now,
+          pairingMethod: method,
+          initiatorId: inviterId,
+        });
       }
       return { linkId: existing._id, alreadyPaired: existing.status === 'active' };
     }
@@ -123,7 +139,116 @@ export const pairWith = mutation({
       userB,
       status: 'active',
       sharedStreak: 0,
+      pairedAt: now,
+      pairingMethod: method,
+      initiatorId: inviterId,
     });
     return { linkId, alreadyPaired: false };
+  },
+});
+
+/**
+ * Matchmaking pool (P1). A solo onboarding user with no one to invite gets paired
+ * with another WAITING quitter matched on product type + quit-stage + timezone.
+ * If a waiting peer exists → pair immediately (pairingMethod 'matchmaking', both
+ * matchRequests marked matched); else this user joins the pool as 'waiting' and we
+ * return no-match (caller falls back to the solo bridge). Returns the outcome +
+ * pool size so the client can fire matchmaking_matched / matchmaking_no_match.
+ */
+export const requestMatch = mutation({
+  args: {},
+  handler: async (ctx, _args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+
+    // Already paired (e.g. redeemed an invite) → nothing to do.
+    const active = await findActiveLink(ctx, userId);
+    if (active) return { matched: true, alreadyPaired: true as const };
+
+    const user = await ctx.db.get(userId);
+    if (!user?.currentAttemptId || !user.timezone || !user.productType) {
+      return { matched: false as const, poolSize: 0, reason: 'profile_incomplete' as const };
+    }
+    const attempt = await ctx.db.get(user.currentAttemptId);
+    const stageBucket = quitStage(attempt?.startDate ?? Date.now(), Date.now());
+    const productType = user.productType;
+    const timezone = user.timezone;
+
+    // Look for a waiting peer in the same bucket (excluding self + anyone now paired).
+    const waiting = await ctx.db
+      .query('matchRequests')
+      .withIndex('by_status_match', (q) =>
+        q
+          .eq('status', 'waiting')
+          .eq('productType', productType)
+          .eq('stageBucket', stageBucket)
+          .eq('timezone', timezone),
+      )
+      .collect();
+    const poolSize = waiting.filter((r) => r.userId !== userId).length;
+
+    for (const peer of waiting) {
+      if (peer.userId === userId) continue;
+      const peerActive = await findActiveLink(ctx, peer.userId);
+      if (peerActive) continue; // stale waiting row — peer already paired elsewhere
+
+      // Pair them (matchmaking path). Mirror pairWith's symmetric insert.
+      const now = Date.now();
+      const pairKey = pairKeyFor(userId, peer.userId);
+      const [uA, uB] = [userId, peer.userId].sort() as [Id<'users'>, Id<'users'>];
+      const existing = await ctx.db
+        .query('buddyLinks')
+        .withIndex('by_pair', (q) => q.eq('pairKey', pairKey))
+        .unique();
+      const linkId =
+        existing?._id ??
+        (await ctx.db.insert('buddyLinks', {
+          pairKey,
+          userA: uA,
+          userB: uB,
+          status: 'active',
+          sharedStreak: 0,
+          pairedAt: now,
+          pairingMethod: 'matchmaking',
+          initiatorId: userId,
+        }));
+      if (existing && existing.status !== 'active') {
+        await ctx.db.patch(existing._id, {
+          status: 'active',
+          pairedAt: now,
+          pairingMethod: 'matchmaking',
+          initiatorId: userId,
+        });
+      }
+      await ctx.db.patch(peer._id, { status: 'matched', matchedLinkId: linkId });
+      // Record the requester's own (resolved) request for pool audit.
+      await ctx.db.insert('matchRequests', {
+        userId,
+        productType,
+        stageBucket,
+        timezone,
+        status: 'matched',
+        matchedLinkId: linkId,
+        createdAt: now,
+      });
+      return {
+        matched: true as const,
+        alreadyPaired: false as const,
+        linkId,
+        buddyUserId: peer.userId,
+        poolSize,
+      };
+    }
+
+    // No peer → join the pool as waiting; caller shows the solo bridge.
+    await ctx.db.insert('matchRequests', {
+      userId,
+      productType,
+      stageBucket,
+      timezone,
+      status: 'waiting',
+      createdAt: Date.now(),
+    });
+    return { matched: false as const, poolSize, stageBucket };
   },
 });
