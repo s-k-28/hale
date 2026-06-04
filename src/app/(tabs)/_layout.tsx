@@ -4,8 +4,9 @@ import { useQuery } from 'convex/react';
 import { House, Users, Sparkles, User } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { usePushTags } from '@/hooks/usePushTags';
-import { identifyUser } from '@/lib/analytics';
+import { identifyUser, setCohortSnapshot } from '@/lib/analytics';
 import { identifyPurchaser } from '@/lib/revenuecat';
+import { quitStage } from '@convex/model/cohort';
 import { colors } from '@/theme/colors';
 
 /**
@@ -22,13 +23,30 @@ function PushSync() {
   const buddy = useQuery(api.buddies.myBuddy, {});
   const uid = today?.userId ?? null;
   const hasBuddy = !!buddy?.buddy;
+  // Live cohort dims for the EVENT-level snapshot (immune to person-on-events drift).
+  const pairedSolo: 'solo' | 'paired' = hasBuddy ? 'paired' : 'solo';
+  const tier: 'free' | 'trial' | 'paid' = today?.premium
+    ? 'paid'
+    : today?.trialActive
+      ? 'trial'
+      : 'free';
+  const stage = today?.quitStart ? quitStage(today.quitStart, Date.now()) : undefined;
+  const tz = today?.timezone ?? undefined;
 
-  // Attribute events to the Convex user id + set the has_buddy wedge cohort
-  // property (paired vs solo — the north-star segmentation). Re-runs when buddy
-  // status resolves/changes.
+  // Attribute events to the Convex user id AND refresh the live cohort snapshot
+  // (paired/solo + tier + quit_stage + timezone) merged into every event by
+  // track() — so the wedge retention/LTV split is captured at the event level,
+  // never lost to ingest-time person-property drift. Person props enriched too
+  // for person-level filters. Re-runs when buddy/tier/stage resolve or change.
   useEffect(() => {
-    if (uid) identifyUser(uid, { has_buddy: hasBuddy });
-  }, [uid, hasBuddy]);
+    setCohortSnapshot({
+      paired_solo_status: pairedSolo,
+      tier,
+      quit_stage: stage,
+      timezone: tz,
+    });
+    if (uid) identifyUser(uid, { has_buddy: hasBuddy, paired_solo_status: pairedSolo, tier, quit_stage: stage });
+  }, [uid, hasBuddy, pairedSolo, tier, stage, tz]);
 
   // RevenueCat: app_user_id == Convex user _id so the /revenuecat/webhook
   // entitlement→users.premium mirror can match. Idempotent + scaffold-safe.

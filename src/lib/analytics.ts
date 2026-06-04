@@ -38,6 +38,24 @@ export const Ev = {
   TRIAL_STARTED: 'trial_started',
   PAYWALL_VIEWED: 'paywall_viewed',
   PURCHASE_COMPLETED: 'purchase_completed',
+  // Buddy-activation (P1) — pairing as the activation event + matchmaking + nudge
+  INVITE_OFFERED: 'invite_offered',
+  SOLO_BRIDGE_TAKEN: 'solo_bridge_taken',
+  MATCHMAKING_REQUESTED: 'matchmaking_requested',
+  MATCHMAKING_MATCHED: 'matchmaking_matched',
+  MATCHMAKING_NO_MATCH: 'matchmaking_no_match',
+  UNPAIRED_NUDGE_SENT: 'unpaired_nudge_sent',
+  UNPAIRED_NUDGE_OPENED: 'unpaired_nudge_opened',
+  // Activation instrumentation (P2) — north-star + candidate activation events
+  ACTIVATED_PAIRED_QUITTER: 'activated_paired_quitter',
+  FIRST_CHECK_IN: 'first_check_in',
+  FIRST_SOS: 'first_sos',
+  FIRST_SAGE_MESSAGE: 'first_sage_message',
+  // Sage cost controls (P3)
+  SAGE_MESSAGE_COMPLETED: 'sage_message_completed',
+  SAGE_CAP_HIT: 'sage_cap_hit',
+  // Relapse signal (P2 — relapse-prediction dataset)
+  RELAPSE_TRIGGER_NAMED: 'relapse_trigger_named',
   // Phase 2 (post-launch) — squads, leagues, rally. Several of these are
   // intentionally NOT fired in Phase 1 (the squads/leagues/rally surfaces are
   // built but gated off); they're defined here so the taxonomy is stable when
@@ -81,8 +99,38 @@ export function identifyUser(userId: string, props?: Record<string, any>) {
   posthog?.identify(userId, props);
 }
 
+/**
+ * Event-level cohort snapshot. PostHog runs in person-on-events mode here, so a
+ * person-property (e.g. has_buddy) is stamped at INGEST time — a check-in fired
+ * before pairing is permanently "solo", making the paired-vs-solo retention/LTV
+ * split (the wedge north-star) lossy and unrecoverable. To protect that forever,
+ * we merge a LIVE cohort snapshot into every event. setCohortSnapshot() is called
+ * from the always-mounted PushSync effect whenever todayState / buddy resolve, so
+ * cohort lives at the EVENT level and is immune to person-property drift.
+ *
+ * Only the always-relevant dims live here (paired_solo_status / tier / quit_stage /
+ * timezone). Event-specific dims (invite_source, pairing_method) are passed
+ * explicitly by the buddy events and override the snapshot.
+ */
+export type CohortSnapshot = {
+  paired_solo_status?: 'solo' | 'paired';
+  tier?: 'free' | 'trial' | 'paid';
+  quit_stage?: string;
+  timezone?: string;
+};
+let _cohort: CohortSnapshot = {};
+export function setCohortSnapshot(snapshot: CohortSnapshot) {
+  _cohort = { ..._cohort, ...snapshot };
+}
+export function cohortProps(): CohortSnapshot {
+  return _cohort;
+}
+
 export function track(event: EventName, props?: Record<string, any>) {
+  // Merge the live cohort snapshot so every event carries paired/solo + tier +
+  // quit_stage at the EVENT level; explicit props win over the snapshot defaults.
+  const merged = { ..._cohort, ...(props ?? {}) };
   // Dev-observable: every event prints to the Metro log so firing is verifiable.
-  if (__DEV__) console.log('[ev]', event, props ? JSON.stringify(props) : '');
-  posthog?.capture(event, props);
+  if (__DEV__) console.log('[ev]', event, JSON.stringify(merged));
+  posthog?.capture(event, merged);
 }
