@@ -40,6 +40,9 @@ import { RiseIn } from '@/components/motion';
 import { colors } from '@/theme/colors';
 import { track, Ev } from '@/lib/analytics';
 import { requestPushPermission } from '@/lib/onesignal';
+import { identifyPurchaser } from '@/lib/revenuecat';
+import { presentPaywall } from '@/lib/paywall';
+import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import {
   projectedAnnualSavings,
   moneySaved,
@@ -291,7 +294,7 @@ export default function Quiz() {
       // guarantees completeOnboarding's getAuthUserId() will resolve server-side.
       const ready = await waitForAuth(isAuthedRef);
       if (!ready) throw new Error('Convex auth session not ready after sign-in');
-      await completeOnboarding({
+      const { userId } = await completeOnboarding({
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         productType: profile.productType,
         baselinePerDay: profile.baselinePerDay,
@@ -306,9 +309,24 @@ export default function Quiz() {
         baseline_per_day: profile.baselinePerDay,
         projected_annual: annual,
       });
-      // App-managed 14-day trial begins now (§8) — granted server-side in
-      // completeOnboarding. Mark the activation→trial transition for funnel math.
-      track(Ev.TRIAL_STARTED, { trial_days: 14 });
+      // App-managed 14-day full-access floor begins now (§8) — granted server-side
+      // in completeOnboarding. This is the soft floor for anyone who dismisses the
+      // paywall below; it is NOT the StoreKit subscription trial.
+      track(Ev.TRIAL_STARTED, { trial_days: 14, trial_type: 'app_managed' });
+
+      // Peak-intent paywall — monetize right after the personalized plan reveal,
+      // at maximum motivation (the data-backed conversion moment). Onboarding runs
+      // BEFORE the tabs layer that normally identifies the purchaser, so we log the
+      // RC user in here first — otherwise a purchase would attribute to an
+      // anonymous RC id. Dismissible: whatever the result, we fall through to the
+      // buddy step so the invite loop (HALE's #1 asset) is never blocked.
+      await identifyPurchaser(userId);
+      const pwResult = await presentPaywall('onboarding_peak');
+      if (pwResult === PAYWALL_RESULT.PURCHASED || pwResult === PAYWALL_RESULT.RESTORED) {
+        // StoreKit 14-day (2-week) intro trial (or direct purchase) started via the paywall.
+        track(Ev.TRIAL_STARTED, { trial_days: 14, trial_type: 'storekit' });
+      }
+
       // Redeem a pending buddy invite (S1: auto-pair on first open via deep link).
       let pairedInOnboarding = false;
       const pendingBuddy = await takePendingBuddy();

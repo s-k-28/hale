@@ -174,7 +174,7 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
 
         {/* Reassurance */}
         <Caption className="mt-5 text-center leading-relaxed">
-          Less than a single pack — billed annually, cancel anytime.
+          14-day free trial, then billed yearly. Cancel anytime.
         </Caption>
       </ScrollView>
 
@@ -188,8 +188,8 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
             lands a massive numeral; the footer is a raised coal plane so the cards
             recede UNDER it (no more sliced 4th card). Price value unchanged. */}
         <View className="mb-3 flex-row items-baseline justify-center">
-          <Display className="text-chalk text-5xl leading-tight tracking-tight">$39.99</Display>
-          <Body className="ml-2 text-ash text-sm">/yr · $0.77/wk</Body>
+          <Display className="text-chalk text-5xl leading-tight tracking-tight">$79.99</Display>
+          <Body className="ml-2 text-ash text-sm">/yr · $6.67/mo</Body>
         </View>
 
         <SheenButton onPress={onMaybeLater} />

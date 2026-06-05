@@ -23,7 +23,7 @@ export const completeOnboarding = mutation({
     // retry after a network blip that actually succeeded server-side), return the
     // existing attempt instead of inserting a duplicate quitAttempt.
     const existing = await ctx.db.get(userId);
-    if (existing?.currentAttemptId) return { attemptId: existing.currentAttemptId };
+    if (existing?.currentAttemptId) return { attemptId: existing.currentAttemptId, userId };
     const now = Date.now();
     const attemptId = await ctx.db.insert('quitAttempts', { userId, startDate: now, active: true });
     await ctx.db.patch(userId, {
@@ -42,7 +42,7 @@ export const completeOnboarding = mutation({
       trialEndsAt: trialEndsFrom(now),
       trialReminderSent: false,
     });
-    return { attemptId };
+    return { attemptId, userId };
   },
 });
 

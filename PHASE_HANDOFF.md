@@ -1,122 +1,161 @@
-# HALE — Phase Handoff (pre-launch)
+# HALE — Phase Handoff (pre-launch · relaunch v2)
 
-_Last updated: 2026-06-04. Read this first in a fresh session, then `PHASE1_HANDOFF.md` for the original architecture + locked decisions._
+_Last updated: 2026-06-04 (session 2). Read this FIRST in a fresh session, then:_
+- _`RELAUNCH_PLAN.md` — the locked pricing/trial/paywall decisions + exact code state._
+- _`MRR_STUDY.md` — the 22-app, $100k–$1M/mo teardown (revenue-audited) that drove the repricing._
+- _`PHASE1_HANDOFF.md` — original architecture + locked decisions._
 
 HALE = quit-nicotine social-health iOS app. Expo/React Native (New Arch, Hermes) · Convex backend (`good-canary-630`) · RevenueCat · PostHog · OneSignal · Sentry. Wedge = **buddy accountability**; AI coach **Sage**; streaks; craving **SOS**; shareable milestone card. Audience: Gen-Z quitting vaping/nicotine. Ethical guardrail: engagement serves the quit, never app-dependence.
 
 ---
 
-## 1. CURRENT STATE — everything is built, tested, animated, and instrumented
+## 0. WHERE WE ARE RIGHT NOW (the one thing to know)
 
-**The app is functionally complete and was verified end-to-end** (prior session verdict: *shippable to TestFlight: YES*, modulo the real-world keys below). Across recent sessions:
-
-- **All features built + live-verified** — onboarding, Today/streaks/check-in, Squad (solo + paired + matchmaking), Coach/Sage, SOS (ride/breathe/log/relapse), milestone celebration, paywall, You. Data integrity verified (no dup/orphan/half-written rows); crash-safe (force-quit/relaunch, rapid nav); idempotent onboarding (user+attempt created exactly once).
-- **Motion-design pass done + verified** — global screen transitions + tab cross-fade, universal button press physics, Skia check-in particle burst, **custom Skia milestone particle system**, Coach breathing-Sage + typing indicator + reply fade-rise, Squad flame pulse + heart float, SOS coral breathing glow, paywall sheen sweep, plan-reveal $ count-up + row stagger. Reanimated 4 + react-native-skia only (no Lottie).
-- **Data instrumentation done + verified (this session — 6 commits, pushed)** — see §3.
-
-**Git:** branch `main`. Latest pushed commit `3ca5614`. tsc clean; main builds from a fresh checkout. The handoff commit sits on top of this.
+**Mid-launch-chain. You are creating the two App Store Connect subscription products (Step 1 below).** Everything before that — the full app, the MRR study, the repricing decision, and the code changes (peak-intent paywall + reprice) — is **done, verified (tsc clean), and pushed to GitHub**. The very next action lives in App Store Connect. After the two products read **Ready to Submit**, report the Product IDs back and continue at Step 2.
 
 ---
 
-## 2. PRICING DECISION (locked, data-backed) — two plans, annual-lead
+## 1. CURRENT STATE — built, tested, animated, instrumented, pushed
 
-Decided from RevenueCat SOSA 2026 + Adapty SOIS 2026 (Health & Fitness cut):
-
-- **Annual $39.99/yr — the lead.** Pre-selected, "Best value", framed as **"$3.33/mo"** (~67% cheaper than paying monthly).
-- **Monthly $9.99/mo — the anchor/on-ramp.** Low-commitment entry + makes annual look like a deal.
-- **Skip weekly.** Even though weekly is 55% of all app revenue globally, **H&F is the one category where annual dominates (60.6%, growing)**; annual earns ~2× monthly / ~5× weekly RPI; weekly Day-380 retention is 5.5% (vs annual ~20%). Weekly also reads predatory for a vulnerable quit audience (brand + App Store risk) and is the opposite of what HALE needs given the **graduation paradox** (success = the user quits & leaves → capture value upfront via annual).
-- **14-day free trial on both** (in H&F, trials *boost* annual LTV).
-- **If a 3rd plan is ever wanted → Lifetime (~$79–99), NOT weekly.** Post-launch only.
-- **Post-launch test:** annual at **$49.99–59.99** (price is the #1 LTV lever; $39.99 is only the category median — Kwit charges $127.99/yr).
+The app is **functionally complete and verified end-to-end** (prior verdict: *shippable to TestFlight: YES*, modulo the real-world keys in §6).
+- **All features built + live-verified** — onboarding, Today/streaks/check-in, Squad (solo + paired + matchmaking), Coach/Sage, SOS (ride/breathe/log/relapse), milestone celebration, paywall, You. Data integrity verified; crash-safe; idempotent onboarding.
+- **Motion-design pass done + verified** — global transitions, Skia check-in + milestone particle systems, breathing Sage, paywall sheen, plan-reveal count-up, etc. (Reanimated 4 + react-native-skia, no Lottie).
+- **Data instrumentation done + verified** — buddy-graph + activation + relapse signals + Sage cost ledger; cohort props on every event; PostHog delivery confirmed; `docs/ANALYTICS_EVENTS.md` is the event contract.
+- **This session:** ran a 22-app MRR study → repriced + rebuilt the conversion engine → all pushed. **tsc clean; main builds from a fresh checkout.**
 
 ---
 
-## 3. WHAT'S BUILT vs WHAT'S BLOCKED
+## 2. PRICING & TRIAL (locked this session — SUPERSEDES the old $39.99 plan)
 
-### Built + verified (no further work)
-- **P1 — buddy-pairing as the activation event.** Onboarding `invitebuddy` step after commitment: invite (prefilled `hale://u/<id>` deep link), **matchmaking pool** (`buddies.requestMatch`, matches on product type + quit-stage + timezone), de-emphasized solo bridge. **Buddy-graph captured** in `buddyLinks` (`pairedAt`/`pairingMethod`/`initiatorId`) + `matchRequests` audit table. Verified live: matchmaking paired two users; graph rows + events landed.
-- **P2 — North Star + activation moat.** North Star = **Weekly Active Paired Quitters**. New `activationEvents` Convex table (authoritative); `checkIn` server-detects + writes `first_check_in` + `activated_paired_quitter` (paired + check-in ≤48h) and returns flags the client mirrors to PostHog. Candidate alts `first_sos`/`first_sage_message`. Relapse signals: `quitAttempts.lapseCountBeforeRelapse` + `relapse_logged` enriched (`streak_at_relapse`, `lapses_before_relapse`). Verified live.
-- **P3 — Sage cost controls.** Cheap-tier model (**Claude Haiku**); per-tier daily cap (**free 5 / trial 15 / paid 50**) enforced before any compute; 12-turn sliding context; per-message cost ledger on `sageMessages` (tokens/cost/tier/model). Events `coach_message_sent` (tier/count/cap_state) + `sage_cap_hit`. Verified live (cap blocked a send with zero compute).
-- **Event-level cohort backbone** — `paired_solo_status` / `tier` / `quit_stage` / `timezone` merged into **every** `track()` (fixes PostHog person-on-events lossiness). Verified.
-- **Convex build blocker fixed** — `convex/globals.d.ts` declares `process.env` so the Convex typecheck passes and new mutations deploy.
-- **PostHog delivery confirmed** — 12 custom events queried directly in the dashboard events table.
-- **Events reference doc** — `docs/ANALYTICS_EVENTS.md` (every event + properties + PostHog/Convex destination + which q1–q5 question it answers).
-
-### Blocked on real-world keys/accounts (NOT bugs)
-- **Real Sage replies** → needs **Anthropic credits** (key is set but $0 → serves the warm fallback line; cost ledger logs 0 until funded).
-- **Real purchases** → RevenueCat iOS key ✅ now set, but needs **App Store Connect subscription products** (Apple acct) + the **Offering** + the **two-plan paywall UI** (currently annual-only).
-- **Push delivery** → needs **APNs `.p8`** uploaded to OneSignal (Apple acct). OneSignal keys are set.
-- **2-device buddy sync / real network chaos** → needs real devices.
-- **Crash reporting** → Sentry DSN not set.
+- **Annual $79.99/yr** — the lead (≈ **$6.67/mo**). _[was $39.99]_
+- **Monthly $12.99/mo** — the anchor (makes annual read as ~49% off). _[was $9.99]_
+- **⚠️ TRIAL = 2 WEEKS (14 days).** Reverted from a brief 3-day experiment back to 14 days per research: **14+ day trials convert ~42.5% vs ~28% for short trials, and longer trials boost annual LTV in Health & Fitness.** The app-managed full-access window (`convex/model/trial.ts`, `TRIAL_LENGTH_DAYS = 14`) is also 14 days, so they now align. **Create the ASC intro offer as `2 Weeks`, NOT 3 Days.**
+  - _Note for the record: this session's MRR study favored a **3-day** trial (Cal AI +31% trial-to-paid; long trials leak "forgot to cancel"); the H&F trial→LTV data favors **14-day**. The sources genuinely disagree → **trial length is the #1 post-launch A/B candidate.** Current shipped decision: **14 days / 2 weeks.**_
+- **Paywall:** RevenueCat **native** (dashboard) is the primary surface; A/B via RevenueCat Experiments. Placement = **at the plan-reveal peak** in onboarding, **dismissible** (so the buddy-invite loop is never blocked). Full rationale in `RELAUNCH_PLAN.md`.
+- Why the change: `MRR_STUDY.md` verdict — $100k MRR is reachable for this category, but odds were ~25–30% on the old plan → ~60–65% with: reprice ↑, conversion engine, buddy-as-retention-spine, paid-creator distribution.
 
 ---
 
-## 4. THE REMAINING LAUNCH CHAIN (exact order)
+## 3. CODE BUILD — done & verified this session (tsc EXIT=0)
 
-1. **Fund Anthropic credits** — console.anthropic.com → Billing. Turns Sage from fallback → real replies and starts real cost logging. (Key already in Convex env.)
-2. **Buy Apple Developer account** ($99/yr) + sign the **Paid Apps agreement** in App Store Connect (required before any subscription product exists).
-3. **Create the two ASC subscription products** — both in **one subscription group**: annual `$39.99/yr` and monthly `$9.99/mo`. Add the 14-day intro free trial on both. Pick clean product IDs (e.g. `hale_plus_annual`, `hale_plus_monthly`).
-4. **RevenueCat wiring** — import both products → attach to the **`HALE+` entitlement** (already exists) → create an **Offering** with annual as the default/highlighted package, monthly as the second. **Finish the webhook** (see §5).
-5. **Finish the two-plan paywall UI** — `src/app/paywall.tsx` is **currently annual-only hardcoded ($39.99/yr)**. Update it to read the two packages from the RevenueCat Offering: annual pre-selected with **"$3.33/mo · save 67%"** + "Best value", monthly below. (Wire through `react-native-purchases` offerings; `src/lib/revenuecat.ts` already configures the SDK once the key is present.)
-6. **APNs** — create an APNs Auth Key (`.p8`) in the Apple Developer portal → upload to the OneSignal dashboard (enables real push delivery).
-7. **EAS build → TestFlight** — `eas build -p ios`, ensure the `EXPO_PUBLIC_*` keys are present in the build env (EAS secrets or `.env`), submit to TestFlight.
+- `convex/users.ts` — `completeOnboarding` now returns `{ attemptId, userId }` (both the idempotent and normal return).
+- `src/lib/paywall.ts` — `presentPaywall(surface?)` tags `PAYWALL_VIEWED` + `PURCHASE_COMPLETED` with the surface (no double-firing).
+- `src/app/(onboarding)/quiz.tsx` — in `commit()`, after onboarding: `identifyPurchaser(userId)` (onboarding runs before the tabs layer that normally identifies the RC purchaser) → `presentPaywall('onboarding_peak')` (dismissible) → fires `trial_started {trial_days:14, trial_type:'storekit'}` on purchase. Buddy/push routing unchanged.
+- `src/app/paywall.tsx` — offline fallback `HalePlusUpsell` repriced $39.99→$79.99, "/yr · $6.67/mo", "14-day free trial" copy. **This fallback only renders when RC is unconfigured; the RC-native paywall is the real one.**
+- **Verify:** `npx tsc --noEmit` = EXIT 0, 0 errors. Touched files lint-clean (2 pre-existing warnings in quiz.tsx are unrelated). ESLint 9 + eslint-config-expo were freshly installed by a lint run; the 29 "errors" are pre-existing baseline in untouched legacy files — NOT regressions.
 
 ---
 
-## 5. KEYS STILL OWED (and where each goes)
+## 4. THE LAUNCH CHAIN (exact order · current position = Step 1)
+
+### ▶ STEP 1 — [IN PROGRESS] Create the two ASC subscription products
+One subscription group → **Reference Name `HALE Plus`**, **group display name `HALE+`**. Both products at the **same Level (1)** so monthly↔annual is a clean crossgrade. _(There is no "entitlement" field in ASC — that's a RevenueCat concept, mapped in Step 2.)_
+
+**Annual:**
+| Field | Value |
+|---|---|
+| Reference Name | `HALE+ Annual` |
+| Product ID | `hale_plus_annual` |
+| Duration | 1 Year |
+| Price | **$79.99** |
+| Level | 1 |
+| Display Name | `HALE+ Yearly` |
+| Description | `Unlimited Sage coaching, full health analytics, multiple squads, and home-screen widgets. Billed yearly.` |
+
+**Monthly:**
+| Field | Value |
+|---|---|
+| Reference Name | `HALE+ Monthly` |
+| Product ID | `hale_plus_monthly` |
+| Duration | 1 Month |
+| Price | **$12.99** |
+| Level | 1 |
+| Display Name | `HALE+ Monthly` |
+| Description | `Unlimited Sage coaching, full health analytics, multiple squads, and home-screen widgets. Billed monthly.` |
+
+**Free trial on BOTH (Introductory Offer):** Type **Free** · Duration **2 Weeks** · All countries/regions · New subscribers. Then clear Missing Metadata + add a review screenshot (the paywall screenshot) until each reads **Ready to Submit**.
+
+### STEP 2 — RevenueCat
+Import both products → attach both to the **`HALE+` entitlement** (already exists) → create an **Offering** with **annual as the default/highlighted** package, monthly second → design the native two-plan **Paywall** (annual highlighted "Best value · $6.67/mo", show the **2-week** free trial + a no-surprise charge timeline) → **finish the webhook** (§6).
+
+### STEP 3 — Two-plan paywall UI
+Primary = the **RC-native** paywall from Step 2 (it reads the offering; A/B via RC Experiments). The in-app `src/app/paywall.tsx` `HalePlusUpsell` is the **offline fallback** and is already repriced to $79.99 (single-plan). _Optional:_ if you want the fallback to also show both plans, update it to read `Purchases.getOfferings()` — but the native paywall is the real conversion surface, so this is low priority.
+
+### STEP 4 — Remove the dev-only test file (CRITICAL, pre-prod)
+```bash
+rm convex/_devtest.ts && npx convex deploy
+```
+Un-deploys the dev mutations so they're not callable in prod. (See §7 for the git caveat.)
+
+### STEP 5 — EAS production build → TestFlight
+```bash
+eas build -p ios
+```
+Ensure the `EXPO_PUBLIC_*` keys are present in the build env (EAS secrets or `.env`), then submit to TestFlight.
+
+---
+
+## 5. AFTER PRODUCTS ARE "READY TO SUBMIT" — the immediate next actions
+1. **Report the two Product IDs** back (`hale_plus_annual` / `hale_plus_monthly` or whatever you used) + confirm same group / $79.99 + $12.99 / **2-week** trial on each.
+2. Build the **RevenueCat Offering** (annual highlighted) + native paywall + webhook.
+3. Confirm the two-plan paywall (RC-native primary; fallback already repriced).
+4. `rm convex/_devtest.ts && npx convex deploy`.
+5. `eas build -p ios` → TestFlight.
+
+---
+
+## 6. KEYS STILL OWED (and where each goes)
 
 | Key | Where | Status / action |
 |---|---|---|
-| **Anthropic credits** | Anthropic billing | Key set, **$0 — fund it** |
-| **RevenueCat iOS SDK key** | `.env.local` → `EXPO_PUBLIC_REVENUECAT_IOS_KEY` | ✅ **DONE** (`appl_…`, set this session) |
-| **RevenueCat entitlement** | code default `HALE+` | ✅ **DONE** (entitlement `HALE+` exists; no env needed) |
-| **RevenueCat webhook secret** | `npx convex env set REVENUECAT_WEBHOOK_SECRET <secret>` | **PENDING** — in RevenueCat → Integrations → Webhooks, URL `https://good-canary-630.convex.site/revenuecat/webhook`, set an Authorization-header secret, then set the same value in Convex env |
-| **Sentry DSN** | `.env.local` → `EXPO_PUBLIC_SENTRY_DSN` | Optional, recommended |
-| **Resend API key** | `npx convex env set RESEND_API_KEY <key>` | Optional (only for the trial-ending reminder email) |
-| **RevenueCat Android key** | `.env.local` → `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | Skip for iOS launch |
-| **APNs `.p8`** | OneSignal dashboard | Needs Apple acct; for real push |
+| **Anthropic credits** | Anthropic billing | Key set, **$0 — FUND IT** (Sage serves the warm fallback until funded; cost ledger logs 0). |
+| **RevenueCat iOS SDK key** | `.env.local` → `EXPO_PUBLIC_REVENUECAT_IOS_KEY` | ✅ **DONE** (`appl_…`). |
+| **RevenueCat entitlement `HALE+`** | code default (`config.ts`) | ✅ exists; no env needed. |
+| **RevenueCat webhook secret** | `npx convex env set REVENUECAT_WEBHOOK_SECRET <secret>` | **PENDING** — RC → Integrations → Webhooks, URL `https://good-canary-630.convex.site/revenuecat/webhook`, set an Authorization-header secret, then mirror the same value into Convex env. |
+| **Sentry DSN** | `.env.local` → `EXPO_PUBLIC_SENTRY_DSN` | Optional, recommended. |
+| **Resend API key** | `npx convex env set RESEND_API_KEY <key>` | Optional (trial-ending reminder email). |
+| **RevenueCat Android key** | `.env.local` → `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | Skip for iOS launch. |
+| **APNs `.p8`** | OneSignal dashboard | Needs Apple acct; for real push. |
 
-Already set ✅: Convex URL/site URL, PostHog key (confirmed delivering), OneSignal app id + REST key, Convex auth keys (auto).
-
----
-
-## 6. ⚠️ `_devtest.ts` REMOVAL (critical pre-launch task)
-
-`convex/_devtest.ts` is **dev-only, untracked, on disk, and currently deployed to the dev Convex deployment** (re-deployed this session to reset the Sage cap). It exports: `uncheckIn`, `backdateQuit`, `seedCoach`, `seedBuddy`, `clearSage`, `seedUserTurn`, `seedSageReply`, `resetAll`, `seedWaitingPeer`, `setSageCount`.
-
-**Before the production Convex deploy:**
-```bash
-rm convex/_devtest.ts && npx convex deploy   # un-deploys the dev mutations so they're not callable in prod
-```
-The committed generated `api.d.ts` is already clean of `_devtest` (regenerated this session), so main builds without it. Leaving the file means those test mutations are callable on whatever deployment it's pushed to — must not ship to prod.
+Already set ✅: Convex URL/site URL, PostHog key (delivering), OneSignal app id + REST key, Convex auth keys (auto).
 
 ---
 
-## 7. DEV / TEST STATE (for resuming work)
+## 7. `_devtest.ts` REMOVAL + GIT CAVEATS (critical)
 
-- **Metro:** running on `:8081` (`nohup npx expo start --port 8081 > /tmp/metro.log`). If down: restart that command; first bundle ~40s; reconnect the app via `hale://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081`.
-- **Simulator:** iPhone 17 Pro, UDID `755B55D9-8E4B-431C-9D1D-A635F38CFF5F` (cached in `/tmp/hale_udid`). 402×874 pt = 1206×2622 px (÷3).
-- **Sage:** on fallback (Anthropic $0). Test user is on the trial tier; `sageMsgCount` was reset to 0, so Sage chat works (returns the canned fallback line until credits are added).
-- **Reset to clean state:** `npx convex run _devtest:resetAll` + `xcrun simctl keychain <udid> reset` + relaunch via deep link → fresh welcome, empty DB.
-- **Other dev helpers:** `uncheckIn` (resets check-in for all users), `backdateQuit '{"days":N}'` (trigger milestone), `seedWaitingPeer` (matchmaking peer), `setSageCount '{"userId":"…","count":N,"localDate":"YYYY-MM-DD"}'`, `seedBuddy`, `seedCoach`.
-- **Driver stack (ExecBro CDP is down):** AXe (`axe tap/type/swipe/describe-ui/key-combo/touch`), simctl (screenshot/openurl/keychain), Convex CLI (`data`/`run`/`dev --once`/`env`), PostHog MCP (`exec` → `read-data-schema` / `execute-sql`).
-- **Verification harness:** motion → `simctl recordVideo` + `ffmpeg ... tile=` frame grid (kill stale `simctl io` procs first or recordings die instantly); events → device `[ev]` log (`grep '[ev]' /tmp/metro.log`) + Convex `data` + PostHog `execute-sql`.
-- **Deploy gotcha:** pre-existing `process` typecheck is fixed via `globals.d.ts`; normal `npx convex dev --once` typechecks + deploys. (Historically needed `--typecheck=disable`; no longer.)
-- **Metro NativeWind watcher:** earlier sessions hit a file-watcher crash; current Metro survives edits (Fast Refresh works). If it crashes, restart Metro.
+`convex/_devtest.ts` is **dev-only, untracked, on disk, deployed to the DEV deployment**. Exports: `uncheckIn`, `backdateQuit`, `seedCoach`, `seedBuddy`, `clearSage`, `seedUserTurn`, `seedSageReply`, `resetAll`, `seedWaitingPeer`, `setSageCount`.
+
+**Before the prod Convex deploy:** `rm convex/_devtest.ts && npx convex deploy`.
+
+⚠️ **Git caveats (learned this session):**
+- Running `npx convex codegen`/`dev` with `_devtest.ts` on disk regenerates `convex/_generated/api.d.ts` to **INCLUDE `_devtest`**. The **committed** `api.d.ts` is clean of `_devtest` — **do NOT stage `convex/_generated/*` changes.** The committed clean `api.d.ts` still typechecks the app on a fresh checkout (return types flow from source, e.g. the new `completeOnboarding` userId). This session's commit deliberately staged only **source + docs**, never `_generated`.
+- A lint run installed `eslint` + `eslint-config-expo` into `package.json`/`package-lock.json` (228 packages). **Left UNSTAGED** on purpose — decide later whether to keep a lint setup.
 
 ---
 
-## 8. KEY FILES
+## 8. DEV / TEST STATE (for resuming)
 
-- **Paywall (NEEDS two-plan update):** `src/app/paywall.tsx` — annual-only `$39.99/yr` hardcoded.
-- **RevenueCat SDK init:** `src/lib/revenuecat.ts` (scaffold no-op until key present — key now set). Entitlement default `HALE+` in `src/lib/config.ts`.
-- **Analytics:** `src/lib/analytics.ts` (`Ev` enum, `cohortProps()`/`setCohortSnapshot()`, `track()`); cohort refreshed in `src/app/(tabs)/_layout.tsx`.
-- **Convex:** `buddies.ts` (`pairWith`, `requestMatch`), `checkins.ts` (activation detection), `relapse.ts` (relapse signals), `sage.ts` + `model/sage.ts` (caps/cost/Haiku), `schema.ts` (buddyLinks/matchRequests/activationEvents/sageMessages/users fields), `model/cohort.ts` (`quitStage`).
-- **Docs:** `docs/ANALYTICS_EVENTS.md` (event contract), `PHASE1_HANDOFF.md` (original architecture + locked decisions).
-- **Onboarding:** `src/app/(onboarding)/quiz.tsx` (`InviteBuddyStep` + phase machine).
+- **Metro:** `nohup npx expo start --port 8081 > /tmp/metro.log`. First bundle ~40s; reconnect via `hale://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081`.
+- **Simulator:** iPhone 17 Pro, UDID `755B55D9-8E4B-431C-9D1D-A635F38CFF5F` (cached `/tmp/hale_udid`). 402×874 pt = 1206×2622 px (÷3).
+- **Sage:** on fallback (Anthropic $0). Test user trial-tier; `sageMsgCount` reset to 0.
+- **Reset to clean:** `npx convex run _devtest:resetAll` + `xcrun simctl keychain <udid> reset` + relaunch deep link.
+- **Other dev helpers:** `uncheckIn`, `backdateQuit '{"days":N}'`, `seedWaitingPeer`, `setSageCount '{"userId":"…","count":N,"localDate":"YYYY-MM-DD"}'`, `seedBuddy`, `seedCoach`.
+- **Driver stack:** AXe (`axe tap/type/swipe/describe-ui`), simctl, Convex CLI (`data`/`run`/`dev --once`/`env`), PostHog MCP, RevenueCat MCP (use to verify the Offering import in Step 2).
+- **Deploy gotcha:** `process` typecheck fixed via `convex/globals.d.ts`; normal `npx convex dev --once` typechecks + deploys (to DEV).
 
 ---
 
-## 9. STRATEGY CONTEXT (the profitability brief — informs roadmap)
+## 9. KEY FILES
 
-Highest-leverage levers, ranked: (1) buddy-pairing as activation (built), (2) retention/first-7-days, (3) beat the **graduation paradox** (success→churn) via the buddy relationship + a graduate→mentor loop, (4) organic/viral growth (TikTok + share-card; paid UA is structurally unprofitable at $39.99/yr + median H&F retention), (5) protect Sage margin + don't let it be the product (built). North Star = Weekly Active Paired Quitters. The data moat (buddy-graph + activation + relapse + Sage-cost) is now instrumented from cohort one — the whole point of this session.
+- **Paywall (RC-native primary; fallback repriced):** `src/app/paywall.tsx`. RC SDK: `src/lib/revenuecat.ts` (`identifyPurchaser`), present: `src/lib/paywall.ts` (`presentPaywall(surface?)`). Entitlement default `HALE+` in `src/lib/config.ts`.
+- **Onboarding + peak-intent paywall:** `src/app/(onboarding)/quiz.tsx` (`commit()` inserts the paywall; `InviteBuddyStep` activation).
+- **Trial model:** `convex/model/trial.ts` (`TRIAL_LENGTH_DAYS = 14`). Onboarding grant: `convex/users.ts` `completeOnboarding`.
+- **A/B flags:** `src/lib/experiments.ts` (`PAYWALL_POSTURE`, `QUIZ_LENGTH`, …) over PostHog.
+- **Analytics:** `src/lib/analytics.ts` (`Ev`, `track`, cohort props).
+- **Docs:** `MRR_STUDY.md`, `RELAUNCH_PLAN.md`, `docs/ANALYTICS_EVENTS.md`, `PHASE1_HANDOFF.md`.
+
+---
+
+## 10. STRATEGY CONTEXT (informs the roadmap)
+
+North Star = **Weekly Active Paired Quitters**. `MRR_STUDY.md` verdict: $100k MRR reachable (~60–65% with the four moves; ~25–30% on the old plan). The single biggest **threat** = distribution dependence on unproven free TikTok + the graduation paradox (single-substance, finite). The single biggest **unlock** = the **buddy/squad wedge rebuilt as the retention spine** (graduate→mentor), which also lowers CAC via invite loops. **Fast-follow (post-TestFlight):** (1) buddy-as-graduation-escape, (2) paid/embedded-creator distribution engine, (3) RC Experiments on the paywall + **trial-length A/B (3-day vs 14-day)**, (4) ARPU-expansion / B2B2C layer.

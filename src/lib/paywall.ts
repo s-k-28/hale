@@ -35,12 +35,16 @@ function revenueCatConfigured(): boolean {
  * Fires PAYWALL_VIEWED on (attempted) presentation and PURCHASE_COMPLETED on a
  * successful purchase or restore. Returns the RC result so callers can branch
  * (e.g. unlock a feature, or render a fallback when NOT_PRESENTED in scaffold).
+ *
+ * `surface` tags both events so we can segment conversion by where the paywall
+ * fired (e.g. 'onboarding_peak' vs a later feature gate). Pass it once here so
+ * callers never have to re-fire (and double-count) PAYWALL_VIEWED themselves.
  */
-export async function presentPaywall(): Promise<PAYWALL_RESULT> {
+export async function presentPaywall(surface?: string): Promise<PAYWALL_RESULT> {
   // Unconfigured → no native module to call. Degrade gracefully.
   if (!revenueCatConfigured()) return PAYWALL_RESULT.NOT_PRESENTED;
 
-  track(Ev.PAYWALL_VIEWED);
+  track(Ev.PAYWALL_VIEWED, surface ? { surface } : undefined);
 
   try {
     const result = await RevenueCatUI.presentPaywallIfNeeded({
@@ -48,7 +52,7 @@ export async function presentPaywall(): Promise<PAYWALL_RESULT> {
     });
 
     if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
-      track(Ev.PURCHASE_COMPLETED, { via: 'paywall', result });
+      track(Ev.PURCHASE_COMPLETED, { via: surface ?? 'paywall', result });
     }
     // CANCELLED / ERROR / NOT_PRESENTED need no extra signal here; the
     // premium mirror (Convex todayState + RC isPremium) reflects the truth.
