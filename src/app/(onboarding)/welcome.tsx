@@ -30,7 +30,7 @@ export default function Welcome() {
             letterSpacing={0}
             maxWidth={300}
           >
-            Build a quit plan that actually sticks — and beat the cravings with people who get it.
+            Build a quit plan that actually sticks, and beat the cravings with people who get it.
           </Label>
         </YStack>
       </YStack>

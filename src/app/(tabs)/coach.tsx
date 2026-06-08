@@ -87,7 +87,7 @@ export default function Coach() {
           daily_count: res.dailyCount,
         });
         setDraft((prev) => (prev.length > 0 ? prev : content));
-        toast.error("You've reached today's Sage limit — back tomorrow.");
+        toast.error("You've reached today's Sage limit. Back tomorrow.");
       } else {
         // first_sage_message ONCE per user (candidate activation event, q1 split).
         AsyncStorage.getItem('hale:firstSage').then((seen) => {
@@ -266,7 +266,7 @@ function EmptyState() {
       <BreathingSage />
       <Display className="mt-6 text-center text-5xl text-chalk">HEY,{'\n'}I&apos;M SAGE</Display>
       <Body className="mt-4 max-w-[300px] text-center text-base leading-6 text-ash">
-        Here the second a craving hits. Tell me what&apos;s going on — no judgment,
+        Here the second a craving hits. Tell me what&apos;s going on, no judgment,
         just backup to ride it out. It peaks, then it passes.
       </Body>
       <Label className="mt-8 text-ash">Cravings pass · you don&apos;t quit on yourself</Label>

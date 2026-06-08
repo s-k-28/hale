@@ -171,7 +171,7 @@ function SquadCard({
     track(Ev.SQUAD_INVITED, { surface: 'squads_hub', squadId: squad._id });
     try {
       await Share.share({
-        message: `Join my HALE squad "${squad.name}" — we're quitting nicotine together. Use code ${squad.inviteCode} in the app.`,
+        message: `Join my HALE squad "${squad.name}", we're quitting nicotine together. Use code ${squad.inviteCode} in the app.`,
       });
     } catch {
       // Share dismissed — no-op.
@@ -302,7 +302,7 @@ function CreateSquad() {
     track(Ev.SQUAD_INVITED, { surface: 'squads_hub_create' });
     try {
       await Share.share({
-        message: `Join my HALE squad — we're quitting nicotine together. Use code ${createdCode} in the app.`,
+        message: `Join my HALE squad, we're quitting nicotine together. Use code ${createdCode} in the app.`,
       });
     } catch {
       // Share dismissed — no-op.

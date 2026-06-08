@@ -210,7 +210,7 @@ export default function Today() {
       }
     } catch {
       // Surface what was a silent failure — a failed tap shouldn't be a dead end.
-      toast.error("Couldn't check in — please try again");
+      toast.error("Couldn't check in. Please try again");
     } finally {
       setChecking(false);
     }
@@ -326,7 +326,7 @@ export default function Today() {
             </Body>
             {freshStart ? (
               <Body className="mt-1 font-body-medium text-[13px] text-volt">
-                You've already started — your body is responding right now.
+                You've already started, your body is responding right now.
               </Body>
             ) : null}
             <View className="mt-3 h-2 w-full overflow-hidden rounded-full bg-void">
@@ -348,15 +348,15 @@ export default function Today() {
         )}
         </RiseIn>
 
-        {/* Stat tiles — money saved (lime accent) + lung recovery */}
+        {/* Stat tiles, money saved (lime accent) + lung recovery */}
         <RiseIn index={2}>
         <View className="mb-3 flex-row gap-3">
           <StatTile label="Money saved" value={money(state.currentMoneySaved)} />
-          {/* Soften the bare "0%" on day 0 — frame it as the start, not a void. */}
+          {/* Soften the bare "0%" on day 0, frame it as the start, not a void. */}
           <StatTile label="Recovery" value={recoveryPct === 0 ? 'Day 1' : `${recoveryPct}%`} />
         </View>
         </RiseIn>
-        {/* Lifetime line only when it ADDS info — i.e. there's history beyond this
+        {/* Lifetime line only when it ADDS info, i.e. there's history beyond this
             run (post-relapse). On a first run current == lifetime, so showing it
             just echoes the Money saved tile. */}
         {state.lifetimeMoneySaved > state.currentMoneySaved ? (
@@ -371,7 +371,7 @@ export default function Today() {
             at the hero ring (RingBurst), where the streak lives, not over the CTA. */}
         <View className="mb-3">
           <Button
-            label={alreadyCheckedIn ? 'Checked in — clean today' : 'Check in — clean today'}
+            label={alreadyCheckedIn ? 'Checked in, clean today' : 'Check in, clean today'}
             variant="primary"
             loading={checking}
             disabled={alreadyCheckedIn}
@@ -417,7 +417,7 @@ export default function Today() {
           <View className="flex-1">
             <Heading className="text-xl text-white">Craving SOS</Heading>
             <Body className="mt-0.5 font-body-medium text-xs text-white/85">
-              Tap for help — it passes in minutes
+              Tap for help, it passes in minutes
             </Body>
           </View>
           <ChevronRight color="#ffffff" size={22} strokeWidth={2.5} />
@@ -569,7 +569,7 @@ function BuddyRow({
   // Streak framing line — your own progress, shown alongside the buddy row.
   const streakLine = landmark
     ? `${landmark - streak} day${landmark - streak === 1 ? '' : 's'} to your ${landmark}-day mark`
-    : `Best yet — ${longestStreak} days clean`;
+    : `Best yet, ${longestStreak} days clean`;
 
   if (!buddy) {
     return (

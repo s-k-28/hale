@@ -91,7 +91,7 @@ export default function Leagues() {
         <View className="mt-4 flex-row items-center rounded-2xl border border-line bg-coal px-4 py-3">
           <Layers color={colors.ash} size={16} strokeWidth={2.5} />
           <Body className="ml-2 flex-1 text-sm leading-5 text-ash">
-            Segmented by your stage — you only race people at the same point in their quit.
+            Segmented by your stage, you only race people at the same point in their quit.
           </Body>
         </View>
 
@@ -136,7 +136,7 @@ function OptInState({
         <Heading className="mt-5 text-2xl">JOIN THIS WEEK</Heading>
         <Body className="mt-2 text-base leading-6 text-ash">
           Opt in to land in a friendly weekly league with others at your stage. Every clean check-in
-          this week earns a point — climb the board, stay quit.
+          this week earns a point, climb the board, stay quit.
         </Body>
 
         <View className="mt-5 flex-row items-center">
@@ -160,7 +160,7 @@ function OptInState({
         <Label className="text-chalk">HOW IT WORKS</Label>
         <Rule text="One point for every clean day you check in this week." />
         <Rule text="You only compete with people at your stage of quitting." />
-        <Rule text="The board resets every Monday — a clean slate, always." />
+        <Rule text="The board resets every Monday, a clean slate, always." />
         <Rule text="Opt out anytime. No streaks lost, no pressure." />
       </View>
     </View>

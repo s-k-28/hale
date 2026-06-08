@@ -229,7 +229,7 @@ function YouContent({
             </View>
           )}
           <Body className="mt-3 px-1 text-xs leading-relaxed text-ash">
-            Commonly reported recovery timeline — supportive, not medical advice.
+            Commonly reported recovery timeline, supportive, not medical advice.
           </Body>
         </View>
 
@@ -283,7 +283,7 @@ function YouContent({
           <YouLink
             icon={<BarChart3 color={colors.volt} size={20} strokeWidth={2.5} />}
             title="Your insights"
-            sub="Craving trends + recovery — HALE+."
+            sub="Craving trends + recovery, HALE+."
             onPress={() => router.push('/analytics')}
           />
         </View>

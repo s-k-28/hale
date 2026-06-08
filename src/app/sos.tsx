@@ -275,7 +275,7 @@ export default function CravingSos() {
           <Heading className="text-5xl leading-[0.95]">You're not{'\n'}in danger.</Heading>
           <Display className="mt-2 text-6xl leading-tight text-sos">THIS PASSES.</Display>
           <Body className="mt-5 text-base leading-relaxed text-ash">
-            A craving peaks in a few minutes, then fades — whether or not you act on it. Let's get
+            A craving peaks in a few minutes, then fades, whether or not you act on it. Let's get
             you to the other side. Pick one:
           </Body>
         </View>
@@ -290,7 +290,7 @@ export default function CravingSos() {
           <Option
             icon={Wind}
             title="Breathe"
-            subtitle="Box breathing — follow the circle, slow it all down."
+            subtitle="Box breathing, follow the circle, slow it all down."
             onPress={() => setView({ kind: 'breathe' })}
           />
           <Option
@@ -353,7 +353,7 @@ function CravingLogCapture({
           <Label className="text-volt">You made it</Label>
           <Heading className="mt-2 text-4xl leading-[0.95]">That craving{'\n'}just passed.</Heading>
           <Body className="mt-4 text-base leading-relaxed text-ash">
-            Quick — naming it teaches HALE your triggers, so we get ahead of the next one.
+            Quick, naming it teaches HALE your triggers, so we get ahead of the next one.
           </Body>
         </View>
 
@@ -549,7 +549,7 @@ function RideItOut({
 
   const progress = 1 - remaining / RIDE_SECONDS;
   const reassurance = useMemo(() => {
-    if (done) return "You rode it out. The urge passed — and you're still here.";
+    if (done) return "You rode it out. The urge passed, and you're still here.";
     if (progress < 0.25) return 'This is the peak. It feels loud, but it always crests.';
     if (progress < 0.6) return "It's already fading. Stay with the breath.";
     return "Almost through. You're proving you don't need it.";
@@ -583,7 +583,7 @@ function RideItOut({
           <Button label="I made it through" variant="primary" onPress={onSurvived} />
         ) : (
           <Button
-            label="The craving passed — I'm good"
+            label="The craving passed, I'm good"
             variant="surface"
             onPress={onSurvived}
           />
@@ -711,7 +711,7 @@ function BoxBreathing({
           </Body>
         </View>
 
-        <Button label="I feel steadier — I'm good" variant="primary" onPress={onSurvived} />
+        <Button label="I feel steadier, I'm good" variant="primary" onPress={onSurvived} />
 
         <Pressable onPress={onSlip} accessibilityRole="button" className="mt-3 items-center py-2">
           <Body className="text-sm text-ash">I slipped</Body>
@@ -746,7 +746,7 @@ function SlipChoose({
         <Header title="No shame here" onBack={onCancel} />
 
         <View className="mt-4">
-          <Heading className="text-4xl leading-[0.95]">Slips are part of quitting —</Heading>
+          <Heading className="text-4xl leading-[0.95]">Slips are part of quitting,</Heading>
           <Display className="mt-2 text-5xl leading-tight text-volt">NOT THE END.</Display>
         </View>
         <Body className="mt-5 text-base leading-relaxed text-ash">
@@ -776,12 +776,12 @@ function SlipChoose({
         >
           <Heading className="text-xl text-chalk">I'm back on it for now</Heading>
           <Body className="mt-2 text-sm leading-relaxed text-ash">
-            We'll start a fresh run — and keep everything you've already earned.
+            We'll start a fresh run, and keep everything you've already earned.
           </Body>
         </Pressable>
 
         <Pressable onPress={onCancel} accessibilityRole="button" className="mt-7 items-center py-2">
-          <Body className="text-sm text-ash">Actually, I'm okay — go back</Body>
+          <Body className="text-sm text-ash">Actually, I'm okay. Go back</Body>
         </Pressable>
 
         <Disclaimer />
@@ -875,7 +875,7 @@ function RecoverKindly({
             <Display className="mt-2 text-center text-6xl leading-tight text-chalk">FRESH RUN.</Display>
             <Body className="mt-5 text-center text-base leading-relaxed text-ash">
               Quitting nicotine almost never happens in one clean line. What you've built so far
-              doesn't disappear — it's still yours.
+              doesn't disappear, it's still yours.
             </Body>
           </View>
         </SoftRise>
@@ -904,14 +904,14 @@ function RecoverKindly({
           <View className="border-t border-line px-5 py-4">
             <SageNote chip={false}>
               You already proved you can do this for {bestStreak > 0 ? `${bestStreak} ` : 'a '}
-              {bestStreak === 1 ? 'day' : 'days'}. You can do it again — starting now.
+              {bestStreak === 1 ? 'day' : 'days'}. You can do it again, starting now.
             </SageNote>
           </View>
         </Surface>
         </SoftRise>
 
         <SoftRise delay={260}>
-        {/* I4 — name the trigger: therapeutic ("naming it") + real data for I3. */}
+        {/* I4, name the trigger: therapeutic ("naming it") + real data for I3. */}
         <View className="mt-9">
           <View className="flex-row items-center gap-1.5">
             <Sparkles color={colors.ash} size={13} strokeWidth={2.5} />

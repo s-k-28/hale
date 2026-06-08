@@ -143,7 +143,7 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
         <View className="mb-7">
           <Heading className="text-5xl leading-[0.9]">TREAT{'\n'}YOURSELF</Heading>
           <Body className="mt-3 text-base leading-relaxed text-ash">
-            Every clean day buys back real money. Name what you&apos;re saving for —
+            Every clean day buys back real money. Name what you&apos;re saving for,
             watch it fill.
           </Body>
         </View>

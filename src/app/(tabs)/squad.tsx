@@ -106,7 +106,7 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
       const link = `${DEEP_LINK_SCHEME}${userId}`;
       track(Ev.BUDDY_INVITED, { method: 'share_sheet', invite_source: 'squad_tab', pairing_method: 'invite', link_id: userId });
       await Share.share({
-        message: `I’m quitting nicotine with HALE — be my accountability buddy? We’ll keep each other on streak. ${link}`,
+        message: `I’m quitting nicotine with HALE, be my accountability buddy? We’ll keep each other on streak. ${link}`,
         url: link,
       });
     } catch {
@@ -127,7 +127,7 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
         </View>
         <Heading className="mt-5 text-2xl">INVITE A BUDDY</Heading>
         <Body className="mt-2 text-base leading-6 text-ash">
-          Pair with a friend who’s also quitting — or someone who’ll cheer you on. You’ll see each
+          Pair with a friend who’s also quitting, or someone who’ll cheer you on. You’ll see each
           other’s streaks and send support when it’s hard.
         </Body>
 
@@ -135,7 +135,7 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
         <View className="mt-6 border-t border-line pt-5">
           <BenefitRow text="People with a buddy stay quit longer." />
           <BenefitRow text="A nudge at the right moment beats a craving." />
-          <BenefitRow text="Private by design — they never see your slip-ups." />
+          <BenefitRow text="Private by design, they never see your slip-ups." />
         </View>
 
         <Button
@@ -188,7 +188,7 @@ function PairedState({
       .then(() => toast.success("Support sent 💪"))
       .catch(() => {
         setCheered(false); // revert the optimistic state so they can retry
-        toast.error("Couldn't send support — try again");
+        toast.error("Couldn't send support. Try again");
       });
   }, [cheered, cheer]);
 
@@ -234,7 +234,7 @@ function PairedState({
           </View>
           <Body className="mt-1.5 text-sm leading-5 text-ash">
             {currentStreak > 0
-              ? `Cheer ${displayName} on — a nudge lands right when it's hardest.`
+              ? `Cheer ${displayName} on, a nudge lands right when it's hardest.`
               : `${displayName} just started out. A little support right now goes a long way.`}
           </Body>
         </View>
@@ -255,7 +255,7 @@ function PairedState({
         <View className="mt-3 flex-row items-center justify-center">
           <HeartHandshake color={colors.ash} size={13} />
           <Body className="ml-1.5 text-center text-xs text-ash">
-            They’ll see your cheer — never your private details.
+            They’ll see your cheer, never your private details.
           </Body>
         </View>
       </Surface>
@@ -322,7 +322,7 @@ function Phase2Links() {
         <NavRow
           icon={<Users color={colors.ash} size={22} strokeWidth={2.5} />}
           title="Squads & challenges"
-          sub="Quit alongside a group — start a 6-week challenge."
+          sub="Quit alongside a group, start a 6-week challenge."
           onPress={() => router.push('/squads')}
         />
         <NavRow

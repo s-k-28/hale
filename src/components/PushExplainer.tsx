@@ -92,15 +92,15 @@ export default function PushExplainer({ visible, onDone }: Props) {
                 We'll show up when it's hard.
               </Text>
               <Text className="mt-3 text-base leading-relaxed text-hale-900/70">
-                We'll nudge you at your hard times and let your buddy reach you — never spam, max 2 a
+                We'll nudge you at your hard times and let your buddy reach you, never spam, max 2 a
                 day.
               </Text>
 
-              {/* Help bullets — concrete, restraint-forward */}
+              {/* Help bullets, concrete, restraint-forward */}
               <View className="mt-6">
                 <Benefit
                   title="A nudge right before your hardest hour"
-                  subtitle="The moment you're most likely to slip — not random pings."
+                  subtitle="The moment you're most likely to slip, not random pings."
                 />
                 <Benefit
                   title="Your buddy can reach you"
@@ -112,7 +112,7 @@ export default function PushExplainer({ visible, onDone }: Props) {
                 />
               </View>
 
-              {/* Primary — fires the OS dialog */}
+              {/* Primary, fires the OS dialog */}
               <Pressable
                 onPress={handleTurnOn}
                 accessibilityRole="button"
@@ -122,7 +122,7 @@ export default function PushExplainer({ visible, onDone }: Props) {
                 <Text className="text-base font-bold text-white">Turn on notifications</Text>
               </Pressable>
 
-              {/* Secondary — soft dismiss, no penalty */}
+              {/* Secondary, soft dismiss, no penalty */}
               <Pressable
                 onPress={handleNotNow}
                 accessibilityRole="button"

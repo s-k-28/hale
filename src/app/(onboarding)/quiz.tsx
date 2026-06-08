@@ -69,7 +69,7 @@ type ProductType = 'vape' | 'pouch' | 'cig' | 'mixed';
 
 type Answers = {
   productType: ProductType | null;
-  baselinePerDay: number | null;
+  baselineMonthly: number | null; // units/month (converted to units/day at save)
   unitCost: number | null;
   triggers: string[];
   hardestHour: number | null;
@@ -79,7 +79,7 @@ type Answers = {
 
 const INITIAL: Answers = {
   productType: null,
-  baselinePerDay: null,
+  baselineMonthly: null,
   unitCost: null,
   triggers: [],
   hardestHour: null,
@@ -93,13 +93,19 @@ type Glyph = (props: { color?: string; size?: number; strokeWidth?: number }) =>
 /* ---- option sets (copy is per-product so the unit language stays honest) ---- */
 
 const PRODUCTS: { value: ProductType; label: string; Icon: Glyph; unit: string }[] = [
-  { value: 'vape', label: 'Vape / e-cig', Icon: Wind, unit: 'pods' },
+  { value: 'vape', label: 'Vape / e-cig', Icon: Wind, unit: 'vapes' },
   { value: 'pouch', label: 'Nicotine pouches', Icon: Package, unit: 'pouches' },
   { value: 'cig', label: 'Cigarettes', Icon: Cigarette, unit: 'cigarettes' },
   { value: 'mixed', label: 'A mix of things', Icon: Shuffle, unit: 'units' },
 ];
 
-const PER_DAY_CHOICES = [3, 6, 10, 15, 20, 30];
+// Monthly consumption presets — disposables/pouches/cigs all framed per-month
+// now (Decision: vapes are counted per month, not pods/day). The custom input
+// below covers heavier users (e.g. a pack-a-day smoker → ~600/mo).
+const MONTHLY_CHOICES = [1, 2, 4, 8, 15, 30];
+// Average days in a month — used to convert the monthly answer into the
+// units/day the savings math (moneySaved / projectedAnnualSavings) expects.
+const DAYS_PER_MONTH = 30;
 const UNIT_COST_CHOICES = [
   { value: 0.5, label: '$0.50' },
   { value: 1, label: '$1' },
@@ -122,6 +128,23 @@ const TRIGGER_CHOICES = [
   'Work breaks',
 ];
 
+/**
+ * Parse a free-typed time into a 0-23 hour for hardestHour. Accepts "9am",
+ * "2 pm", "14", "14:00", "9". Returns null if it can't make sense of it, so the
+ * step stays un-advanceable rather than saving garbage.
+ */
+function parseHourInput(raw: string): number | null {
+  const s = raw.trim().toLowerCase();
+  const m = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const mer = m[3];
+  if (mer === 'pm' && h < 12) h += 12;
+  if (mer === 'am' && h === 12) h = 0;
+  if (h < 0 || h > 23) return null;
+  return h;
+}
+
 const HOUR_BANDS: { hour: number; label: string }[] = [
   { hour: 7, label: 'Early morning' },
   { hour: 10, label: 'Mid-morning' },
@@ -143,7 +166,7 @@ const MOTIVATIONS: { value: string; label: string; Icon: Glyph }[] = [
 /* The ordered question steps that own a progress dot. */
 type StepKey =
   | 'productType'
-  | 'baselinePerDay'
+  | 'baseline'
   | 'unitCost'
   | 'triggers'
   | 'hardestHour'
@@ -152,7 +175,7 @@ type StepKey =
 
 const QUESTION_STEPS: StepKey[] = [
   'productType',
-  'baselinePerDay',
+  'baseline',
   'unitCost',
   'triggers',
   'hardestHour',
@@ -205,6 +228,13 @@ export default function Quiz() {
   const [answers, setAnswers] = useState<Answers>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Raw text for each step's "enter your own" input. Empty = using a preset;
+  // non-empty = a custom value (presets read deselected while it's filled).
+  const [customBaseline, setCustomBaseline] = useState('');
+  const [customCost, setCustomCost] = useState('');
+  const [customTrigger, setCustomTrigger] = useState('');
+  const [customHour, setCustomHour] = useState('');
+  const [customMotivation, setCustomMotivation] = useState('');
 
   useEffect(() => {
     track(Ev.ONBOARDING_STARTED);
@@ -221,8 +251,8 @@ export default function Quiz() {
     switch (step) {
       case 'productType':
         return answers.productType !== null;
-      case 'baselinePerDay':
-        return answers.baselinePerDay !== null;
+      case 'baseline':
+        return answers.baselineMonthly !== null;
       case 'unitCost':
         return answers.unitCost !== null;
       case 'triggers':
@@ -268,7 +298,8 @@ export default function Quiz() {
   /* The "wow" numbers — PURE math, computed entirely client-side (Decision 2). */
   const profile: QuitProfile = {
     productType: (answers.productType ?? 'mixed') as ProductType,
-    baselinePerDay: answers.baselinePerDay ?? 0,
+    // We ask the user per-month now; the savings model works in units/day.
+    baselinePerDay: (answers.baselineMonthly ?? 0) / DAYS_PER_MONTH,
     unitCost: answers.unitCost ?? 0,
   };
   const annual = Math.round(projectedAnnualSavings(profile));
@@ -429,7 +460,7 @@ export default function Quiz() {
           className="flex-1"
           // grow + justify-center = "center the question when it's short, scroll when
           // it's long." Kills the top-clustered chips + dead-space void on the
-          // short questions (pods/day, cost, name) without clipping the tall ones.
+          // short questions (baseline, cost, name) without clipping the tall ones.
           contentContainerClassName="grow px-gutter py-6 justify-center"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -452,22 +483,40 @@ export default function Quiz() {
             </Question>
           )}
 
-          {step === 'baselinePerDay' && (
+          {step === 'baseline' && (
             <Question
               index={stepIndex}
-              title={`How many ${unitWord} a day?`}
-              subtitle="A rough average is perfect — we use it to size your savings."
+              title={`How many ${unitWord} a month?`}
+              subtitle="A rough monthly average is perfect, we use it to size your savings."
             >
               <View className="flex-row flex-wrap gap-3">
-                {PER_DAY_CHOICES.map((n) => (
+                {MONTHLY_CHOICES.map((n) => (
                   <PillChoice
                     key={n}
                     label={String(n)}
-                    selected={answers.baselinePerDay === n}
-                    onPress={() => set('baselinePerDay', n)}
+                    // While a custom number is typed, presets read as deselected.
+                    selected={customBaseline === '' && answers.baselineMonthly === n}
+                    onPress={() => {
+                      setCustomBaseline('');
+                      set('baselineMonthly', n);
+                    }}
                   />
                 ))}
               </View>
+              <TextInput
+                value={customBaseline}
+                onChangeText={(t) => {
+                  const digits = t.replace(/[^0-9]/g, '');
+                  setCustomBaseline(digits);
+                  set('baselineMonthly', digits ? parseInt(digits, 10) : null);
+                }}
+                placeholder={`Or enter a number of ${unitWord} per month`}
+                placeholderTextColor={colors.ash}
+                keyboardType="number-pad"
+                returnKeyType="done"
+                onSubmitEditing={() => canAdvance && goNext()}
+                className="mt-4 rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
+              />
             </Question>
           )}
 
@@ -482,11 +531,30 @@ export default function Quiz() {
                   <PillChoice
                     key={c.value}
                     label={c.label}
-                    selected={answers.unitCost === c.value}
-                    onPress={() => set('unitCost', c.value)}
+                    selected={customCost === '' && answers.unitCost === c.value}
+                    onPress={() => {
+                      setCustomCost('');
+                      set('unitCost', c.value);
+                    }}
                   />
                 ))}
               </View>
+              <TextInput
+                value={customCost}
+                onChangeText={(t) => {
+                  // Allow digits + one decimal point ("3.50").
+                  const clean = t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                  setCustomCost(clean);
+                  const n = parseFloat(clean);
+                  set('unitCost', clean !== '' && !isNaN(n) ? n : null);
+                }}
+                placeholder="Or enter a price, e.g. 3.50"
+                placeholderTextColor={colors.ash}
+                keyboardType="decimal-pad"
+                returnKeyType="done"
+                onSubmitEditing={() => canAdvance && goNext()}
+                className="mt-4 rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
+              />
             </Question>
           )}
 
@@ -494,7 +562,7 @@ export default function Quiz() {
             <Question
               index={stepIndex}
               title="When do cravings hit hardest?"
-              subtitle="Pick all that apply — your plan will plan around these."
+              subtitle="Pick all that apply, your plan will plan around these."
             >
               <View className="flex-row flex-wrap gap-3">
                 {TRIGGER_CHOICES.map((t) => {
@@ -515,7 +583,39 @@ export default function Quiz() {
                     />
                   );
                 })}
+                {/* Custom triggers the user typed — selected by definition; tap to remove. */}
+                {answers.triggers
+                  .filter((t) => !TRIGGER_CHOICES.includes(t))
+                  .map((t) => (
+                    <PillChoice
+                      key={t}
+                      label={t}
+                      selected
+                      onPress={() =>
+                        set(
+                          'triggers',
+                          answers.triggers.filter((x) => x !== t),
+                        )
+                      }
+                    />
+                  ))}
               </View>
+              <TextInput
+                value={customTrigger}
+                onChangeText={setCustomTrigger}
+                placeholder="Add your own, type and press return"
+                placeholderTextColor={colors.ash}
+                autoCapitalize="sentences"
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  const t = customTrigger.trim();
+                  if (t && !answers.triggers.includes(t)) {
+                    set('triggers', [...answers.triggers, t]);
+                  }
+                  setCustomTrigger('');
+                }}
+                className="mt-4 rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
+              />
             </Question>
           )}
 
@@ -529,10 +629,28 @@ export default function Quiz() {
                 <ChoiceCard
                   key={b.hour}
                   label={b.label}
-                  selected={answers.hardestHour === b.hour}
-                  onPress={() => set('hardestHour', b.hour)}
+                  // A typed custom time deselects the bands.
+                  selected={customHour === '' && answers.hardestHour === b.hour}
+                  onPress={() => {
+                    setCustomHour('');
+                    set('hardestHour', b.hour);
+                  }}
                 />
               ))}
+              <TextInput
+                value={customHour}
+                onChangeText={(t) => {
+                  setCustomHour(t);
+                  set('hardestHour', parseHourInput(t));
+                }}
+                placeholder="Or enter a time, e.g. 9am, 2pm, 14:00"
+                placeholderTextColor={colors.ash}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="done"
+                onSubmitEditing={() => canAdvance && goNext()}
+                className="mt-1 rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
+              />
             </Question>
           )}
 
@@ -547,10 +665,26 @@ export default function Quiz() {
                   key={m.value}
                   Icon={m.Icon}
                   label={m.label}
-                  selected={answers.motivation === m.value}
-                  onPress={() => set('motivation', m.value)}
+                  selected={customMotivation === '' && answers.motivation === m.value}
+                  onPress={() => {
+                    setCustomMotivation('');
+                    set('motivation', m.value);
+                  }}
                 />
               ))}
+              <TextInput
+                value={customMotivation}
+                onChangeText={(t) => {
+                  setCustomMotivation(t);
+                  set('motivation', t.trim());
+                }}
+                placeholder="Or write your own reason"
+                placeholderTextColor={colors.ash}
+                autoCapitalize="sentences"
+                returnKeyType="done"
+                onSubmitEditing={() => canAdvance && goNext()}
+                className="mt-1 rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
+              />
             </Question>
           )}
 
@@ -558,7 +692,7 @@ export default function Quiz() {
             <Question
               index={stepIndex}
               title="What should we call you?"
-              subtitle="Just a first name — so your plan feels like yours. Optional."
+              subtitle="Just a first name, so your plan feels like yours. Optional."
             >
               <TextInput
                 value={answers.name}
@@ -755,7 +889,7 @@ function PlanReveal({
 
         <Body className="mt-6 font-body text-xs leading-5 text-ash">
           Recovery timelines reflect commonly reported milestones and are general guidance, not
-          medical advice. Everyone&apos;s body is different — talk to a clinician about your health.
+          medical advice. Everyone&apos;s body is different, talk to a clinician about your health.
         </Body>
       </ScrollView>
 
@@ -792,7 +926,7 @@ function CommitScreen({
         </Heading>
         <Body className="mt-5 font-body-medium text-base leading-6 text-ash">
           Your quit clock starts the moment you commit. From here you&apos;ll see your clean time,
-          your money saved — and you won&apos;t do it alone.
+          your money saved, and you won&apos;t do it alone.
         </Body>
 
         <View className="mt-8 rounded-3xl border border-line bg-coal p-5">
@@ -810,7 +944,7 @@ function CommitScreen({
 
       <View className="px-6 pb-3 pt-2">
         <Button
-          label="I'M COMMITTING — START MY QUIT"
+          label="I'M COMMITTING. START MY QUIT"
           variant="primary"
           loading={submitting}
           disabled={submitting}
@@ -851,7 +985,7 @@ function InviteBuddyStep({ onDone }: { onDone: () => void }) {
       const link = `hale://u/${userId}`;
       track(Ev.BUDDY_INVITED, { invite_source: 'onboarding', pairing_method: 'invite', link_id: userId });
       await Share.share({
-        message: `I'm quitting nicotine with HALE — be my accountability buddy? We'll keep each other on streak. ${link}`,
+        message: `I'm quitting nicotine with HALE, be my accountability buddy? We'll keep each other on streak. ${link}`,
         url: link,
       });
     } catch {
@@ -894,7 +1028,7 @@ function InviteBuddyStep({ onDone }: { onDone: () => void }) {
         <Heading className="text-4xl leading-tight">QUIT WITH{'\n'}A BUDDY</Heading>
         <Body className="mt-5 font-body-medium text-base leading-6 text-ash">
           People with a buddy are far likelier to stay quit. Pair with someone who&apos;ll keep you
-          honest — they only ever see your streak, never your slip-ups.
+          honest, they only ever see your streak, never your slip-ups.
         </Body>
 
         <View className="mt-9 gap-3">
@@ -942,7 +1076,7 @@ function PushOptIn({ onDecide }: { onDecide: (granted: boolean) => void }) {
           WANT A NUDGE{'\n'}WHEN IT&apos;S{'\n'}HARDEST?
         </Heading>
         <Body className="mt-5 font-body-medium text-base leading-6 text-ash">
-          The people who quit for good get a little support right before their toughest hour — a
+          The people who quit for good get a little support right before their toughest hour, a
           check-in, a craving tip, or a word from your buddy. No spam, ever.
         </Body>
       </View>

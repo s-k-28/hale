@@ -129,7 +129,7 @@ function LockedPrompt() {
             </Heading>
             <Body className="mt-3 text-center text-[15px] leading-relaxed text-ash">
               Unlock craving trends, intensity over time, and your full recovery
-              timeline. Spot what sets you off — and watch it fade.
+              timeline. Spot what sets you off, and watch it fade.
             </Body>
           </View>
         </View>
@@ -138,7 +138,7 @@ function LockedPrompt() {
       <View className="mt-auto">
         <Button label="UNLOCK HALE+" variant="primary" onPress={goPaywall} />
         <Body className="mt-4 px-2 text-center text-xs leading-relaxed text-ash">
-          Your craving log and recovery data are always yours — HALE+ turns them
+          Your craving log and recovery data are always yours, HALE+ turns them
           into the picture that keeps you free.
         </Body>
       </View>
@@ -199,7 +199,7 @@ function Unlocked({
         <View className="mb-6 flex-row items-center gap-2 rounded-2xl border border-line bg-coal px-4 py-3">
           <TrendingDown color={colors.volt} size={18} strokeWidth={2.75} />
           <Body className="flex-1 text-[13px] leading-relaxed text-chalk">
-            Cravings are easing — fewer in the last two weeks than the two before.
+            Cravings are easing, fewer in the last two weeks than the two before.
           </Body>
         </View>
       ) : null}
@@ -233,7 +233,7 @@ function Unlocked({
       <RecoveryProgress recovery={recovery} />
 
       <Body className="mt-4 px-1 text-xs leading-relaxed text-ash">
-        Commonly reported recovery timeline — supportive, not medical advice.
+        Commonly reported recovery timeline, supportive, not medical advice.
       </Body>
     </ScrollView>
   );

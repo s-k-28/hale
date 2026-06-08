@@ -51,7 +51,7 @@ type IconCmp = typeof Bot;
 const BENEFITS: { title: string; detail: string; Icon: IconCmp }[] = [
   {
     title: 'Unlimited Sage',
-    detail: 'Talk to your AI coach as much as you need — no daily caps, day or night.',
+    detail: 'Talk to your AI coach as much as you need, no daily caps, day or night.',
     Icon: Bot,
   },
   {
@@ -161,7 +161,7 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
           </Heading>
 
           <Body className="mt-2 text-ash text-base leading-relaxed">
-            Unlock the full toolkit — your coach, your data, and your people.
+            Unlock the full toolkit, your coach, your data, and your people.
           </Body>
         </View>
 
