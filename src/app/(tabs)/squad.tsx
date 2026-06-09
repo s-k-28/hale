@@ -21,6 +21,7 @@ import { Display, Heading, Body, Label } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Pill } from '@/components/ui/Pill';
 import { Surface } from '@/components/ui/Surface';
+import { ReferralCard } from '@/components/ReferralCard';
 import { colors } from '@/theme/colors';
 import Animated, {
   Easing,
@@ -86,6 +87,9 @@ export default function Squad() {
         ) : (
           <SoloState invite={invite} />
         )}
+
+        {/* Refer friends → unlock 7 days of HALE+ (install + buddy-pair trigger). */}
+        {!loading ? <ReferralCard surface="squad_tab" /> : null}
 
         <Phase2Links />
       </ScrollView>

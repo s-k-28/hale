@@ -3,15 +3,15 @@ import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { useConvexAuth, useQuery } from 'convex/react';
 import Svg, { Defs, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
-import { ChevronLeft, Crown, LineChart as LineChartIcon, TrendingDown } from 'lucide-react-native';
+import { ChevronLeft, Crown, TrendingDown } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { usePremium } from '@/hooks/usePremium';
 import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
 import { StatTile } from '@/components/ui/StatTile';
 import { Pill } from '@/components/ui/Pill';
+import { LockedFeature } from '@/components/ui/LockedFeature';
 import { colors } from '@/theme/colors';
 
 /**
@@ -41,10 +41,12 @@ export default function Analytics() {
   const { isAuthenticated } = useConvexAuth();
   const { hasAccess, loading } = usePremium();
 
-  // Gate on hasAccess (premium OR active trial) — trial users get insights
-  // unlocked from minute one (§8). Only fetch once authed + entitled — no
-  // wasted reads behind the lock.
-  const enabled = isAuthenticated && hasAccess;
+  // Blurred in-place paywall: fetch the user's OWN craving data regardless of
+  // entitlement so the locked view shows their REAL patterns under the blur
+  // ("see what you're missing"), not an empty teaser. LockedFeature renders the
+  // charts blurred + an Unlock CTA for free users, and passes them through
+  // untouched for HALE+ / trial users. Only the fetch gates on auth.
+  const enabled = isAuthenticated;
   const trend = useQuery(api.analytics.cravingTrend, enabled ? {} : 'skip');
   const recovery = useQuery(api.analytics.recoverySummary, enabled ? {} : 'skip');
 
@@ -85,64 +87,19 @@ export default function Analytics() {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.volt} />
         </View>
-      ) : !hasAccess ? (
-        <LockedPrompt />
       ) : (
-        <Unlocked trend={trend} recovery={recovery} />
+        // One reusable blurred-paywall treatment. Free users see their real
+        // charts blurred behind "Unlock HALE+"; entitled users see them clean.
+        <LockedFeature
+          feature="analytics"
+          variant="overlay"
+          title="Unlock your insights"
+          subtitle="Craving trends, intensity over time, and your full recovery timeline."
+        >
+          <Unlocked trend={trend} recovery={recovery} />
+        </LockedFeature>
       )}
     </Screen>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Locked — tasteful HALE+ upsell into the paywall                     */
-/* ------------------------------------------------------------------ */
-
-function LockedPrompt() {
-  const goPaywall = () => {
-    track(Ev.PAYWALL_VIEWED, { source: 'analytics' });
-    router.push('/paywall');
-  };
-  return (
-    <View className="flex-1 px-5 pb-8 pt-6">
-      {/* A blurred-energy teaser: faux chart bars behind the lock so the user
-          sees the shape of what they're unlocking, not an empty wall. */}
-      <View className="overflow-hidden rounded-3xl border border-line bg-coal">
-        <View className="h-1.5 bg-volt" />
-        <View className="px-6 py-8">
-          <View className="h-32 flex-row items-end justify-between opacity-30">
-            {[0.4, 0.7, 0.5, 0.9, 0.6, 0.8, 0.45, 0.7, 1, 0.55].map((h, i) => (
-              <View
-                key={i}
-                style={{ height: `${h * 100}%`, width: 14 }}
-                className="rounded-t-md bg-volt"
-              />
-            ))}
-          </View>
-
-          <View className="mt-8 items-center">
-            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-volt">
-              <LineChartIcon color={colors.voltInk} size={26} strokeWidth={2.5} />
-            </View>
-            <Heading className="mt-5 text-center text-2xl leading-tight">
-              SEE YOUR PATTERNS
-            </Heading>
-            <Body className="mt-3 text-center text-[15px] leading-relaxed text-ash">
-              Unlock craving trends, intensity over time, and your full recovery
-              timeline. Spot what sets you off, and watch it fade.
-            </Body>
-          </View>
-        </View>
-      </View>
-
-      <View className="mt-auto">
-        <Button label="UNLOCK HALE+" variant="primary" onPress={goPaywall} />
-        <Body className="mt-4 px-2 text-center text-xs leading-relaxed text-ash">
-          Your craving log and recovery data are always yours, HALE+ turns them
-          into the picture that keeps you free.
-        </Body>
-      </View>
-    </View>
   );
 }
 
