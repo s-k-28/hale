@@ -54,6 +54,11 @@ export async function presentPaywall(surface?: string): Promise<PAYWALL_RESULT> 
     if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
       track(Ev.PURCHASE_COMPLETED, { via: surface ?? 'paywall', result });
     }
+    // A NEW subscription (not a restore) — the conversion endpoint of the funnel,
+    // so referral-vs-pay can be split against the referral_completed cohort.
+    if (result === PAYWALL_RESULT.PURCHASED) {
+      track(Ev.SUBSCRIPTION_STARTED, { surface: surface ?? 'paywall' });
+    }
     // CANCELLED / ERROR / NOT_PRESENTED need no extra signal here; the
     // premium mirror (Convex todayState + RC isPremium) reflects the truth.
 

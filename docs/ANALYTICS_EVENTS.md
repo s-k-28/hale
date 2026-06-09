@@ -94,8 +94,25 @@ Set by the always-mounted `PushSync` effect (`src/app/(tabs)/_layout.tsx`) via `
 ### Monetization — q5
 | event | props | PostHog | Convex | fires | ✓ |
 |---|---|---|---|---|---|
-| `paywall_viewed` | source/surface | ✓ | — | paywall | ⚙️ |
-| `purchase_completed` | via, result | ✓ | — | purchase | 🌐 (needs RevenueCat key) |
+| `paywall_viewed` | source/surface | ✓ | — | paywall (`presentPaywall`) | ⚙️ |
+| `paywall_feature_tapped` | `feature` (analytics \| unlimited_sage \| multiple_squads \| widgets) | ✓ | — | a blurred `LockedFeature` is tapped | ⚙️ |
+| `purchase_completed` | via, result | ✓ | — | purchase/restore | 🌐 (needs RevenueCat key) |
+| `subscription_started` | surface | ✓ | — | a NEW paid sub (PURCHASED, not RESTORED) | 🌐 (needs RevenueCat key) |
+
+> `paywall_feature_tapped.feature` answers "which locked surface drives the most paywall taps." `subscription_started` vs `referral_completed` gives the referral-vs-pay split.
+
+### Referral reward funnel — virality + q5
+The trigger is **install via the link (attributed)** + **buddy-pair (the bar)**. At 3 completed, the referrer unlocks a one-time 7-day HALE+ window. All events carry `referrer_id` so the funnel keys on the referrer even when fired from the invitee's device. Convex `referrals` table is the authoritative ledger.
+
+| event | props | PostHog | Convex | fires | ✓ |
+|---|---|---|---|---|---|
+| `referral_link_shared` | surface | ✓ | — | user shares their referral link (ReferralCard) | ⚙️ |
+| `referral_install_attributed` | referrer_id | ✓ | `referrals` (attributed) | invitee attributed at onboarding commit | ⚙️ |
+| `referral_buddy_paired` | referrer_id | ✓ | `referrals` (completed) | attributed invitee pairs with the referrer | ⚙️ |
+| `referral_completed` | referrer_id | ✓ | `referrals` (count≥3) | referrer reaches 3 completed | ⚙️ |
+| `reward_granted` | referrer_id, reward_days (7) | ✓ | `users.referralRewardEndsAt` | the one-time 7-day reward is granted | ⚙️ |
+
+> Edge rules (enforced in `convex/referrals.ts`): self-referral blocked · `referredBy` set once · one row per (referrer, invitee) dedupes installs/re-pairs · reward granted exactly once (`referralRewardGrantedAt`) · **unpair after counting = no clawback** (completed stays completed, the 7-day window runs out). Both the reward and a paid sub feed one `hasHALEPlus` (`convex/model/entitlement.ts`).
 
 ---
 
