@@ -304,6 +304,12 @@ export default function CravingSos() {
               router.push('/(tabs)/coach');
             }}
           />
+          <Option
+            icon={Sparkles}
+            title="Advanced toolkit"
+            subtitle="Urge-surfing, your trigger patterns, and craving-time map."
+            onPress={() => router.push('/toolkit')}
+          />
           {/* "Ping my buddy" hidden until it ships — a disabled "(Coming soon)" row
               on the most emotionally critical screen read as unfinished. Restore
               this Option when buddy-ping is live. */}
