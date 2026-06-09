@@ -13,9 +13,12 @@ import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toast } from 'sonner-native';
 import { SageMark } from '@/components/SageMark';
-import { ArrowUp, Wind } from 'lucide-react-native';
+import { ArrowUp, Wind, Sparkles } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { presentPaywall } from '@/lib/paywall';
 import { Body, Display, Heading, Label } from '@/components/ui/Text';
 import { colors } from '@/theme/colors';
 import Animated, {
@@ -48,7 +51,16 @@ export default function Coach() {
 
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  // Free-tier daily Sage cap reached — show an "unlock unlimited" CTA instead of
+  // a dead-end (unlimited Sage is HALE+). Cleared on the next accepted message.
+  const [capHit, setCapHit] = useState(false);
   const listRef = useRef<FlatList<SageMessage>>(null);
+
+  const onUpgradeSage = useCallback(async () => {
+    track(Ev.PAYWALL_FEATURE_TAPPED, { feature: 'unlimited_sage' });
+    const result = await presentPaywall('unlimited_sage');
+    if (result === PAYWALL_RESULT.NOT_PRESENTED) router.push('/paywall');
+  }, []);
 
   // Coach efficacy north-star: one session event per screen mount.
   useEffect(() => {
@@ -87,8 +99,15 @@ export default function Coach() {
           daily_count: res.dailyCount,
         });
         setDraft((prev) => (prev.length > 0 ? prev : content));
-        toast.error("You've reached today's Sage limit. Back tomorrow.");
+        if (res.tier === 'free') {
+          // Free cap → convert the limit into an upgrade moment (HALE+ = unlimited).
+          setCapHit(true);
+          toast.error('Daily Sage limit reached. Unlock unlimited with HALE+.');
+        } else {
+          toast.error("You've reached today's Sage limit. Back tomorrow.");
+        }
       } else {
+        if (capHit) setCapHit(false);
         // first_sage_message ONCE per user (candidate activation event, q1 split).
         AsyncStorage.getItem('hale:firstSage').then((seen) => {
           if (!seen) {
@@ -103,7 +122,7 @@ export default function Coach() {
     } finally {
       setSending(false);
     }
-  }, [draft, sending, send]);
+  }, [draft, sending, send, capHit]);
 
   const canSend = draft.trim().length > 0 && !sending;
   const loading = authLoading || (isAuthenticated && messages === undefined);
@@ -168,6 +187,29 @@ export default function Coach() {
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
           />
         )}
+
+        {/* Free-tier daily cap reached → unlock unlimited Sage with HALE+. */}
+        {capHit ? (
+          <Pressable
+            onPress={onUpgradeSage}
+            accessibilityRole="button"
+            accessibilityLabel="Unlock unlimited Sage with HALE+"
+            className="mx-4 mb-1 flex-row items-center rounded-2xl border border-volt/30 bg-volt/10 px-4 py-3 active:opacity-90"
+          >
+            <View className="mr-3 h-9 w-9 items-center justify-center rounded-xl bg-volt">
+              <Sparkles color={colors.voltInk} size={18} strokeWidth={2.5} />
+            </View>
+            <View className="flex-1 pr-2">
+              <Body className="font-body-semibold text-[15px] text-chalk">
+                Unlock unlimited coaching
+              </Body>
+              <Body className="mt-0.5 text-xs text-ash">
+                You’ve hit today’s free limit. HALE+ removes the cap.
+              </Body>
+            </View>
+            <ArrowUp color={colors.volt} size={18} strokeWidth={2.75} style={{ transform: [{ rotate: '45deg' }] }} />
+          </Pressable>
+        ) : null}
 
         {/* Composer — pinned bar. Coal input, lime circular send. */}
         <View className="flex-row items-end gap-2.5 border-t border-line bg-void px-4 pb-2 pt-3">

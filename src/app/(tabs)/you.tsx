@@ -16,6 +16,7 @@ import { Display, Heading, Body, Label } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { StatTile } from '@/components/ui/StatTile';
 import { Pill } from '@/components/ui/Pill';
+import { LockedFeature } from '@/components/ui/LockedFeature';
 import { colors } from '@/theme/colors';
 
 /**
@@ -271,6 +272,31 @@ function YouContent({
             </View>
           </View>
         )}
+
+        {/* Home-screen widgets — blurred preview now; the real WidgetKit
+            extension is a fast-follow. Free users see what HALE+ unlocks. */}
+        <View className="mt-4">
+          <Label className="mb-3 ml-1">Home-screen widgets</Label>
+          <LockedFeature
+            feature="widgets"
+            variant="inline"
+            title="Glanceable widgets"
+            subtitle="Your clean-time and money saved on your home screen — unlock with HALE+."
+          >
+            <View className="flex-row gap-3 p-1">
+              <View className="flex-1 rounded-3xl bg-raised px-4 py-5">
+                <Label className="text-volt">Days free</Label>
+                <Display className="mt-1 text-4xl text-chalk">{Math.floor(days)}</Display>
+                <Body className="mt-1 text-xs text-ash">HALE</Body>
+              </View>
+              <View className="flex-1 rounded-3xl bg-raised px-4 py-5">
+                <Label className="text-volt">Saved</Label>
+                <Display className="mt-1 text-4xl text-chalk">{money(state.currentMoneySaved)}</Display>
+                <Body className="mt-1 text-xs text-ash">HALE</Body>
+              </View>
+            </View>
+          </LockedFeature>
+        </View>
 
         {/* Phase-2 entry points */}
         <View className="mt-4 gap-3">

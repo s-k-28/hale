@@ -10,6 +10,8 @@ import { Display, Heading, Body, Label } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { StatTile } from '@/components/ui/StatTile';
 import { Pill } from '@/components/ui/Pill';
+import { LockedFeature } from '@/components/ui/LockedFeature';
+import { usePremium } from '@/hooks/usePremium';
 import { colors } from '@/theme/colors';
 
 /**
@@ -71,8 +73,13 @@ function daysLeft(end: number, now: number): number {
 export default function Squads() {
   const mySquads = useQuery(api.squads.mySquads, {}) as MySquad[] | undefined;
   const publicSquads = useQuery(api.squads.publicSquads, {}) as PublicSquad[] | undefined;
+  const { hasHALEPlus } = usePremium();
 
   const loading = mySquads === undefined;
+  // Free tier gets ONE squad; adding more is HALE+. Once a free user is in a
+  // squad, the create/join/discover surface blurs (see what you're missing) —
+  // their existing squad stays fully usable above.
+  const squadLimitReached = !loading && !hasHALEPlus && (mySquads?.length ?? 0) >= 1;
 
   return (
     <Screen>
@@ -105,9 +112,26 @@ export default function Squads() {
         ) : (
           <>
             <YourSquads squads={mySquads} />
-            <CreateSquad />
-            <JoinByCode />
-            <Discover squads={publicSquads} mySquads={mySquads} />
+            {squadLimitReached ? (
+              <View className="mt-8">
+                <LockedFeature
+                  feature="multiple_squads"
+                  variant="inline"
+                  title="Unlock multiple squads"
+                  subtitle="Quit alongside more than one group, and keep every squad accountable, with HALE+."
+                >
+                  <CreateSquad />
+                  <JoinByCode />
+                  <Discover squads={publicSquads} mySquads={mySquads} />
+                </LockedFeature>
+              </View>
+            ) : (
+              <>
+                <CreateSquad />
+                <JoinByCode />
+                <Discover squads={publicSquads} mySquads={mySquads} />
+              </>
+            )}
           </>
         )}
       </ScrollView>
