@@ -3,7 +3,9 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
+    "@ai-sdk/google": "^3.0.80",
     "@convex-dev/auth": "^0.0.92",
+    "@convex-dev/rag": "^0.7.5",
     "@expo-google-fonts/anton": "^0.4.2",
     "@expo-google-fonts/archivo": "^0.4.2",
     "@expo-google-fonts/hanken-grotesk": "^0.4.3",
@@ -24,6 +26,7 @@
     "@shopify/flash-list": "2.0.2",
     "@shopify/react-native-skia": "2.6.2",
     "@tamagui/config": "^2.1.0",
+    "ai": "^6.0.198",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.39.1",
@@ -73,7 +76,10 @@
     "tamagui": "^2.1.0"
   },
   "devDependencies": {
+    "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
+    "jest": "~29.7.0",
+    "jest-expo": "~56.0.4",
     "sharp": "^0.34.5",
     "typescript": "~6.0.3"
   },
@@ -83,7 +89,15 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest",
+    "test:watch": "jest --watchAll"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg)"
+    ]
   },
   "private": true
 }

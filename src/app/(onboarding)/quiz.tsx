@@ -69,8 +69,7 @@ type ProductType = 'vape' | 'pouch' | 'cig' | 'mixed';
 
 type Answers = {
   productType: ProductType | null;
-  baselineMonthly: number | null; // units/month (converted to units/day at save)
-  unitCost: number | null;
+  monthlySpend: number | null; // $ spent per month — the single savings input
   triggers: string[];
   hardestHour: number | null;
   motivation: string;
@@ -79,8 +78,7 @@ type Answers = {
 
 const INITIAL: Answers = {
   productType: null,
-  baselineMonthly: null,
-  unitCost: null,
+  monthlySpend: null,
   triggers: [],
   hardestHour: null,
   motivation: '',
@@ -99,21 +97,13 @@ const PRODUCTS: { value: ProductType; label: string; Icon: Glyph; unit: string }
   { value: 'mixed', label: 'A mix of things', Icon: Shuffle, unit: 'units' },
 ];
 
-// Monthly consumption presets — disposables/pouches/cigs all framed per-month
-// now (Decision: vapes are counted per month, not pods/day). The custom input
-// below covers heavier users (e.g. a pack-a-day smoker → ~600/mo).
-const MONTHLY_CHOICES = [1, 2, 4, 8, 15, 30];
-// Average days in a month — used to convert the monthly answer into the
-// units/day the savings math (moneySaved / projectedAnnualSavings) expects.
+// Monthly spend presets ($/month, across everything). We ask for total dollars
+// directly — NOT units × cost — so the savings number reflects exactly what the
+// user says they spend. The custom input covers anyone outside these brackets.
+const MONTHLY_SPEND_CHOICES = [20, 40, 80, 120, 200, 350];
+// Average days in a month — converts the monthly $ answer into the $/day the
+// savings math (moneySaved / projectedAnnualSavings) expects.
 const DAYS_PER_MONTH = 30;
-const UNIT_COST_CHOICES = [
-  { value: 0.5, label: '$0.50' },
-  { value: 1, label: '$1' },
-  { value: 2, label: '$2' },
-  { value: 5, label: '$5' },
-  { value: 8, label: '$8' },
-  { value: 12, label: '$12' },
-];
 
 const TRIGGER_CHOICES = [
   'Stress',
@@ -166,8 +156,7 @@ const MOTIVATIONS: { value: string; label: string; Icon: Glyph }[] = [
 /* The ordered question steps that own a progress dot. */
 type StepKey =
   | 'productType'
-  | 'baseline'
-  | 'unitCost'
+  | 'monthlySpend'
   | 'triggers'
   | 'hardestHour'
   | 'motivation'
@@ -175,8 +164,7 @@ type StepKey =
 
 const QUESTION_STEPS: StepKey[] = [
   'productType',
-  'baseline',
-  'unitCost',
+  'monthlySpend',
   'triggers',
   'hardestHour',
   'motivation',
@@ -230,8 +218,7 @@ export default function Quiz() {
   const [error, setError] = useState<string | null>(null);
   // Raw text for each step's "enter your own" input. Empty = using a preset;
   // non-empty = a custom value (presets read deselected while it's filled).
-  const [customBaseline, setCustomBaseline] = useState('');
-  const [customCost, setCustomCost] = useState('');
+  const [customSpend, setCustomSpend] = useState('');
   const [customTrigger, setCustomTrigger] = useState('');
   const [customHour, setCustomHour] = useState('');
   const [customMotivation, setCustomMotivation] = useState('');
@@ -244,17 +231,13 @@ export default function Quiz() {
     setAnswers((a) => ({ ...a, [key]: value }));
 
   const step = QUESTION_STEPS[stepIndex];
-  const product = PRODUCTS.find((p) => p.value === answers.productType);
-  const unitWord = product?.unit ?? 'units';
 
   const canAdvance = useMemo(() => {
     switch (step) {
       case 'productType':
         return answers.productType !== null;
-      case 'baseline':
-        return answers.baselineMonthly !== null;
-      case 'unitCost':
-        return answers.unitCost !== null;
+      case 'monthlySpend':
+        return answers.monthlySpend !== null && answers.monthlySpend > 0;
       case 'triggers':
         return answers.triggers.length > 0;
       case 'hardestHour':
@@ -298,9 +281,12 @@ export default function Quiz() {
   /* The "wow" numbers — PURE math, computed entirely client-side (Decision 2). */
   const profile: QuitProfile = {
     productType: (answers.productType ?? 'mixed') as ProductType,
-    // We ask the user per-month now; the savings model works in units/day.
-    baselinePerDay: (answers.baselineMonthly ?? 0) / DAYS_PER_MONTH,
-    unitCost: answers.unitCost ?? 0,
+    // We ask for total $/month directly; the savings model works in $/day. Store
+    // the daily rate as baselinePerDay with unitCost=1, so dailySpend (and every
+    // downstream number) == monthlySpend / 30. No units × cost multiplication —
+    // what the user typed is exactly what we project.
+    baselinePerDay: (answers.monthlySpend ?? 0) / DAYS_PER_MONTH,
+    unitCost: 1,
   };
   const annual = Math.round(projectedAnnualSavings(profile));
   const monthly = Math.round(annual / 12);
@@ -483,74 +469,36 @@ export default function Quiz() {
             </Question>
           )}
 
-          {step === 'baseline' && (
+          {step === 'monthlySpend' && (
             <Question
               index={stepIndex}
-              title={`How many ${unitWord} a month?`}
-              subtitle="A rough monthly average is perfect, we use it to size your savings."
+              title="How much do you spend a month?"
+              subtitle="Roughly, across everything — vapes, pods, pouches, packs. This is the number we turn into money back in your pocket."
             >
               <View className="flex-row flex-wrap gap-3">
-                {MONTHLY_CHOICES.map((n) => (
+                {MONTHLY_SPEND_CHOICES.map((n) => (
                   <PillChoice
                     key={n}
-                    label={String(n)}
+                    label={`$${n}`}
                     // While a custom number is typed, presets read as deselected.
-                    selected={customBaseline === '' && answers.baselineMonthly === n}
+                    selected={customSpend === '' && answers.monthlySpend === n}
                     onPress={() => {
-                      setCustomBaseline('');
-                      set('baselineMonthly', n);
+                      setCustomSpend('');
+                      set('monthlySpend', n);
                     }}
                   />
                 ))}
               </View>
               <TextInput
-                value={customBaseline}
+                value={customSpend}
                 onChangeText={(t) => {
                   const digits = t.replace(/[^0-9]/g, '');
-                  setCustomBaseline(digits);
-                  set('baselineMonthly', digits ? parseInt(digits, 10) : null);
+                  setCustomSpend(digits);
+                  set('monthlySpend', digits ? parseInt(digits, 10) : null);
                 }}
-                placeholder={`Or enter a number of ${unitWord} per month`}
+                placeholder="Or enter a dollar amount per month, e.g. 50"
                 placeholderTextColor={colors.ash}
                 keyboardType="number-pad"
-                returnKeyType="done"
-                onSubmitEditing={() => canAdvance && goNext()}
-                className="mt-4 rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
-              />
-            </Question>
-          )}
-
-          {step === 'unitCost' && (
-            <Question
-              index={stepIndex}
-              title={`What does one ${unitWord.replace(/s$/, '')} cost?`}
-              subtitle="Roughly. This is what we'll turn into money back in your pocket."
-            >
-              <View className="flex-row flex-wrap gap-3">
-                {UNIT_COST_CHOICES.map((c) => (
-                  <PillChoice
-                    key={c.value}
-                    label={c.label}
-                    selected={customCost === '' && answers.unitCost === c.value}
-                    onPress={() => {
-                      setCustomCost('');
-                      set('unitCost', c.value);
-                    }}
-                  />
-                ))}
-              </View>
-              <TextInput
-                value={customCost}
-                onChangeText={(t) => {
-                  // Allow digits + one decimal point ("3.50").
-                  const clean = t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                  setCustomCost(clean);
-                  const n = parseFloat(clean);
-                  set('unitCost', clean !== '' && !isNaN(n) ? n : null);
-                }}
-                placeholder="Or enter a price, e.g. 3.50"
-                placeholderTextColor={colors.ash}
-                keyboardType="decimal-pad"
                 returnKeyType="done"
                 onSubmitEditing={() => canAdvance && goNext()}
                 className="mt-4 rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"

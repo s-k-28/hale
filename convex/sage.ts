@@ -9,7 +9,6 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import {
-  SAGE_PERSONA,
   sageContextLine,
   SAGE_MODEL,
   SAGE_DAILY_CAP,
@@ -17,6 +16,9 @@ import {
   SAGE_COST_PER_OUTPUT_TOKEN,
   SAGE_MAX_CONTEXT_TURNS,
 } from './model/sage';
+import { buildSageSystemPrompt, detectRouteFlag } from './model/sage.prompt';
+import { searchKnowledge } from './sageKnowledge';
+import { CONTACTS } from '../knowledge/sources.config';
 import { moneySaved } from './model/plan';
 import { localDateOf } from './model/streak';
 import { trialStatus } from './model/trial';
@@ -103,61 +105,72 @@ export const generate = internalAction({
     // Token/cost usage for the per-message ledger (P3). Stays 0 on the fallback
     // path (no key / error) — real numbers require Anthropic credits (real-world).
     let usage = { inputTokens: 0, outputTokens: 0, cacheHit: false };
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (apiKey) {
+      // RAG retrieval + safety routing for THIS message: pull source-grounded
+      // evidence from the knowledge index and detect crisis/medical requests.
+      const lastUser = [...c.history].reverse().find((m) => m.role === 'user');
+      const userMessage = lastUser?.content ?? '';
+      const routeFlag = detectRouteFlag(userMessage);
+      // On a crisis signal we skip retrieval and let the safety override drive.
+      const evidence = routeFlag === 'crisis' ? [] : await searchKnowledge(ctx, userMessage);
+      const systemPrompt = buildSageSystemPrompt({
+        contextLine: sageContextLine(c.ctx),
+        evidence,
+        contacts: CONTACTS,
+        routeFlag,
+      });
       try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
+            authorization: `Bearer ${apiKey}`,
             'content-type': 'application/json',
           },
           body: JSON.stringify({
             model: SAGE_MODEL,
             max_tokens: 400,
-            // Stable persona first (cacheable prefix), volatile per-user context
-            // after — keeps the cache breakpoint from busting every turn.
-            system: [
-              { type: 'text', text: SAGE_PERSONA, cache_control: { type: 'ephemeral' } },
-              { type: 'text', text: sageContextLine(c.ctx) },
+            // System turn = MI persona + core facts + retrieved evidence + routing,
+            // then the chat history. (Groq's OpenAI-compatible API has no prompt
+            // cache, so there's no cacheable-prefix split to preserve.)
+            messages: [
+              { role: 'system', content: systemPrompt },
+              ...c.history,
             ],
-            messages: c.history,
           }),
         });
         if (res.ok) {
           const json = await res.json();
-          const text = json?.content?.[0]?.text;
+          const text = json?.choices?.[0]?.message?.content;
           if (typeof text === 'string' && text.trim()) content = text.trim();
           const u = json?.usage;
           if (u) {
-            const cacheRead = u.cache_read_input_tokens ?? 0;
             usage = {
-              inputTokens: (u.input_tokens ?? 0) + cacheRead,
-              outputTokens: u.output_tokens ?? 0,
-              cacheHit: cacheRead > 0,
+              inputTokens: u.prompt_tokens ?? 0,
+              outputTokens: u.completion_tokens ?? 0,
+              cacheHit: false,
             };
           }
         } else {
-          // Surface WHY we fell back. Without this, a misconfig (bad/credit-less
-          // key, rate limit, bad model) is invisible and Sage serves the canned
-          // reply forever with no signal. Best-effort parse of Anthropic's
-          // {error:{type,message}} envelope; status alone is the floor.
+          // Surface WHY we fell back. Without this, a misconfig (bad key, rate
+          // limit, bad model) is invisible and Sage serves the canned reply
+          // forever with no signal. Best-effort parse of Groq's
+          // {error:{message,type}} envelope; status alone is the floor.
           let detail = '';
           try {
             const err = await res.json();
-            detail = err?.error?.type
-              ? `${err.error.type}: ${err.error.message ?? ''}`
+            detail = err?.error?.message
+              ? `${err.error.type ?? 'error'}: ${err.error.message}`
               : '';
           } catch {
             // body wasn't JSON — the status code is the signal
           }
-          console.error(`[sage] anthropic non-ok ${res.status} ${detail} — using fallback`);
+          console.error(`[sage] groq non-ok ${res.status} ${detail} — using fallback`);
         }
       } catch (e) {
         // Network/parse failure — keep the warm fallback, but record the reason.
         console.error(
-          '[sage] anthropic fetch failed — using fallback:',
+          '[sage] groq fetch failed — using fallback:',
           e instanceof Error ? e.message : String(e),
         );
       }

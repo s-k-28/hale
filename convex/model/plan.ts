@@ -11,15 +11,32 @@ export type QuitProfile = {
 
 const MS_PER_DAY = 86_400_000;
 
+/** Days/month used to convert the per-month onboarding answer into units/day.
+ * Shared so the savings math and the data migration agree on one divisor. */
+export const DAYS_PER_MONTH = 30;
+
+/** Defensive ceiling on the daily spend rate the savings math will honor.
+ * Even the heaviest real nicotine spend lands well under this; a rate above it
+ * almost always means a *monthly* quantity leaked into the per-day field (the
+ * units/month → units/day conversion in onboarding). Clamping here keeps one bad
+ * record from rendering an absurd "$ saved" on every surface (today, goals,
+ * relapse, sage) while a migration corrects the underlying data. */
+export const MAX_DAILY_SPEND = 100; // $/day
+
+/** Sanitized daily spend ($/day) — single choke point for the cap above. */
+export function dailySpend(profile: Pick<QuitProfile, 'baselinePerDay' | 'unitCost'>) {
+  return Math.min(MAX_DAILY_SPEND, Math.max(0, profile.baselinePerDay * profile.unitCost));
+}
+
 /** Money saved for a given clean duration (used for current attempt AND lifetime). */
 export function moneySaved(profile: Pick<QuitProfile, 'baselinePerDay' | 'unitCost'>, ms: number) {
   const days = ms / MS_PER_DAY;
-  return Math.max(0, days * profile.baselinePerDay * profile.unitCost);
+  return Math.max(0, days * dailySpend(profile));
 }
 
 /** Projected annual savings — the onboarding "wow" number. */
 export function projectedAnnualSavings(profile: QuitProfile) {
-  return profile.baselinePerDay * profile.unitCost * 365;
+  return dailySpend(profile) * 365;
 }
 
 /** Health-recovery milestones — "commonly reported" (NOT medical advice; disclaimed in UI). */

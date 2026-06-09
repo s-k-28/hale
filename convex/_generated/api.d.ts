@@ -19,6 +19,7 @@ import type * as feed from "../feed.js";
 import type * as goals from "../goals.js";
 import type * as http from "../http.js";
 import type * as leagues from "../leagues.js";
+import type * as migrations from "../migrations.js";
 import type * as model_cohort from "../model/cohort.js";
 import type * as model_plan from "../model/plan.js";
 import type * as model_sage from "../model/sage.js";
@@ -26,8 +27,10 @@ import type * as model_streak from "../model/streak.js";
 import type * as model_trial from "../model/trial.js";
 import type * as nudges from "../nudges.js";
 import type * as pushes from "../pushes.js";
+import type * as rag from "../rag.js";
 import type * as relapse from "../relapse.js";
 import type * as sage from "../sage.js";
+import type * as sageKnowledge from "../sageKnowledge.js";
 import type * as squads from "../squads.js";
 import type * as users from "../users.js";
 
@@ -49,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   goals: typeof goals;
   http: typeof http;
   leagues: typeof leagues;
+  migrations: typeof migrations;
   "model/cohort": typeof model_cohort;
   "model/plan": typeof model_plan;
   "model/sage": typeof model_sage;
@@ -56,8 +60,10 @@ declare const fullApi: ApiFromModules<{
   "model/trial": typeof model_trial;
   nudges: typeof nudges;
   pushes: typeof pushes;
+  rag: typeof rag;
   relapse: typeof relapse;
   sage: typeof sage;
+  sageKnowledge: typeof sageKnowledge;
   squads: typeof squads;
   users: typeof users;
 }>;
@@ -88,4 +94,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  rag: import("@convex-dev/rag/_generated/component.js").ComponentApi<"rag">;
+};
