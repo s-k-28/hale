@@ -17,11 +17,19 @@ import { isPremium as rcIsPremium } from '@/lib/revenuecat';
  *
  * `loading` is true until the very first resolution (either signal) so callers
  * can avoid flashing a locked state on cold start.
+ *
+ * A third grant path — the 7-day REFERRAL REWARD — is OR'd in via the Convex
+ * mirror (todayState.referralRewardActive, computed by model/entitlement.ts). So
+ * the subscription, the trial, AND the referral reward all feed ONE hasHALEPlus,
+ * which every blurred feature gates on. `hasAccess` is kept as a back-compat alias.
  */
 export function usePremium(): {
   premium: boolean;
   trialActive: boolean;
   trialDaysRemaining: number;
+  referralRewardActive: boolean;
+  rewardDaysRemaining: number;
+  hasHALEPlus: boolean;
   hasAccess: boolean;
   loading: boolean;
 } {
@@ -69,11 +77,27 @@ export function usePremium(): {
   const loading = !rcResolved && !mirrorResolved;
 
   // App-managed trial (§8) from the Convex mirror. A subscriber is never "in
-  // trial" (todayState already reports trialActive=false when premium), so
-  // hasAccess = premium OR an active trial — the single gate the UI should use.
+  // trial" (todayState already reports trialActive=false when premium).
   const trialActive = today?.trialActive ?? false;
   const trialDaysRemaining = today?.trialDaysRemaining ?? 0;
-  const hasAccess = premium || trialActive;
+  // Referral reward window (7-day HALE+) from the same mirror — the third grant
+  // path, already OR'd into todayState.hasHALEPlus server-side.
+  const referralRewardActive = today?.referralRewardActive ?? false;
+  const rewardDaysRemaining = today?.rewardDaysRemaining ?? 0;
 
-  return { premium, trialActive, trialDaysRemaining, hasAccess, loading };
+  // The single gate every blurred feature reads. premium (RC runtime OR mirror)
+  // OR trial OR referral reward. Equivalent to todayState.hasHALEPlus, but also
+  // honors RC's runtime truth before the webhook mirror lands.
+  const hasHALEPlus = premium || trialActive || referralRewardActive;
+
+  return {
+    premium,
+    trialActive,
+    trialDaysRemaining,
+    referralRewardActive,
+    rewardDaysRemaining,
+    hasHALEPlus,
+    hasAccess: hasHALEPlus, // back-compat alias for existing call sites
+    loading,
+  };
 }

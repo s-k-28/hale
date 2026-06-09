@@ -53,8 +53,19 @@ export default defineSchema({
     trialStartedAt: v.optional(v.number()), // epoch ms — when the 14-day window began
     trialEndsAt: v.optional(v.number()), // epoch ms — trialStartedAt + 14d
     trialReminderSent: v.optional(v.boolean()), // dedup the one trial-ending email
+    // referral reward (HALE+ unlock for inviting buddies). A 3rd successful
+    // referral (invitee INSTALLS via the link AND PAIRS as this user's buddy)
+    // grants a 7-day HALE+ window — app-managed, exactly like the trial above, so
+    // it works offline and needs no store round-trip. resolveEntitlement OR's this
+    // into the single hasHALEPlus check alongside premium + trial. No auto-charge.
+    referralCode: v.optional(v.string()), // this user's own shareable code (idempotent)
+    referredBy: v.optional(v.id('users')), // attribution — set ONCE, self-ref blocked
+    referralRewardEndsAt: v.optional(v.number()), // epoch ms — reward window end
+    referralRewardGrantedAt: v.optional(v.number()), // grant-exactly-once marker
     oneSignalExternalId: v.optional(v.string()),
-  }).index('email', ['email']),
+  })
+    .index('email', ['email'])
+    .index('by_referralCode', ['referralCode']),
 
   // quitAttempts — THE fix for I4↔§8. One row per attempt; current = active.
   quitAttempts: defineTable({
@@ -173,6 +184,31 @@ export default defineSchema({
     ts: v.number(),
     readAt: v.optional(v.number()),
   }).index('by_to', ['toUser']),
+
+  // referrals — one directed edge per (referrer, invitee). The referral reward
+  // loop's source of truth. A row is 'attributed' when the invitee installs via
+  // the referrer's link (set at onboarding commit), then 'completed' when that
+  // invitee PAIRS as the referrer's buddy (the bar — install alone never counts).
+  // The (referrerId, inviteeId) pair is the dedupe key: an invitee counts at most
+  // once per referrer, and re-pairs are idempotent. Unpair after counting is a
+  // no-op (completed stays completed; granted rewards run their full window — no
+  // clawback).
+  referrals: defineTable({
+    referrerId: v.id('users'), // who shared the link
+    inviteeId: v.id('users'), // who installed via it
+    code: v.string(), // referrer's referralCode at attribution time
+    installedAt: v.number(), // epoch ms — attribution (onboarding commit)
+    pairedAt: v.optional(v.number()), // epoch ms — when invitee paired with referrer
+    status: v.union(
+      v.literal('attributed'), // installed via link, not yet paired
+      v.literal('completed'), // installed AND paired — counts toward the 3
+      v.literal('void'), // reserved (e.g. self-ref guard slip)
+    ),
+    countedAt: v.optional(v.number()), // epoch ms — when it counted (== pairedAt)
+  })
+    .index('by_referrer', ['referrerId'])
+    .index('by_invitee', ['inviteeId'])
+    .index('by_pair', ['referrerId', 'inviteeId']),
 
   sageMessages: defineTable({
     userId: v.id('users'),

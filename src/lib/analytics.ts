@@ -38,6 +38,19 @@ export const Ev = {
   TRIAL_STARTED: 'trial_started',
   PAYWALL_VIEWED: 'paywall_viewed',
   PURCHASE_COMPLETED: 'purchase_completed',
+  // Blurred-paywall + subscription funnel. PAYWALL_FEATURE_TAPPED carries the
+  // `feature` prop so we can see WHICH locked surface drives the most taps.
+  PAYWALL_FEATURE_TAPPED: 'paywall_feature_tapped',
+  SUBSCRIPTION_STARTED: 'subscription_started',
+  // Referral reward funnel. The trigger is INSTALL (attributed) + BUDDY-PAIR
+  // (the bar). At 3 completed the referrer unlocks a 7-day HALE+ reward. All
+  // referral events carry `referrer_id` so the funnel keys on the referrer even
+  // when fired from the invitee's device.
+  REFERRAL_LINK_SHARED: 'referral_link_shared',
+  REFERRAL_INSTALL_ATTRIBUTED: 'referral_install_attributed',
+  REFERRAL_BUDDY_PAIRED: 'referral_buddy_paired',
+  REFERRAL_COMPLETED: 'referral_completed',
+  REWARD_GRANTED: 'reward_granted',
   // Buddy-activation (P1) — pairing as the activation event + matchmaking + nudge
   INVITE_OFFERED: 'invite_offered',
   SOLO_BRIDGE_TAKEN: 'solo_bridge_taken',

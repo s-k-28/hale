@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import { mutation, query, internalMutation } from './_generated/server';
 import { moneySaved, nextHealthMilestone } from './model/plan';
 import { trialEndsFrom, trialStatus } from './model/trial';
+import { resolveEntitlement } from './model/entitlement';
 
 /** Called right after anonymous sign-in at the commitment step (Decision 2). */
 export const completeOnboarding = mutation({
@@ -60,6 +61,10 @@ export const todayState = query({
     const profile = { baselinePerDay: user.baselinePerDay ?? 0, unitCost: user.unitCost ?? 0 };
     const currentSaved = moneySaved(profile, now - attempt.startDate);
     const trial = trialStatus(now, user.trialEndsAt, user.premium ?? false);
+    // Unified HALE+ entitlement (single source of truth): paid OR trial OR the
+    // 7-day referral reward. usePremium OR's these client-side too; exposing the
+    // reward window here keeps the client mirror reactive (no extra round-trip).
+    const entitlement = resolveEntitlement(user, now);
     return {
       // The authed user's own _id — used client-side as the OneSignal external
       // id (Decision: external id == Convex user _id) and to gate push linking.
@@ -80,6 +85,11 @@ export const todayState = query({
       trialEndsAt: trial.trialEndsAt,
       trialActive: trial.trialActive,
       trialDaysRemaining: trial.trialDaysRemaining,
+      // referral reward window (7-day HALE+) + the unified gate the UI reads.
+      hasHALEPlus: entitlement.hasHALEPlus,
+      entitlementSource: entitlement.source,
+      referralRewardActive: entitlement.referralRewardActive,
+      rewardDaysRemaining: entitlement.rewardDaysRemaining,
       timezone: user.timezone ?? null,
     };
   },

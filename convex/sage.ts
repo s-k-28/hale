@@ -21,12 +21,22 @@ import { searchKnowledge } from './sageKnowledge';
 import { CONTACTS } from '../knowledge/sources.config';
 import { moneySaved } from './model/plan';
 import { localDateOf } from './model/streak';
-import { trialStatus } from './model/trial';
+import { resolveEntitlement } from './model/entitlement';
 
-/** Resolve a user's access tier for Sage gating + cost attribution. */
-function tierOf(user: { premium?: boolean; trialEndsAt?: number } | null, now: number): 'free' | 'trial' | 'paid' {
-  if (user?.premium) return 'paid';
-  return trialStatus(now, user?.trialEndsAt, user?.premium ?? false).trialActive ? 'trial' : 'free';
+/**
+ * Resolve a user's access tier for Sage gating + cost attribution, from the
+ * single HALE+ entitlement resolver. A referral-reward window grants the same
+ * unlimited-Sage 'paid' tier as a subscription for its 7 days — both feed one
+ * hasHALEPlus, so the daily cap lifts identically however the user unlocked it.
+ */
+function tierOf(
+  user: { premium?: boolean; trialEndsAt?: number; referralRewardEndsAt?: number } | null,
+  now: number,
+): 'free' | 'trial' | 'paid' {
+  const { source } = resolveEntitlement(user, now);
+  if (source === 'paid' || source === 'referral_reward') return 'paid';
+  if (source === 'trial') return 'trial';
+  return 'free';
 }
 
 /**

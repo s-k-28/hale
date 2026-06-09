@@ -4,6 +4,7 @@ import { mutation, query } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
 import { quitStage } from './model/cohort';
+import { completeReferralForPair } from './referrals';
 
 /**
  * Buddies (S1/S2) — the social wedge. One symmetric buddyLink per pair,
@@ -120,6 +121,8 @@ export const pairWith = mutation({
       .withIndex('by_pair', (q) => q.eq('pairKey', pairKey))
       .unique();
 
+    let linkId: Id<'buddyLinks'>;
+    let alreadyPaired: boolean;
     if (existing) {
       if (existing.status !== 'active') {
         // Re-pair after an 'ended' link — stamp a fresh WHEN/HOW/WHO for the new edge.
@@ -130,20 +133,30 @@ export const pairWith = mutation({
           initiatorId: inviterId,
         });
       }
-      return { linkId: existing._id, alreadyPaired: existing.status === 'active' };
+      linkId = existing._id;
+      alreadyPaired = existing.status === 'active';
+    } else {
+      linkId = await ctx.db.insert('buddyLinks', {
+        pairKey,
+        userA,
+        userB,
+        status: 'active',
+        sharedStreak: 0,
+        pairedAt: now,
+        pairingMethod: method,
+        initiatorId: inviterId,
+      });
+      alreadyPaired = false;
     }
 
-    const linkId = await ctx.db.insert('buddyLinks', {
-      pairKey,
-      userA,
-      userB,
-      status: 'active',
-      sharedStreak: 0,
-      pairedAt: now,
-      pairingMethod: method,
-      initiatorId: inviterId,
-    });
-    return { linkId, alreadyPaired: false };
+    // Referral completion (the SECOND half of the trigger): if the caller (the one
+    // who opened the link) was attributed to this inviter at install, mark the
+    // referral completed and grant the inviter's 7-day reward if it tips them to 3.
+    // No-op for normal (non-referral) pairings. The invitee's client uses these
+    // flags to fire the referral funnel events, tagged with the referrer's id.
+    const referral = await completeReferralForPair(ctx, inviterId, userId);
+
+    return { linkId, alreadyPaired, ...referral };
   },
 });
 
