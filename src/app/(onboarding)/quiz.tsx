@@ -203,6 +203,7 @@ export default function Quiz() {
   const { isAuthenticated } = useConvexAuth();
   const completeOnboarding = useMutation(api.users.completeOnboarding);
   const pairWith = useMutation(api.buddies.pairWith);
+  const attributeInstall = useMutation(api.referrals.attributeInstall);
 
   // Mirror reactive auth state into a ref so the imperative commit() handler can
   // await it without re-render churn (see waitForAuth above).
@@ -345,13 +346,36 @@ export default function Quiz() {
       }
 
       // Redeem a pending buddy invite (S1: auto-pair on first open via deep link).
+      // This is ALSO the referral trigger: attribution (install via link) then
+      // completion (buddy-pair). Install alone never counts — pairing is the bar.
       let pairedInOnboarding = false;
       const pendingBuddy = await takePendingBuddy();
       if (pendingBuddy) {
+        const referrerId = pendingBuddy as Id<'users'>;
+        // 1) INSTALL attribution — set-once, self-ref blocked server-side.
         try {
-          await pairWith({ inviterId: pendingBuddy as Id<'users'>, pairingMethod: 'invite_squad' });
-          track(Ev.BUDDY_PAIRED, { via: 'invite_onboard', pairing_method: 'invite_squad' });
+          const attr = await attributeInstall({ referrerId });
+          if (attr?.attributed) {
+            track(Ev.REFERRAL_INSTALL_ATTRIBUTED, { referrer_id: referrerId });
+          }
+        } catch {
+          // Non-fatal: pairing below still works without attribution.
+        }
+        // 2) COMPLETION — pairing fires the server-side referral completion hook.
+        try {
+          const pair = await pairWith({ inviterId: referrerId, pairingMethod: 'invite_onboard' });
+          track(Ev.BUDDY_PAIRED, { via: 'invite_onboard', pairing_method: 'invite_onboard' });
           pairedInOnboarding = true;
+          // Funnel events keyed on the referrer (fired from the invitee's device).
+          if (pair?.referralCompleted) {
+            track(Ev.REFERRAL_BUDDY_PAIRED, { referrer_id: referrerId });
+          }
+          if (pair?.referrerReachedGoal) {
+            track(Ev.REFERRAL_COMPLETED, { referrer_id: referrerId });
+          }
+          if (pair?.rewardGranted) {
+            track(Ev.REWARD_GRANTED, { referrer_id: referrerId, reward_days: 7 });
+          }
         } catch {
           // Best-effort; never block landing in the app.
         }

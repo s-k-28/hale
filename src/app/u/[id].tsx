@@ -46,8 +46,14 @@ export default function AcceptInvite() {
     ranRef.current = true
     ;(async () => {
       try {
-        await pairWith({ inviterId: id as Id<'users'>, pairingMethod: 'invite_squad' })
+        const referrerId = id as Id<'users'>
+        const pair = await pairWith({ inviterId: referrerId, pairingMethod: 'invite_squad' })
         track(Ev.BUDDY_PAIRED, { via: 'deep_link', pairing_method: 'invite_squad' })
+        // If this pairing completed a referral (the opener was attributed to this
+        // referrer at install), surface the funnel events keyed on the referrer.
+        if (pair?.referralCompleted) track(Ev.REFERRAL_BUDDY_PAIRED, { referrer_id: referrerId })
+        if (pair?.referrerReachedGoal) track(Ev.REFERRAL_COMPLETED, { referrer_id: referrerId })
+        if (pair?.rewardGranted) track(Ev.REWARD_GRANTED, { referrer_id: referrerId, reward_days: 7 })
         router.replace('/(tabs)/squad')
       } catch {
         setError(true)
