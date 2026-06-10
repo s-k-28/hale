@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import type { QueryCtx, MutationCtx } from './_generated/server';
+import { resolveEntitlement } from './model/entitlement';
 
 /**
  * Squads (S3) — small "stay clean together" groups. A squad is an invite-coded
@@ -42,6 +43,24 @@ async function uniqueInviteCode(ctx: MutationCtx): Promise<string> {
   return randomCode(8);
 }
 
+/**
+ * Server-side mirror of the client's free-tier rule (squads.tsx): free users
+ * get ONE squad; a second create/join is HALE+. The client blurs the surface
+ * (LockedFeature), but mutations are callable directly, so the limit must hold
+ * here too. Throws the same user-legible message either entry point.
+ */
+async function assertSquadSlotAvailable(ctx: MutationCtx, userId: Id<'users'>): Promise<void> {
+  const memberships = await ctx.db
+    .query('squadMembers')
+    .withIndex('by_user', (q) => q.eq('userId', userId))
+    .collect();
+  if (memberships.length === 0) return; // first squad is free-tier
+
+  const user = await ctx.db.get(userId);
+  if (resolveEntitlement(user, Date.now()).hasHALEPlus) return;
+  throw new Error('HALE+ required to join more than one squad');
+}
+
 /** Is this user already a member of this squad? */
 async function membershipOf(
   ctx: QueryCtx,
@@ -70,6 +89,7 @@ export const createSquad = mutation({
   handler: async (ctx, { name, isPublic, challengeWeeks }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
+    await assertSquadSlotAvailable(ctx, userId);
 
     const inviteCode = await uniqueInviteCode(ctx);
     const now = Date.now();
@@ -122,6 +142,7 @@ export const joinByCode = mutation({
 
     const existing = await membershipOf(ctx, squad._id, userId);
     if (existing) throw new Error('Already a member');
+    await assertSquadSlotAvailable(ctx, userId);
 
     await ctx.db.insert('squadMembers', {
       squadId: squad._id,
