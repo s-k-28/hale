@@ -21,6 +21,13 @@ module.exports = {
         'body-medium': ['HankenGrotesk_500Medium'],
         'body-semibold': ['HankenGrotesk_600SemiBold'],
         'body-bold': ['HankenGrotesk_700Bold'],
+        // ── Clean Dark (v2): Sora is the ONLY family in the new system ──
+        sora: ['Sora_400Regular'],
+        'sora-light': ['Sora_300Light'],
+        'sora-medium': ['Sora_500Medium'],
+        'sora-semibold': ['Sora_600SemiBold'],
+        'sora-bold': ['Sora_700Bold'],
+        'sora-extrabold': ['Sora_800ExtraBold'],
       },
     },
   },

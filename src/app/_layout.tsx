@@ -20,6 +20,16 @@ import {
   HankenGrotesk_700Bold,
   HankenGrotesk_800ExtraBold,
 } from '@expo-google-fonts/hanken-grotesk';
+// Clean Dark (v2) — Sora is the new system's single family; old families above
+// remain registered until the per-screen migration finishes, then get purged.
+import {
+  Sora_300Light,
+  Sora_400Regular,
+  Sora_500Medium,
+  Sora_600SemiBold,
+  Sora_700Bold,
+  Sora_800ExtraBold,
+} from '@expo-google-fonts/sora';
 import { ConvexReactClient } from 'convex/react';
 import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { PostHogProvider } from 'posthog-react-native';
@@ -58,6 +68,12 @@ export default function RootLayout() {
     HankenGrotesk_600SemiBold,
     HankenGrotesk_700Bold,
     HankenGrotesk_800ExtraBold,
+    Sora_300Light,
+    Sora_400Regular,
+    Sora_500Medium,
+    Sora_600SemiBold,
+    Sora_700Bold,
+    Sora_800ExtraBold,
   });
 
   useEffect(() => {
