@@ -134,6 +134,7 @@ export default defineSchema({
     sharedStreak: v.number(),
     lastSharedLocalDate: v.optional(v.string()),
     pairedAt: v.optional(v.number()), // epoch ms the link first went active (WHEN)
+    endedAt: v.optional(v.number()), // epoch ms the link was unpaired (churn timing)
     pairingMethod: v.optional(
       v.union(
         v.literal('invite_onboard'),

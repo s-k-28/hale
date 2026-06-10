@@ -13,17 +13,21 @@ import {
  * Referral reward loop — earn 7 days of HALE+ by inviting buddies.
  *
  * The reward is deliberately tied to HALE's accountability core: a referral only
- * counts when an invited person INSTALLS via the link AND PAIRS as the referrer's
- * buddy. Install is the attribution step; buddy-pair is the completion step.
+ * counts when an invited person INSTALLS via the link AND PAIRS UP as someone's
+ * buddy. Install is the attribution step; the invitee's first successful pairing
+ * (with the referrer, a matchmade peer, or anyone else) is the completion step.
  * Install alone never counts — this is far less gameable than raw installs and
- * makes the reward reinforce the buddy loop. At 3 completed referrals the referrer
+ * makes the reward reinforce the buddy loop. Completion was decoupled from
+ * pairing with the REFERRER specifically (decision 2026-06-10): under the
+ * one-active-buddy rule, requiring the referrer would permanently block every
+ * referral after the referrer's first pair. At 3 completed referrals the referrer
  * unlocks a one-time 7-day HALE+ window (app-managed in Convex, OR'd into the
  * single hasHALEPlus check by model/entitlement.ts; no auto-charge).
  *
  * The link itself is the existing buddy deep link hale://u/<referrerId>; the
  * human-friendly hale://r/<code> alias resolves to the same referrer. Attribution
  * (attributeInstall) runs at onboarding commit; completion runs inside
- * buddies.pairWith via completeReferralForPair (below).
+ * buddies.pairWith / requestMatch via completeReferralForPair (below).
  */
 
 /** Unambiguous code alphabet (no 0/O/1/I) — mirrors squads' invite codes. */
@@ -51,12 +55,14 @@ async function uniqueReferralCode(ctx: MutationCtx): Promise<string> {
 }
 
 /**
- * Complete a referral when (inviteeId) pairs with the referrer they were
- * attributed to, and grant the 7-day reward if this tips the referrer to 3.
- * Called from buddies.pairWith. Idempotent: a re-pair of an already-completed
- * referral is a no-op and reports referralCompleted=false. Grants the reward at
- * most once (referralRewardGrantedAt guard). Returns flags the invitee's client
- * uses to fire the funnel events (tagged with referrer_id).
+ * Complete (inviteeId)'s referral for the referrer they were attributed to,
+ * triggered by the invitee's first successful pairing with ANYONE, and grant
+ * the 7-day reward if this tips the referrer to 3. Called from buddies.pairWith
+ * and buddies.requestMatch with referrerId = invitee.referredBy. Idempotent: a
+ * re-pair of an already-completed referral is a no-op and reports
+ * referralCompleted=false. Grants the reward at most once
+ * (referralRewardGrantedAt guard). Returns flags the invitee's client uses to
+ * fire the funnel events (tagged with referrer_id).
  */
 export async function completeReferralForPair(
   ctx: MutationCtx,

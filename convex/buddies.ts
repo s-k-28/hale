@@ -2,8 +2,9 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
-import type { QueryCtx } from './_generated/server';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 import { quitStage } from './model/cohort';
+import { pairGate, pairKeyFor as pairKeyForIds } from './model/buddy';
 import { completeReferralForPair } from './referrals';
 
 /**
@@ -16,14 +17,30 @@ import { completeReferralForPair } from './referrals';
  * client-side (BUDDY_INVITED / BUDDY_PAIRED), so these handlers stay pure data.
  */
 
-/** Deterministic key for an unordered pair: sorted ids joined with "_". */
+/** Deterministic key for an unordered pair — pure impl lives in model/buddy.ts. */
 function pairKeyFor(a: Id<'users'>, b: Id<'users'>): string {
-  return [a, b].sort().join('_');
+  return pairKeyForIds(a, b);
 }
 
 /** The buddy's id given a link and the viewer — the "other" side of the pair. */
 function otherSide(link: Doc<'buddyLinks'>, me: Id<'users'>): Id<'users'> {
   return link.userA === me ? link.userB : link.userA;
+}
+
+/**
+ * Expire a user's leftover 'waiting' matchmaking rows. Called when they pair
+ * (any path): a waiting row that outlives its pairing would silently re-enter
+ * them into the pool the moment they unpair — months later, with a stale
+ * stageBucket, and without fresh consent.
+ */
+async function expireWaitingMatchRequests(ctx: MutationCtx, userId: Id<'users'>): Promise<void> {
+  const rows = await ctx.db
+    .query('matchRequests')
+    .withIndex('by_user', (q) => q.eq('userId', userId))
+    .collect();
+  for (const r of rows) {
+    if (r.status === 'waiting') await ctx.db.patch(r._id, { status: 'expired' });
+  }
 }
 
 /** Find the viewer's active buddyLink, checking both sides of the pair. */
@@ -116,6 +133,24 @@ export const pairWith = mutation({
     const pairKey = pairKeyFor(userId, inviterId);
     const [userA, userB] = [userId, inviterId].sort() as [Id<'users'>, Id<'users'>];
 
+    // ONE active buddy at a time, on BOTH sides (model/buddy.ts). Same-pair
+    // re-calls fall through to the idempotent alreadyPaired branch below; a
+    // rejected pair throws BEFORE any write, so referral completion only ever
+    // runs for pairings that actually happened (the row stays 'attributed').
+    const callerActive = await findActiveLink(ctx, userId);
+    const inviterActive = await findActiveLink(ctx, inviterId);
+    const gate = pairGate(
+      callerActive?.pairKey ?? null,
+      inviterActive?.pairKey ?? null,
+      pairKey,
+    );
+    if (gate === 'caller_already_paired') {
+      throw new Error('You already have a buddy — unpair first to switch.');
+    }
+    if (gate === 'inviter_already_paired') {
+      throw new Error('They already have a buddy right now.');
+    }
+
     const existing = await ctx.db
       .query('buddyLinks')
       .withIndex('by_pair', (q) => q.eq('pairKey', pairKey))
@@ -154,9 +189,49 @@ export const pairWith = mutation({
     // referral completed and grant the inviter's 7-day reward if it tips them to 3.
     // No-op for normal (non-referral) pairings. The invitee's client uses these
     // flags to fire the referral funnel events, tagged with the referrer's id.
-    const referral = await completeReferralForPair(ctx, inviterId, userId);
+    // Both sides just paired — their waiting matchmaking rows are now stale.
+    await expireWaitingMatchRequests(ctx, userId);
+    await expireWaitingMatchRequests(ctx, inviterId);
 
-    return { linkId, alreadyPaired, ...referral };
+    // Referral completion (decision 2026-06-10): decoupled from WHO they paired
+    // with. An attributed invitee's referral completes on their first successful
+    // pairing with ANYONE — under one-buddy-at-a-time, requiring the referrer
+    // specifically would dead-end every referral after the referrer's first pair.
+    // Each side settles their own pending referral with their own referrer.
+    const me = await ctx.db.get(userId);
+    const referral = me?.referredBy
+      ? await completeReferralForPair(ctx, me.referredBy, userId)
+      : { referralCompleted: false, referrerReachedGoal: false, rewardGranted: false };
+    if (inviter.referredBy) {
+      // The inviter may themselves be someone's attributed invitee making their
+      // first pair; their referrer's progress updates server-side (no client event).
+      await completeReferralForPair(ctx, inviter.referredBy, inviterId);
+    }
+
+    return { linkId, alreadyPaired, referrerId: me?.referredBy ?? null, ...referral };
+  },
+});
+
+/**
+ * End the caller's active buddy link. The missing half of the one-buddy model:
+ * pairWith rejects a second concurrent buddy, so switching buddies (and a
+ * referrer accepting their next referral pair) requires ending the current one.
+ * pairWith's reactivation branch already handles re-pairing an 'ended' link.
+ *
+ * Referral semantics (design spec Decision #4): completed referrals STAY
+ * counted and a granted 7-day reward runs its full window — no clawback. That
+ * holds with zero code here: completion lives on the referrals row and the
+ * reward on the user doc; ending the buddyLink touches neither.
+ */
+export const unpair = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+    const link = await findActiveLink(ctx, userId);
+    if (!link) return { ended: false as const };
+    await ctx.db.patch(link._id, { status: 'ended', endedAt: Date.now() });
+    return { ended: true as const, linkId: link._id };
   },
 });
 
@@ -202,6 +277,12 @@ export const requestMatch = mutation({
 
     for (const peer of waiting) {
       if (peer.userId === userId) continue;
+      // Dangling row — peer's user doc is gone (dev reset / future account deletion).
+      const peerDoc = await ctx.db.get(peer.userId);
+      if (!peerDoc) {
+        await ctx.db.patch(peer._id, { status: 'expired' });
+        continue;
+      }
       const peerActive = await findActiveLink(ctx, peer.userId);
       if (peerActive) continue; // stale waiting row — peer already paired elsewhere
 
@@ -233,6 +314,10 @@ export const requestMatch = mutation({
           initiatorId: userId,
         });
       }
+      // Expire both sides' other waiting rows FIRST, then stamp the winning row
+      // matched (order matters: the expire helper would overwrite it otherwise).
+      await expireWaitingMatchRequests(ctx, peer.userId);
+      await expireWaitingMatchRequests(ctx, userId);
       await ctx.db.patch(peer._id, { status: 'matched', matchedLinkId: linkId });
       // Record the requester's own (resolved) request for pool audit.
       await ctx.db.insert('matchRequests', {
@@ -244,24 +329,47 @@ export const requestMatch = mutation({
         matchedLinkId: linkId,
         createdAt: now,
       });
+
+      // A matchmade pair is a real activation — settle each side's pending
+      // referral with their own referrer (same any-pair rule as pairWith).
+      const referral = user.referredBy
+        ? await completeReferralForPair(ctx, user.referredBy, userId)
+        : { referralCompleted: false, referrerReachedGoal: false, rewardGranted: false };
+      if (peerDoc.referredBy) {
+        await completeReferralForPair(ctx, peerDoc.referredBy, peer.userId);
+      }
+
       return {
         matched: true as const,
         alreadyPaired: false as const,
         linkId,
         buddyUserId: peer.userId,
         poolSize,
+        referrerId: user.referredBy ?? null,
+        ...referral,
       };
     }
 
     // No peer → join the pool as waiting; caller shows the solo bridge.
-    await ctx.db.insert('matchRequests', {
-      userId,
-      productType,
-      stageBucket,
-      timezone,
-      status: 'waiting',
-      createdAt: Date.now(),
-    });
+    // Reuse an existing waiting row (refresh its bucket/timestamp) instead of
+    // inserting a duplicate — duplicates inflate poolSize and linger forever.
+    const myWaiting = await ctx.db
+      .query('matchRequests')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .collect();
+    const reusable = myWaiting.find((r) => r.status === 'waiting');
+    if (reusable) {
+      await ctx.db.patch(reusable._id, { productType, stageBucket, timezone, createdAt: Date.now() });
+    } else {
+      await ctx.db.insert('matchRequests', {
+        userId,
+        productType,
+        stageBucket,
+        timezone,
+        status: 'waiting',
+        createdAt: Date.now(),
+      });
+    }
     return { matched: false as const, poolSize, stageBucket };
   },
 });
