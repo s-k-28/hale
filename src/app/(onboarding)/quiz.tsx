@@ -31,7 +31,8 @@ import {
 } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-import { takePendingBuddy } from '@/lib/pendingBuddy';
+import { setPendingBuddy, takePendingBuddy } from '@/lib/pendingBuddy';
+import { buddyLink, buddyShareText, inviteShareParams } from '@/lib/links';
 import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -353,13 +354,17 @@ export default function Quiz() {
       if (pendingBuddy) {
         const referrerId = pendingBuddy as Id<'users'>;
         // 1) INSTALL attribution — set-once, self-ref blocked server-side.
+        let attributionDurable = false;
         try {
           const attr = await attributeInstall({ referrerId });
+          attributionDurable = true; // server answered — referredBy settled either way
           if (attr?.attributed) {
             track(Ev.REFERRAL_INSTALL_ATTRIBUTED, { referrer_id: referrerId });
           }
         } catch {
-          // Non-fatal: pairing below still works without attribution.
+          // Non-fatal: pairing below still works without attribution. The stash
+          // is re-set below if NOTHING durable happened, so a transient network
+          // blip at commit doesn't permanently destroy the referral.
         }
         // 2) COMPLETION — pairing fires the server-side referral completion hook.
         try {
@@ -381,6 +386,11 @@ export default function Quiz() {
           }
         } catch {
           // Best-effort; never block landing in the app.
+        }
+        // Nothing durable happened (attribution never reached the server AND no
+        // pair landed) → put the invite back so it isn't lost to one bad moment.
+        if (!attributionDurable && !pairedInOnboarding) {
+          void setPendingBuddy(referrerId);
         }
       }
       // Pairing is the ACTIVATION event: if they didn't already arrive paired (deep
@@ -957,12 +967,9 @@ function InviteBuddyStep({ onDone }: { onDone: () => void }) {
     setBusy(true);
     try {
       const { userId } = await invite();
-      const link = `hale://u/${userId}`;
+      const link = buddyLink(userId);
       track(Ev.BUDDY_INVITED, { invite_source: 'onboarding', pairing_method: 'invite', link_id: userId });
-      await Share.share({
-        message: `I'm quitting nicotine with HALE, be my accountability buddy? We'll keep each other on streak. ${link}`,
-        url: link,
-      });
+      await Share.share(inviteShareParams(buddyShareText(), link));
     } catch {
       // Share dismissed / invite failed — still land in the app (invite is pending).
     }

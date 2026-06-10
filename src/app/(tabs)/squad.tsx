@@ -16,6 +16,7 @@ import {
 import { api } from '@convex/_generated/api';
 import { toast } from 'sonner-native';
 import { track, Ev } from '@/lib/analytics';
+import { buddyLink, buddyShareText, inviteShareParams } from '@/lib/links';
 import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -37,8 +38,6 @@ import Animated, {
  * Squad (S1/S2) — the social wedge. Two states off a single reactive query.
  * Bold Momentum re-skin — ALL logic preserved (Convex hooks, Share flow, events).
  */
-
-const DEEP_LINK_SCHEME = 'hale://u/';
 
 function monogram(name: string | null): string {
   const ch = name?.trim()?.[0];
@@ -107,12 +106,9 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
     setSharing(true);
     try {
       const { userId } = await invite();
-      const link = `${DEEP_LINK_SCHEME}${userId}`;
+      const link = buddyLink(userId);
       track(Ev.BUDDY_INVITED, { method: 'share_sheet', invite_source: 'squad_tab', pairing_method: 'invite', link_id: userId });
-      await Share.share({
-        message: `I’m quitting nicotine with HALE, be my accountability buddy? We’ll keep each other on streak. ${link}`,
-        url: link,
-      });
+      await Share.share(inviteShareParams(buddyShareText(), link));
     } catch {
       // Share dismissed or invite failed — silently allow a retry.
     } finally {

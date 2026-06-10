@@ -22,6 +22,7 @@ export const Ev = {
   BUDDY_INVITED: 'buddy_invited',
   BUDDY_PAIRED: 'buddy_paired',
   BUDDY_UNPAIRED: 'buddy_unpaired',
+  REFERRAL_CODE_ENTERED: 'referral_code_entered',
   NUDGE_SENT: 'nudge_sent',
   NUDGE_OPENED: 'nudge_opened',
   // Intelligence (I1/I2/I3/I4)

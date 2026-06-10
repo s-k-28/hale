@@ -45,6 +45,7 @@ Set by the always-mounted `PushSync` effect (`src/app/(tabs)/_layout.tsx`) via `
 | `matchmaking_no_match` | pool_size | ✓ | matchRequests (waiting) | empty pool | ⚙️ (matched path fired) |
 | `buddy_paired` | via, pairing_method | ✓ | **buddyLinks** (pairedAt/pairingMethod/initiatorId) | pair (onboarding/deep-link/matchmaking) | ✅ |
 | `buddy_unpaired` | surface | ✓ | buddyLinks (status 'ended' + endedAt) | "End pairing" on Squad's paired card (churn signal) | ⚙️ (new 2026-06-10) |
+| `referral_code_entered` | found | ✓ | users.referredBy (via pendingBuddy → commit) | typed-code entry on welcome (deferred attribution) | ⚙️ (new 2026-06-10) |
 | `solo_bridge_taken` | reason | ✓ | — | "start on my own" | ⚙️ (not exercised — honestly absent in PostHog) |
 
 ### North-Star activation + candidates (P2) — q1

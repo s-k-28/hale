@@ -6,6 +6,7 @@ import { toast } from 'sonner-native';
 import { Gift, Sparkles, Check, Clock } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { referralLink, referralShareText, inviteShareParams } from '@/lib/links';
 import { Surface } from '@/components/ui/Surface';
 import { Heading, Body, Label, Caption } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -29,13 +30,15 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
   const getOrCreateCode = useMutation(api.referrals.getOrCreateMyCode);
 
   // Materialize the code + the share link (idempotent) once we're authed.
+  // The link is the https universal link (src/lib/links.ts) — it survives the
+  // no-app-installed case, which a hale:// scheme link does not.
   const [link, setLink] = useState<{ url: string; code: string } | null>(null);
   const ensuredRef = useRef(false);
   useEffect(() => {
     if (ensuredRef.current || progress === undefined || progress === null) return;
     ensuredRef.current = true;
     getOrCreateCode()
-      .then(({ code, userId }) => setLink({ url: `hale://u/${userId}`, code }))
+      .then(({ code }) => setLink({ url: referralLink(code), code }))
       .catch(() => {
         ensuredRef.current = false; // allow a retry on next render
       });
@@ -56,10 +59,7 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
     if (!link) return;
     track(Ev.REFERRAL_LINK_SHARED, { surface });
     try {
-      await Share.share({
-        message: `I'm quitting nicotine with HALE — be my accountability buddy and we'll keep each other on streak. Join me: ${link.url}`,
-        url: link.url,
-      });
+      await Share.share(inviteShareParams(referralShareText(link.code), link.url));
     } catch {
       // Share dismissed — no-op.
     }

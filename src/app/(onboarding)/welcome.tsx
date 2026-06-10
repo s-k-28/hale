@@ -1,11 +1,19 @@
+import { KeyboardAvoidingView, Platform } from 'react-native'
 import { Link } from 'expo-router'
 import { YStack } from 'tamagui'
 import { Screen, Display, Heading, Label, Button, Pill } from '@/components/tama'
+import { InviteCodeEntry } from '@/components/InviteCodeEntry'
 
 /** Welcome → quiz. Migrated to Tamagui (Bold Momentum primitives). */
 export default function Welcome() {
   return (
     <Screen edges={['top', 'bottom']}>
+      {/* Keyboard padding so the invite-code input (bottom of screen, autoFocus)
+          isn't covered on iOS — same convention as the quiz inputs. */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <YStack flex={1} paddingHorizontal={24}>
         {/* Hero — huge loud wordmark, generous dark negative space */}
         <YStack flex={1} justifyContent="center">
@@ -50,7 +58,13 @@ export default function Welcome() {
         >
           Free to start · 60-second setup
         </Label>
+        {/* Typed-code referral fallback — the deferred-attribution path for fresh
+            installs (the share message carries the code; iOS can't pass it
+            through the App Store). Feeds the same pendingBuddy stash a deep
+            link does. */}
+        <InviteCodeEntry />
       </YStack>
+      </KeyboardAvoidingView>
     </Screen>
   )
 }
