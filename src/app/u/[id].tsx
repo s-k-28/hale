@@ -26,7 +26,9 @@ export default function AcceptInvite() {
   const pairWith = useMutation(api.buddies.pairWith)
 
   const ranRef = useRef(false)
-  const [error, setError] = useState(false)
+  // Gate rejections (one-buddy rule, model/buddy.ts) get honest copy — a fresh
+  // link wouldn't help, so the generic invalid/expired text would misdirect.
+  const [error, setError] = useState<null | 'caller_paired' | 'inviter_paired' | 'generic'>(null)
 
   useEffect(() => {
     if (ranRef.current || isLoading || !id) return
@@ -49,14 +51,23 @@ export default function AcceptInvite() {
         const referrerId = id as Id<'users'>
         const pair = await pairWith({ inviterId: referrerId, pairingMethod: 'invite_squad' })
         track(Ev.BUDDY_PAIRED, { via: 'deep_link', pairing_method: 'invite_squad' })
-        // If this pairing completed a referral (the opener was attributed to this
-        // referrer at install), surface the funnel events keyed on the referrer.
-        if (pair?.referralCompleted) track(Ev.REFERRAL_BUDDY_PAIRED, { referrer_id: referrerId })
-        if (pair?.referrerReachedGoal) track(Ev.REFERRAL_COMPLETED, { referrer_id: referrerId })
-        if (pair?.rewardGranted) track(Ev.REWARD_GRANTED, { referrer_id: referrerId, reward_days: 7 })
+        // If this pairing completed a referral (the opener was attributed at
+        // install), surface the funnel events keyed on the AUTHORITATIVE referrer
+        // (pair.referrerId) — it may differ from this link's id.
+        const refId = pair?.referrerId ?? referrerId
+        if (pair?.referralCompleted) track(Ev.REFERRAL_BUDDY_PAIRED, { referrer_id: refId })
+        if (pair?.referrerReachedGoal) track(Ev.REFERRAL_COMPLETED, { referrer_id: refId })
+        if (pair?.rewardGranted) track(Ev.REWARD_GRANTED, { referrer_id: refId, reward_days: 7 })
         router.replace('/(tabs)/squad')
-      } catch {
-        setError(true)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : ''
+        setError(
+          msg.includes('You already have a buddy')
+            ? 'caller_paired'
+            : msg.includes('already have a buddy right now')
+              ? 'inviter_paired'
+              : 'generic',
+        )
       }
     })()
   }, [isLoading, isAuthenticated, today, id, pairWith])
@@ -68,14 +79,26 @@ export default function AcceptInvite() {
       <View className="flex-1 items-center justify-center px-8">
         {error ? (
           <>
-            <Heading className="text-center text-2xl">Couldn’t pair you up</Heading>
+            <Heading className="text-center text-2xl">
+              {error === 'caller_paired'
+                ? 'You already have a buddy'
+                : error === 'inviter_paired'
+                  ? 'They’re already paired up'
+                  : 'Couldn’t pair you up'}
+            </Heading>
             <Body className="mt-3 text-center text-base leading-6 text-ash">
-              That invite link looks invalid or expired. Ask your buddy to send a fresh one.
+              {error === 'caller_paired'
+                ? 'HALE pairs you with one buddy at a time, and you’re already paired.'
+                : error === 'inviter_paired'
+                  ? 'Your friend already has a buddy right now. You can still find your own in the Squad tab.'
+                  : 'That invite link looks invalid or expired. Ask your buddy to send a fresh one.'}
             </Body>
             <Button
               variant="primary"
-              label="GO TO HALE"
-              onPress={() => router.replace('/(tabs)/today')}
+              label={error === 'generic' ? 'GO TO HALE' : 'GO TO YOUR SQUAD'}
+              onPress={() =>
+                router.replace(error === 'generic' ? '/(tabs)/today' : '/(tabs)/squad')
+              }
               className="mt-8 w-full"
             />
           </>

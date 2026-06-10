@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Share, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Share, View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery } from 'convex/react';
 import {
@@ -182,6 +182,33 @@ function PairedState({
   const [heartBurst, setHeartBurst] = useState(0);
   const displayName = useMemo(() => name?.trim() || 'Your buddy', [name]);
   const cheer = useMutation(api.nudges.cheer);
+  const unpair = useMutation(api.buddies.unpair);
+
+  // End the pairing (one-buddy model: this frees both sides to pair again).
+  // Confirm first — it's reversible only if the other person re-accepts a link.
+  const onUnpair = useCallback(() => {
+    Alert.alert(
+      `End pairing with ${displayName}?`,
+      'You can pair with someone new afterwards. Completed referrals and rewards are never taken back.',
+      [
+        { text: 'Keep my buddy', style: 'cancel' },
+        {
+          text: 'End pairing',
+          style: 'destructive',
+          onPress: () => {
+            unpair()
+              .then((res) => {
+                if (res?.ended) {
+                  track(Ev.BUDDY_UNPAIRED, { surface: 'squad' });
+                  toast.success('Pairing ended');
+                }
+              })
+              .catch(() => toast.error("Couldn't end the pairing. Try again"));
+          },
+        },
+      ],
+    );
+  }, [displayName, unpair]);
 
   const onCheer = useCallback(() => {
     if (cheered) return;
@@ -263,6 +290,16 @@ function PairedState({
           </Body>
         </View>
       </Surface>
+
+      {/* Quiet escape hatch — one buddy at a time, so switching starts here. */}
+      <Pressable
+        onPress={onUnpair}
+        accessibilityRole="button"
+        accessibilityLabel={`End pairing with ${displayName}`}
+        className="mt-4 items-center py-2 active:opacity-70"
+      >
+        <Body className="text-xs text-ash underline">End pairing</Body>
+      </Pressable>
     </View>
   );
 }

@@ -367,14 +367,17 @@ export default function Quiz() {
           track(Ev.BUDDY_PAIRED, { via: 'invite_onboard', pairing_method: 'invite_onboard' });
           pairedInOnboarding = true;
           // Funnel events keyed on the referrer (fired from the invitee's device).
+          // pair.referrerId is the server's authoritative attribution — it can
+          // differ from the link's referrerId if this user was attributed earlier.
+          const refId = pair?.referrerId ?? referrerId;
           if (pair?.referralCompleted) {
-            track(Ev.REFERRAL_BUDDY_PAIRED, { referrer_id: referrerId });
+            track(Ev.REFERRAL_BUDDY_PAIRED, { referrer_id: refId });
           }
           if (pair?.referrerReachedGoal) {
-            track(Ev.REFERRAL_COMPLETED, { referrer_id: referrerId });
+            track(Ev.REFERRAL_COMPLETED, { referrer_id: refId });
           }
           if (pair?.rewardGranted) {
-            track(Ev.REWARD_GRANTED, { referrer_id: referrerId, reward_days: 7 });
+            track(Ev.REWARD_GRANTED, { referrer_id: refId, reward_days: 7 });
           }
         } catch {
           // Best-effort; never block landing in the app.
@@ -976,6 +979,19 @@ function InviteBuddyStep({ onDone }: { onDone: () => void }) {
       if (res?.matched) {
         track(Ev.MATCHMAKING_MATCHED, { pairing_method: 'matchmaking', pool_size: res.poolSize ?? 0 });
         track(Ev.BUDDY_PAIRED, { via: 'matchmaking', pairing_method: 'matchmaking' });
+        // A matchmade pair can complete this user's pending referral (any-pair
+        // rule) — mirror the same funnel events the deep-link path fires.
+        if (!res.alreadyPaired) {
+          if (res.referralCompleted && res.referrerId) {
+            track(Ev.REFERRAL_BUDDY_PAIRED, { referrer_id: res.referrerId });
+          }
+          if (res.referrerReachedGoal && res.referrerId) {
+            track(Ev.REFERRAL_COMPLETED, { referrer_id: res.referrerId });
+          }
+          if (res.rewardGranted && res.referrerId) {
+            track(Ev.REWARD_GRANTED, { referrer_id: res.referrerId, reward_days: 7 });
+          }
+        }
       } else {
         track(Ev.MATCHMAKING_NO_MATCH, { pool_size: res?.poolSize ?? 0 });
       }

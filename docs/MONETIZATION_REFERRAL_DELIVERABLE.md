@@ -33,7 +33,7 @@ Free keeps every viral/retention surface ungated (so the growth loop never break
 
 **The trigger (two steps — install AND buddy-pair):**
 1. **INSTALL (attribution).** A friend opens the link before onboarding → stashed via the existing `pendingBuddy`. At onboarding commit (`quiz.tsx`), `referrals.attributeInstall` sets `referredBy` (once; self-referral blocked) and writes an `attributed` row → fires `referral_install_attributed`. **Install alone never counts.**
-2. **BUDDY-PAIR (completion).** The same commit calls `buddies.pairWith`, whose server hook `completeReferralForPair` flips the row to `completed` → fires `referral_buddy_paired`. Pairing is the bar.
+2. **BUDDY-PAIR (completion).** The invitee's **first successful pairing with ANYONE** (the referrer via the link, a matchmade peer, or another friend) flips the row to `completed` → fires `referral_buddy_paired`. Pairing is the bar. _Rule updated 2026-06-10:_ completion was decoupled from pairing with the referrer specifically — under the one-active-buddy rule (see `convex/model/buddy.ts`), requiring the referrer would permanently block every referral after the referrer's first pair. Both `buddies.pairWith` and `buddies.requestMatch` run the completion hook for each newly-paired side.
 
 **The reward.** At **3 distinct completed referrals**, the referrer is granted a **one-time 7-day HALE+ window** (`referralRewardEndsAt = now + 7d`, `referralRewardGrantedAt` guards once) → fires `referral_completed` + `reward_granted`. It auto-reverts after 7 days, **does not auto-charge**, and is **separate** from the subscription's 14-day paid trial.
 

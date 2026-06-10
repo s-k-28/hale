@@ -107,8 +107,8 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
             </View>
             <Heading className="mt-5 text-2xl">UNLOCK 7 DAYS OF HALE+</Heading>
             <Body className="mt-2 text-base leading-6 text-ash">
-              Invite 3 friends who join HALE and pair as your buddy, and you’ll unlock a week of
-              full access — analytics, unlimited Sage, and more.
+              Invite 3 friends who join HALE and pair up with a buddy, and you’ll unlock a week
+              of full access — analytics, unlimited Sage, and more.
             </Body>
 
             {/* Progress meter — "X of 3 friends joined & paired". */}
