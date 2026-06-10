@@ -1,0 +1,6 @@
+# Cloudflare Pages rewrites — every app path serves the single landing page
+# (the page itself reads the path to show the invite code). 200 = rewrite, not redirect:
+# Apple requires the AASA file itself be served with NO redirects, and these
+# rules deliberately exclude /.well-known/*.
+/r/*  /index.html  200
+/u/*  /index.html  200

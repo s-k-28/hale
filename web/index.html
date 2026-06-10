@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HALE — Quit Nicotine. Together.</title>
+  <meta name="description" content="Your friend invited you to quit nicotine with HALE. Get the app and pair up as accountability buddies." />
+  <style>
+    :root { --void: #0a0c0b; --coal: #141716; --chalk: #f2f4f1; --ash: #9aa39c; --volt: #c6ff3d; --volt-ink: #1a2403; --line: #232826; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--void); color: var(--chalk);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100svh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .card { max-width: 420px; width: 100%; text-align: center; }
+    .wordmark { font-size: 64px; font-weight: 900; letter-spacing: 2px; }
+    .tagline { color: var(--volt); font-size: 22px; font-weight: 800; margin-top: 8px; }
+    .invite { color: var(--ash); font-size: 15px; line-height: 1.5; margin-top: 20px; }
+    .code-box {
+      margin: 28px auto 0; padding: 18px 24px; border: 1px solid var(--line); border-radius: 16px;
+      background: var(--coal); display: none;
+    }
+    .code-label { color: var(--ash); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+    .code { font-size: 34px; font-weight: 900; letter-spacing: 8px; margin-top: 6px; color: var(--volt); }
+    .code-hint { color: var(--ash); font-size: 13px; margin-top: 10px; line-height: 1.45; }
+    .cta {
+      display: block; margin-top: 28px; padding: 18px; border-radius: 16px; background: var(--volt);
+      color: var(--volt-ink); font-weight: 900; font-size: 16px; letter-spacing: 1px; text-decoration: none;
+    }
+    .copy-btn {
+      margin-top: 12px; padding: 10px 18px; border-radius: 12px; border: 1px solid var(--line);
+      background: transparent; color: var(--chalk); font-size: 13px; cursor: pointer;
+    }
+    .fine { color: var(--ash); opacity: 0.7; font-size: 12px; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="wordmark">HALE</div>
+    <div class="tagline">Quit Nicotine. Together.</div>
+    <p class="invite" id="invite-line">
+      Your friend invited you to quit with them — install HALE and pair up as accountability buddies.
+    </p>
+
+    <!-- Shown only on /r/<code> paths: iOS can't carry the code through an App
+         Store install, so the human carries it — remember it, enter it in HALE. -->
+    <div class="code-box" id="code-box">
+      <div class="code-label">Your invite code</div>
+      <div class="code" id="code"></div>
+      <div class="code-hint">After installing, tap “Have an invite code?” on the first screen and enter it to pair with your friend.</div>
+      <button class="copy-btn" id="copy" type="button">Copy code</button>
+    </div>
+
+    <!-- TODO(launch): replace # with the real App Store URL (and add a Play
+         Store button when the Android build ships). -->
+    <a class="cta" id="store" href="#">GET HALE ON THE APP STORE</a>
+    <p class="fine">Free to start · If you already have HALE, this link opens the app directly.</p>
+  </main>
+
+  <script>
+    // /r/<CODE> → surface the code for manual entry after install.
+    var m = location.pathname.match(/^\/r\/([A-Za-z0-9]{4,10})$/);
+    if (m) {
+      var code = m[1].toUpperCase();
+      document.getElementById('code').textContent = code;
+      document.getElementById('code-box').style.display = 'block';
+      document.getElementById('copy').addEventListener('click', function () {
+        navigator.clipboard && navigator.clipboard.writeText(code);
+        this.textContent = 'Copied ✓';
+      });
+    }
+  </script>
+</body>
+</html>

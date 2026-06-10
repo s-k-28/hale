@@ -1,0 +1,7 @@
+# Apple requires application/json for the extension-less AASA file; some static
+# hosts default extension-less files to octet-stream.
+/.well-known/apple-app-site-association
+  Content-Type: application/json
+
+/.well-known/assetlinks.json
+  Content-Type: application/json

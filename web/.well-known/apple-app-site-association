@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAM_ID_HERE.com.haleapp.hale"],
+        "components": [
+          {
+            "/": "/r/*",
+            "comment": "Referral links — open HALE and route to r/[code]"
+          },
+          {
+            "/": "/u/*",
+            "comment": "Buddy invite links — open HALE and route to u/[id]"
+          }
+        ]
+      }
+    ]
+  }
+}
