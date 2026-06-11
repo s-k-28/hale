@@ -130,7 +130,7 @@ export default function Paywall() {
       track(Ev.TRIAL_STARTED, { trial_days: 14, trial_type: 'storekit' });
       dismiss();
     } else if (result === 'failed') {
-      setNotice("That didn't go through. You weren't charged — try again.");
+      setNotice("That didn't go through. You weren't charged. Try again.");
     }
     // cancelled → stay quietly.
   };
@@ -217,7 +217,7 @@ function HalePlusUpsell({
           <Badge label="HALE+" tone="soft" />
 
           <Display className="mt-4 text-fg text-5xl leading-tight tracking-tight">
-            GO ALL IN.
+            Go all in.
           </Display>
 
           <Heading className="mt-3 text-accent text-xl leading-snug">
