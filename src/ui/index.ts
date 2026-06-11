@@ -17,3 +17,4 @@ export { Badge } from './Badge';
 export { IconBtn } from './IconBtn';
 export { Screen, ScreenHead, ScreenBody, CtaDock } from './Screen';
 export { Ring } from './Ring';
+export { SageNote } from './SageNote';

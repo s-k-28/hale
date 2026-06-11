@@ -17,7 +17,6 @@ import {
   Heart,
   MessageCircle,
   RotateCcw,
-  Sparkles,
   Timer,
   Users,
   Wind,
@@ -27,14 +26,19 @@ import { useMutation } from 'convex/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
-import { Screen } from '@/components/ui/Screen';
-import { Body, Display, Heading, Label } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { Surface } from '@/components/ui/Surface';
-import { SageNote } from '@/components/ui/SageNote';
-import { RingGauge } from '@/components/ui/RingGauge';
+import {
+  Screen,
+  Button,
+  Display,
+  Body,
+  SageNote,
+  Card,
+  Ring,
+  H2 as Heading,
+  Eyebrow as Label,
+} from '@/ui';
 import { Canvas, Circle, RadialGradient, vec } from '@shopify/react-native-skia';
-import { colors } from '@/theme/colors';
+import { clean } from '@/theme/clean';
 
 /**
  * Craving SOS — I1 (ride-it-out / breathe / talk to Sage / ping buddy) + I4
@@ -257,24 +261,24 @@ export default function CravingSos() {
       >
         <View className="flex-row items-center justify-between pt-2">
           <View className="flex-row items-center gap-2">
-            <View className="h-2.5 w-2.5 rounded-full bg-sos" />
-            <Label className="text-sos">Craving SOS</Label>
+            <View className="h-2.5 w-2.5 rounded-full bg-coral" />
+            <Label className="text-coral">Craving SOS</Label>
           </View>
           <Pressable
             onPress={close}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Close"
-            className="h-10 w-10 items-center justify-center rounded-full border border-line bg-coal active:opacity-70"
+            className="h-10 w-10 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-70"
           >
-            <X color={colors.chalk} size={18} strokeWidth={2.5} />
+            <X color={clean.fg} size={18} strokeWidth={2.5} />
           </Pressable>
         </View>
 
         <View className="mt-10">
           <Heading className="text-5xl leading-[0.95]">You're not{'\n'}in danger.</Heading>
-          <Display className="mt-2 text-6xl leading-tight text-sos">THIS PASSES.</Display>
-          <Body className="mt-5 text-base leading-relaxed text-ash">
+          <Display className="mt-2 text-6xl leading-tight text-coral">THIS PASSES.</Display>
+          <Body className="mt-5 text-base leading-relaxed text-fg-2">
             A craving peaks in a few minutes, then fades, whether or not you act on it. Let's get
             you to the other side. Pick one:
           </Body>
@@ -305,7 +309,7 @@ export default function CravingSos() {
             }}
           />
           <Option
-            icon={Sparkles}
+            icon={MessageCircle}
             title="Advanced toolkit"
             subtitle="Urge-surfing, your trigger patterns, and craving-time map."
             onPress={() => router.push('/toolkit')}
@@ -318,13 +322,13 @@ export default function CravingSos() {
         <Pressable
           onPress={() => setView({ kind: 'slip-choose' })}
           accessibilityRole="button"
-          className="mt-9 flex-row items-center justify-between rounded-2xl border border-line bg-coal px-5 py-4 active:opacity-70"
+          className="mt-9 flex-row items-center justify-between rounded-2xl border border-stroke bg-surface px-5 py-4 active:opacity-70"
         >
           <View>
-            <Body className="font-body-bold text-base text-chalk">I slipped</Body>
-            <Body className="mt-0.5 text-xs text-ash">It's okay. Let's keep going.</Body>
+            <Body className="font-sora-bold text-base text-fg">I slipped</Body>
+            <Body className="mt-0.5 text-xs text-fg-2">It's okay. Let's keep going.</Body>
           </View>
-          <RotateCcw color={colors.ash} size={18} strokeWidth={2.5} />
+          <RotateCcw color={clean.fg2} size={18} strokeWidth={2.5} />
         </Pressable>
 
         <Disclaimer full />
@@ -356,15 +360,15 @@ function CravingLogCapture({
         showsVerticalScrollIndicator={false}
       >
         <View className="mt-8">
-          <Label className="text-volt">You made it</Label>
+          <Label className="text-accent">You made it</Label>
           <Heading className="mt-2 text-4xl leading-[0.95]">That craving{'\n'}just passed.</Heading>
-          <Body className="mt-4 text-base leading-relaxed text-ash">
+          <Body className="mt-4 text-base leading-relaxed text-fg-2">
             Quick, naming it teaches HALE your triggers, so we get ahead of the next one.
           </Body>
         </View>
 
         {/* Intensity — user-selected, never defaulted */}
-        <Label className="mt-9 text-ash">How strong was it?</Label>
+        <Label className="mt-9 text-fg-2">How strong was it?</Label>
         <View className="mt-3 flex-row gap-2">
           {[1, 2, 3, 4, 5].map((n) => {
             const on = intensity === n;
@@ -375,21 +379,21 @@ function CravingLogCapture({
                 accessibilityRole="button"
                 accessibilityLabel={`Intensity ${n}`}
                 className={`flex-1 items-center rounded-2xl border py-3.5 active:opacity-80 ${
-                  on ? 'border-volt bg-volt/15' : 'border-line bg-coal'
+                  on ? 'border-accent-edge bg-accent/15' : 'border-stroke bg-surface'
                 }`}
               >
-                <Display className={`text-2xl ${on ? 'text-volt' : 'text-chalk'}`}>{n}</Display>
+                <Display className={`text-2xl ${on ? 'text-accent' : 'text-fg'}`}>{n}</Display>
               </Pressable>
             );
           })}
         </View>
         <View className="mt-1.5 flex-row justify-between px-1">
-          <Body className="text-[11px] text-ash">Barely there</Body>
-          <Body className="text-[11px] text-ash">Intense</Body>
+          <Body className="text-[11px] text-fg-2">Barely there</Body>
+          <Body className="text-[11px] text-fg-2">Intense</Body>
         </View>
 
         {/* Trigger */}
-        <Label className="mt-8 text-ash">What set it off?</Label>
+        <Label className="mt-8 text-fg-2">What set it off?</Label>
         <View className="mt-3 flex-row flex-wrap gap-2">
           {TRIGGER_CHIPS.map((t) => (
             <Chip
@@ -402,7 +406,7 @@ function CravingLogCapture({
         </View>
 
         {/* Context */}
-        <Label className="mt-8 text-ash">Where were you?</Label>
+        <Label className="mt-8 text-fg-2">Where were you?</Label>
         <View className="mt-3 flex-row flex-wrap gap-2">
           {CONTEXT_CHIPS.map((c) => (
             <Chip
@@ -429,7 +433,7 @@ function CravingLogCapture({
           accessibilityRole="button"
           className="mt-4 items-center py-2 active:opacity-70"
         >
-          <Body className="text-sm text-ash">Skip</Body>
+          <Body className="text-sm text-fg-2">Skip</Body>
         </Pressable>
       </ScrollView>
     </Screen>
@@ -450,10 +454,10 @@ function Chip({
       onPress={onPress}
       accessibilityRole="button"
       className={`rounded-full border px-4 py-2 active:opacity-70 ${
-        selected ? 'border-volt bg-volt/15' : 'border-line bg-coal'
+        selected ? 'border-accent-edge bg-accent/15' : 'border-stroke bg-surface'
       }`}
     >
-      <Body className={`text-sm ${selected ? 'font-body-semibold text-volt' : 'text-chalk'}`}>
+      <Body className={`text-sm ${selected ? 'font-sora-semibold text-accent' : 'text-fg'}`}>
         {label}
       </Body>
     </Pressable>
@@ -481,10 +485,10 @@ function PrimaryOption({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      className="flex-row items-center gap-4 rounded-3xl bg-sos px-5 py-5 active:opacity-90"
+      className="flex-row items-center gap-4 rounded-3xl bg-coral px-5 py-5 active:opacity-90"
     >
       <View className="h-12 w-12 items-center justify-center rounded-2xl bg-black/15">
-        <Icon color={colors.chalk} size={24} strokeWidth={2.5} />
+        <Icon color={clean.fg} size={24} strokeWidth={2.5} />
       </View>
       <View className="flex-1">
         <Heading className="text-xl text-white">{title}</Heading>
@@ -513,16 +517,16 @@ function Option({
       disabled={disabled}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!disabled }}
-      className={`flex-row items-center gap-4 rounded-3xl border border-line bg-coal px-5 py-5 ${
+      className={`flex-row items-center gap-4 rounded-3xl border border-stroke bg-surface px-5 py-5 ${
         disabled ? 'opacity-45' : 'active:opacity-80'
       }`}
     >
-      <View className="h-12 w-12 items-center justify-center rounded-2xl border border-line bg-card">
-        <Icon color={disabled ? colors.ash : colors.volt} size={24} strokeWidth={2.5} />
+      <View className="h-12 w-12 items-center justify-center rounded-2xl border border-stroke bg-surface-2">
+        <Icon color={disabled ? clean.fg2 : clean.accent} size={24} strokeWidth={2.5} />
       </View>
       <View className="flex-1">
-        <Heading className="text-xl text-chalk">{title}</Heading>
-        <Body className="mt-1 text-sm text-ash">{subtitle}</Body>
+        <Heading className="text-xl text-fg">{title}</Heading>
+        <Body className="mt-1 text-sm text-fg-2">{subtitle}</Body>
       </View>
     </Pressable>
   );
@@ -571,16 +575,16 @@ function RideItOut({
             {/* Slow ambient coral glow breathing behind the timer — the crisis
                 accent, kept very subtle so it never competes with the countdown. */}
             <CoralGlow />
-            <RingGauge progress={progress} size={264} stroke={12}>
+            <Ring progress={progress} size={264} stroke={12}>
               <View className="items-center">
-                <Label className="text-volt">{done ? 'Made it' : 'It crests, then fades'}</Label>
-                <Display className="mt-1 text-7xl leading-tight tabular-nums text-chalk">
+                <Label className="text-accent">{done ? 'Made it' : 'It crests, then fades'}</Label>
+                <Display className="mt-1 text-7xl leading-tight tabular-nums text-fg">
                   {fmtClock(remaining)}
                 </Display>
               </View>
-            </RingGauge>
+            </Ring>
           </View>
-          <Body className="mt-10 px-4 text-center text-lg leading-relaxed text-ash">
+          <Body className="mt-10 px-4 text-center text-lg leading-relaxed text-fg-2">
             {reassurance}
           </Body>
         </View>
@@ -590,13 +594,13 @@ function RideItOut({
         ) : (
           <Button
             label="The craving passed, I'm good"
-            variant="surface"
+            variant="secondary"
             onPress={onSurvived}
           />
         )}
 
         <Pressable onPress={onSlip} accessibilityRole="button" className="mt-3 items-center py-2">
-          <Body className="text-sm text-ash">I slipped</Body>
+          <Body className="text-sm text-fg-2">I slipped</Body>
         </Pressable>
 
         <Disclaimer />
@@ -628,7 +632,7 @@ function CoralGlow() {
           <RadialGradient
             c={vec(S / 2, S / 2)}
             r={S / 2}
-            colors={['rgba(255,90,77,0.22)', 'rgba(255,90,77,0.0)']}
+            colors={['rgba(255,107,92,0.22)', 'rgba(255,107,92,0.0)']}
           />
         </Circle>
       </Canvas>
@@ -705,14 +709,14 @@ function BoxBreathing({
         <View className="flex-1 items-center justify-center">
           <View className="h-72 w-72 items-center justify-center">
             <Animated.View
-              className="absolute h-72 w-72 rounded-full border border-volt/40 bg-volt/10"
+              className="absolute h-72 w-72 rounded-full border border-accent-edge/40 bg-accent/10"
               style={circleStyle}
             />
-            <View className="h-32 w-32 items-center justify-center rounded-full border border-volt/50 bg-volt/15">
-              <Heading className="text-center text-lg text-volt">{PHASES[phase].label}</Heading>
+            <View className="h-32 w-32 items-center justify-center rounded-full border border-accent-edge/50 bg-accent/15">
+              <Heading className="text-center text-lg text-accent">{PHASES[phase].label}</Heading>
             </View>
           </View>
-          <Body className="mt-12 px-6 text-center text-base leading-relaxed text-ash">
+          <Body className="mt-12 px-6 text-center text-base leading-relaxed text-fg-2">
             In for four, hold for four, out for four, hold for four. Let your shoulders drop.
           </Body>
         </View>
@@ -720,7 +724,7 @@ function BoxBreathing({
         <Button label="I feel steadier, I'm good" variant="primary" onPress={onSurvived} />
 
         <Pressable onPress={onSlip} accessibilityRole="button" className="mt-3 items-center py-2">
-          <Body className="text-sm text-ash">I slipped</Body>
+          <Body className="text-sm text-fg-2">I slipped</Body>
         </Pressable>
 
         <Disclaimer />
@@ -753,24 +757,24 @@ function SlipChoose({
 
         <View className="mt-4">
           <Heading className="text-4xl leading-[0.95]">Slips are part of quitting,</Heading>
-          <Display className="mt-2 text-5xl leading-tight text-volt">NOT THE END.</Display>
+          <Display className="mt-2 text-5xl leading-tight text-accent">NOT THE END.</Display>
         </View>
-        <Body className="mt-5 text-base leading-relaxed text-ash">
+        <Body className="mt-5 text-base leading-relaxed text-fg-2">
           Be honest with yourself; it's the only way the data helps you. Which one fits?
         </Body>
 
         <Pressable
           onPress={onLapse}
           accessibilityRole="button"
-          className="mt-9 rounded-3xl border border-volt/40 bg-volt/10 px-5 py-5 active:opacity-80"
+          className="mt-9 rounded-3xl border border-accent-edge/40 bg-accent/10 px-5 py-5 active:opacity-80"
         >
           <View className="flex-row items-center gap-2">
-            <Heading className="text-xl text-volt">Just a slip</Heading>
-            <View className="rounded-full bg-volt/20 px-2.5 py-0.5">
-              <Label className="text-volt">Streak safe</Label>
+            <Heading className="text-xl text-accent">Just a slip</Heading>
+            <View className="rounded-full bg-accent/20 px-2.5 py-0.5">
+              <Label className="text-accent">Streak safe</Label>
             </View>
           </View>
-          <Body className="mt-2 text-sm leading-relaxed text-chalk/80">
+          <Body className="mt-2 text-sm leading-relaxed text-fg/80">
             One moment, and I'm back on track. Your streak is protected.
           </Body>
         </Pressable>
@@ -778,16 +782,16 @@ function SlipChoose({
         <Pressable
           onPress={onRelapse}
           accessibilityRole="button"
-          className="mt-3 rounded-3xl border border-line bg-coal px-5 py-5 active:opacity-80"
+          className="mt-3 rounded-3xl border border-stroke bg-surface px-5 py-5 active:opacity-80"
         >
-          <Heading className="text-xl text-chalk">I'm back on it for now</Heading>
-          <Body className="mt-2 text-sm leading-relaxed text-ash">
+          <Heading className="text-xl text-fg">I'm back on it for now</Heading>
+          <Body className="mt-2 text-sm leading-relaxed text-fg-2">
             We'll start a fresh run, and keep everything you've already earned.
           </Body>
         </Pressable>
 
         <Pressable onPress={onCancel} accessibilityRole="button" className="mt-7 items-center py-2">
-          <Body className="text-sm text-ash">Actually, I'm okay. Go back</Body>
+          <Body className="text-sm text-fg-2">Actually, I'm okay. Go back</Body>
         </Pressable>
 
         <Disclaimer />
@@ -844,13 +848,13 @@ function WarmHeart() {
   const style = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   return (
     <Animated.View
-      className="mb-6 h-20 w-20 items-center justify-center self-center rounded-3xl border border-volt/40 bg-volt/10"
+      className="mb-6 h-20 w-20 items-center justify-center self-center rounded-3xl border border-accent-edge/40 bg-accent/10"
       style={[
         style,
-        { shadowColor: colors.volt, shadowOpacity: 0.3, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } },
+        { shadowColor: clean.accent, shadowOpacity: 0.3, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } },
       ]}
     >
-      <Heart color={colors.volt} size={38} strokeWidth={2.5} />
+      <Heart color={clean.accent} size={38} strokeWidth={2.5} />
     </Animated.View>
   );
 }
@@ -878,8 +882,8 @@ function RecoverKindly({
           <View className="items-center pt-12">
             <WarmHeart />
             <Heading className="text-center text-4xl leading-[0.95]">This isn't a reset.</Heading>
-            <Display className="mt-2 text-center text-6xl leading-tight text-chalk">FRESH RUN.</Display>
-            <Body className="mt-5 text-center text-base leading-relaxed text-ash">
+            <Display className="mt-2 text-center text-6xl leading-tight text-fg">FRESH RUN.</Display>
+            <Body className="mt-5 text-center text-base leading-relaxed text-fg-2">
               Quitting nicotine almost never happens in one clean line. What you've built so far
               doesn't disappear, it's still yours.
             </Body>
@@ -888,42 +892,42 @@ function RecoverKindly({
 
         <SoftRise delay={140}>
         {/* What you've already earned — loud lifetime stats, NEVER a zero feel. */}
-        <Surface level="raised" className="mt-9 overflow-hidden">
-          <View className="border-b border-line px-5 pb-4 pt-5">
+        <Card className="mt-9 overflow-hidden">
+          <View className="border-b border-stroke px-5 pb-4 pt-5">
             <Label>What you've already earned</Label>
           </View>
           <View className="flex-row">
-            <View className="flex-1 border-r border-line px-5 py-5">
-              <Display className="text-5xl leading-tight text-chalk">{fmtUsd(lifetimeMoneySaved)}</Display>
+            <View className="flex-1 border-r border-stroke px-5 py-5">
+              <Display className="text-5xl leading-tight text-fg">{fmtUsd(lifetimeMoneySaved)}</Display>
               <Label className="mt-2">Saved · lifetime</Label>
             </View>
             <View className="flex-1 px-5 py-5">
               <View className="flex-row items-baseline gap-1.5">
-                <Display className="text-5xl leading-tight text-chalk">{bestStreak}</Display>
-                <Body className="font-body-bold text-base text-ash">
+                <Display className="text-5xl leading-tight text-fg">{bestStreak}</Display>
+                <Body className="font-sora-bold text-base text-fg-2">
                   {bestStreak === 1 ? 'day' : 'days'}
                 </Body>
               </View>
               <Label className="mt-2">Best streak</Label>
             </View>
           </View>
-          <View className="border-t border-line px-5 py-4">
+          <View className="border-t border-stroke px-5 py-4">
             <SageNote chip={false}>
               You already proved you can do this for {bestStreak > 0 ? `${bestStreak} ` : 'a '}
               {bestStreak === 1 ? 'day' : 'days'}. You can do it again, starting now.
             </SageNote>
           </View>
-        </Surface>
+        </Card>
         </SoftRise>
 
         <SoftRise delay={260}>
         {/* I4, name the trigger: therapeutic ("naming it") + real data for I3. */}
         <View className="mt-9">
           <View className="flex-row items-center gap-1.5">
-            <Sparkles color={colors.ash} size={13} strokeWidth={2.5} />
-            <Label className="text-ash">What pulled you back?</Label>
+            <MessageCircle color={clean.fg2} size={13} strokeWidth={2.2} />
+            <Label className="text-fg-2">What pulled you back?</Label>
           </View>
-          <Body className="mt-1.5 text-xs text-ash">Naming it is how the next run gets easier.</Body>
+          <Body className="mt-1.5 text-xs text-fg-2">Naming it is how the next run gets easier.</Body>
           <View className="mt-3 flex-row flex-wrap gap-2">
             {TRIGGER_CHIPS.map((t) => (
               <Chip
@@ -943,9 +947,9 @@ function RecoverKindly({
         <Pressable
           onPress={() => onDone(trigger)}
           accessibilityRole="button"
-          className="mt-4 h-14 items-center justify-center rounded-2xl border border-line active:bg-coal"
+          className="mt-4 h-14 items-center justify-center rounded-2xl border border-stroke active:bg-surface"
         >
-          <Heading className="text-[15px] tracking-wide text-chalk">Start my fresh run</Heading>
+          <Heading className="text-[15px] tracking-wide text-fg">Start my fresh run</Heading>
         </Pressable>
         </SoftRise>
 
@@ -967,11 +971,11 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
         hitSlop={12}
         accessibilityRole="button"
         accessibilityLabel="Back"
-        className="h-10 w-10 items-center justify-center rounded-full border border-line bg-coal active:opacity-70"
+        className="h-10 w-10 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-70"
       >
-        <ChevronLeft color={colors.chalk} size={20} strokeWidth={2.5} />
+        <ChevronLeft color={clean.fg} size={20} strokeWidth={2.5} />
       </Pressable>
-      <Label className="text-ash">{title}</Label>
+      <Label className="text-fg-2">{title}</Label>
       <View className="h-10 w-10" />
     </View>
   );
@@ -979,7 +983,7 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
 
 function Disclaimer({ full = false }: { full?: boolean }) {
   return (
-    <Body className="mt-7 text-center text-xs leading-relaxed text-ash/70">
+    <Body className="mt-7 text-center text-xs leading-relaxed text-fg-2/70">
       {full
         ? "HALE is supportive, not medical advice. If you're in crisis or thinking about harming yourself, please contact your local emergency services."
         : 'Supportive, not medical advice.'}
