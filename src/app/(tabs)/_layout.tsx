@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { House, Users, Sparkles, User } from 'lucide-react-native';
+import { House, Users, MessageCircle, User } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { usePushTags } from '@/hooks/usePushTags';
 import { identifyUser, setCohortSnapshot } from '@/lib/analytics';
 import { identifyPurchaser } from '@/lib/revenuecat';
 import { quitStage } from '@convex/model/cohort';
-import { colors } from '@/theme/colors';
+import { clean } from '@/theme/clean';
 
 /**
  * Whole-app session sync for authed users. Lives in the tab layout so it stays
@@ -69,44 +69,44 @@ export default function TabsLayout() {
         // transition. Pairs with each screen's content RiseIn (translateY+opacity)
         // so switching tabs feels like the new screen settling in, not snapping.
         animation: 'fade',
-        tabBarActiveTintColor: colors.volt,
-        tabBarInactiveTintColor: colors.ash,
+        tabBarActiveTintColor: clean.accent,
+        tabBarInactiveTintColor: clean.fg3,
         tabBarStyle: {
-          backgroundColor: colors.coal,
-          borderTopColor: colors.line,
+          backgroundColor: clean.bg,
+          borderTopColor: clean.stroke,
           borderTopWidth: 1,
-          height: 88,
+          height: 86,
           paddingTop: 8,
         },
-        tabBarLabelStyle: { fontFamily: 'HankenGrotesk_600SemiBold', fontSize: 11 },
+        tabBarLabelStyle: { fontFamily: 'Sora_600SemiBold', fontSize: 10.5, letterSpacing: 0.2 },
       }}
     >
       <Tabs.Screen
         name="today"
         options={{
           title: 'Today',
-          tabBarIcon: ({ color, size }) => <House color={color} size={size} strokeWidth={2.5} />,
+          tabBarIcon: ({ color, size }) => <House color={color} size={size} strokeWidth={2} />,
         }}
       />
       <Tabs.Screen
         name="squad"
         options={{
           title: 'Squad',
-          tabBarIcon: ({ color, size }) => <Users color={color} size={size} strokeWidth={2.5} />,
+          tabBarIcon: ({ color, size }) => <Users color={color} size={size} strokeWidth={2} />,
         }}
       />
       <Tabs.Screen
         name="coach"
         options={{
           title: 'Coach',
-          tabBarIcon: ({ color, size }) => <Sparkles color={color} size={size} strokeWidth={2.5} />,
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} strokeWidth={2} />,
         }}
       />
       <Tabs.Screen
         name="you"
         options={{
           title: 'You',
-          tabBarIcon: ({ color, size }) => <User color={color} size={size} strokeWidth={2.5} />,
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} strokeWidth={2} />,
         }}
       />
       </Tabs>
