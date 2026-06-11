@@ -65,9 +65,9 @@ const tailwindColors = {
 
 // Clean Dark type ramp (from styles.css) — Sora everywhere.
 const fontSize = {
-  hero: ['88px', { lineHeight: '81px', letterSpacing: '-2.6px' }], // 0.92lh, -0.03em
-  h1: ['30px', { lineHeight: '33px', letterSpacing: '-0.75px' }],
-  h2: ['23px', { lineHeight: '26px', letterSpacing: '-0.46px' }],
+  hero: ['88px', { lineHeight: '92px', letterSpacing: '-2.6px' }], // Sora clips below ~1.05lh
+  h1: ['30px', { lineHeight: '36px', letterSpacing: '-0.75px' }],
+  h2: ['23px', { lineHeight: '28px', letterSpacing: '-0.46px' }],
   h3: ['18px', { lineHeight: '23px', letterSpacing: '-0.18px' }],
   lead: ['16px', { lineHeight: '25px' }],
   body: ['15px', { lineHeight: '23px' }],

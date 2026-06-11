@@ -11,13 +11,32 @@ import { RNText } from './internal';
  * No native input chrome anywhere (anti-AI rule: spinners/focus bars killed).
  */
 
-export function Input({ className = '', ...props }: TextInputProps & { className?: string }) {
+export function Input({
+  className = '',
+  placeholder,
+  value,
+  ...props
+}: TextInputProps & { className?: string }) {
   return (
-    <TextInput
-      placeholderTextColor={clean.fg3}
-      className={`h-14 rounded-tile border border-stroke bg-surface-2 px-[18px] font-sora text-[16px] text-fg ${className}`}
-      {...props}
-    />
+    <View className={`relative ${className}`}>
+      <TextInput
+        // Typed text centers via explicit height + zero native padding + an
+        // explicit line box (Sora's oversized ascender bottom-pins it otherwise).
+        value={value}
+        style={{ height: 56, paddingVertical: 0 }}
+        className="rounded-tile border border-stroke bg-surface-2 px-[18px] font-sora text-[16px] leading-[20px] text-fg"
+        {...props}
+      />
+      {/* iOS draws NATIVE placeholders with the raw font metrics, ignoring the
+          line box — Sora's ascent sinks them to the bottom edge. So the
+          placeholder is ours: an overlay Text that obeys the same line box.
+          (Controlled-value callers only; all current call sites are.) */}
+      {!value && placeholder ? (
+        <View pointerEvents="none" className="absolute inset-0 justify-center px-[18px]">
+          <RNText className="font-sora text-[16px] leading-[20px] text-fg-3">{placeholder}</RNText>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -46,7 +65,9 @@ export function UnderlineInput({
       ) : null}
       <TextInput
         placeholderTextColor={clean.fg3}
-        className="flex-1 p-0 font-sora-bold text-[56px] leading-[60px] tracking-[-1.68px] text-fg"
+        // 56pt Sora needs ≥62pt of line box or descender-adjacent glyphs clip.
+        style={{ paddingVertical: 0, textAlignVertical: 'center', height: 64 }}
+        className="flex-1 p-0 font-sora-bold text-[56px] leading-[62px] tracking-[-1.68px] text-fg"
         {...props}
       />
       {suffix ? (
