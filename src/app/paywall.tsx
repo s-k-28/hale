@@ -6,10 +6,15 @@ import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { Check, X, Bot, LineChart, Users, LayoutGrid } from 'lucide-react-native';
 import { presentPaywall } from '@/lib/paywall';
 import { track, Ev } from '@/lib/analytics';
-import { Display, Heading, Body, Caption } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { Pill } from '@/components/ui/Pill';
-import { colors } from '@/theme/colors';
+import {
+  Button,
+  Display,
+  Body,
+  Badge,
+  Muted as Caption,
+  H2 as Heading,
+} from '@/ui';
+import { clean } from '@/theme/clean';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
@@ -111,8 +116,8 @@ export default function Paywall() {
   // on-brand backdrop underneath rather than a flash of empty space.
   if (phase !== 'fallback') {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-void">
-        <ActivityIndicator color={colors.volt} />
+      <SafeAreaView className="flex-1 items-center justify-center bg-bg">
+        <ActivityIndicator color={clean.accent} />
       </SafeAreaView>
     );
   }
@@ -126,8 +131,8 @@ export default function Paywall() {
 
 function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
   return (
-    <SafeAreaView className="flex-1 bg-void" edges={['top', 'bottom']}>
-      {/* Close — top right, hairline coal chip */}
+    <SafeAreaView className="flex-1 bg-bg" edges={['top', 'bottom']}>
+      {/* Close — top right, hairline surface chip */}
       <View className="px-gutter pt-3">
         <View className="flex-row items-center justify-end">
           <Pressable
@@ -135,9 +140,9 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Close"
-            className="h-9 w-9 items-center justify-center rounded-full bg-coal border border-line active:opacity-70"
+            className="h-9 w-9 items-center justify-center rounded-full bg-surface border border-stroke active:opacity-70"
           >
-            <X color={colors.ash} size={18} strokeWidth={2.5} />
+            <X color={clean.fg2} size={18} strokeWidth={2.5} />
           </Pressable>
         </View>
       </View>
@@ -150,17 +155,17 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
       >
         {/* Hero — tightened (text-5xl, single line) so all four benefits sit above the fold */}
         <View className="mt-1">
-          <Pill tone="volt">HALE+</Pill>
+          <Badge label="HALE+" tone="soft" />
 
-          <Display className="mt-4 text-chalk text-5xl leading-tight tracking-tight">
+          <Display className="mt-4 text-fg text-5xl leading-tight tracking-tight">
             GO ALL IN.
           </Display>
 
-          <Heading className="mt-3 text-volt text-xl leading-snug">
+          <Heading className="mt-3 text-accent text-xl leading-snug">
             Quitting sticks when you stop holding back.
           </Heading>
 
-          <Body className="mt-2 text-ash text-base leading-relaxed">
+          <Body className="mt-2 text-fg-2 text-base leading-relaxed">
             Unlock the full toolkit, your coach, your data, and your people.
           </Body>
         </View>
@@ -181,15 +186,15 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
       {/* Pinned footer: price stays visible WITH the CTA, and it's slim enough
           that it never covers a benefit. Focal point = the lime START HALE+ action. */}
       <View
-        className="border-t border-line bg-coal px-gutter pb-2 pt-4"
+        className="border-t border-stroke bg-surface px-gutter pb-2 pt-4"
         style={{ shadowColor: '#000000', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: -8 } }}
       >
         {/* Price promoted to the ANTON value-hero so the conversion moment finally
-            lands a massive numeral; the footer is a raised coal plane so the cards
+            lands a massive numeral; the footer is a raised surface plane so the cards
             recede UNDER it (no more sliced 4th card). Price value unchanged. */}
         <View className="mb-3 flex-row items-baseline justify-center">
-          <Display className="text-chalk text-5xl leading-tight tracking-tight">$79.99</Display>
-          <Body className="ml-2 text-ash text-sm">/yr · $6.67/mo</Body>
+          <Display className="text-fg text-5xl leading-tight tracking-tight">$79.99</Display>
+          <Body className="ml-2 text-fg-2 text-sm">/yr · $6.67/mo</Body>
         </View>
 
         <SheenButton onPress={onMaybeLater} />
@@ -199,7 +204,7 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
           accessibilityRole="button"
           className="mt-2 items-center py-3 active:opacity-70"
         >
-          <Caption className="text-ash">Maybe later</Caption>
+          <Caption className="text-fg-2">Maybe later</Caption>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -241,7 +246,7 @@ function SheenButton({ onPress }: { onPress: () => void }) {
 
   return (
     <View className="relative" onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-      <Button label="START HALE+" variant="primary" onPress={onPress} />
+      <Button label="Start HALE+" variant="primary" onPress={onPress} />
       {/* Clip the sheen to the button's rounded rect; pointerEvents none so the
           highlight never eats a tap. Inset clip only — the Button's lift shadow,
           which lives on the Button itself, is not clipped. */}
@@ -282,26 +287,26 @@ function Benefit({
 }) {
   // The first benefit (the Sage coach — HALE's identity hook) is elevated onto the
   // raised plane so the value stack has a leader; the rest recede. Checkmarks drop
-  // to ash so peak volt is reserved for the CTA. Order/labels unchanged.
+  // to fg-2 so the peak accent is reserved for the CTA. Order/labels unchanged.
   return (
     <View
       className={`flex-row items-start rounded-2xl px-4 py-4 ${
-        elevated ? 'border border-volt/25 bg-raised' : 'bg-coal/50'
+        elevated ? 'border border-accent-edge/25 bg-surface-2' : 'bg-surface/50'
       }`}
       style={
         elevated
-          ? { shadowColor: colors.volt, shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } }
+          ? { shadowColor: clean.accent, shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } }
           : undefined
       }
     >
-      <View className="mr-4 h-10 w-10 items-center justify-center rounded-xl bg-volt">
-        <Icon color={colors.void} size={20} strokeWidth={2.5} />
+      <View className="mr-4 h-10 w-10 items-center justify-center rounded-xl bg-accent">
+        <Icon color={clean.bg} size={20} strokeWidth={2.5} />
       </View>
       <View className="flex-1">
-        <Body className="font-body-bold text-chalk text-base">{title}</Body>
-        <Body className="mt-1 text-ash text-sm leading-relaxed">{detail}</Body>
+        <Body className="font-sora-bold text-fg text-base">{title}</Body>
+        <Body className="mt-1 text-fg-2 text-sm leading-relaxed">{detail}</Body>
       </View>
-      <Check color={colors.ash} size={18} strokeWidth={3} className="mt-1" />
+      <Check color={clean.fg2} size={18} strokeWidth={3} className="mt-1" />
     </View>
   );
 }
