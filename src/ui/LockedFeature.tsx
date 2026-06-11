@@ -3,9 +3,7 @@ import { Pressable, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Lock } from 'lucide-react-native';
-import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { usePremium } from '@/hooks/usePremium';
-import { presentPaywall } from '@/lib/paywall';
 import { track, Ev } from '@/lib/analytics';
 import { clean } from '@/theme/clean';
 import { H2, Body } from './Text';
@@ -39,15 +37,12 @@ export function LockedFeature({
 }) {
   const { hasHALEPlus, loading } = usePremium();
 
-  const open = useCallback(async () => {
+  const open = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     track(Ev.PAYWALL_FEATURE_TAPPED, { feature });
-    // presentPaywall already fires PAYWALL_VIEWED (tagged with the surface).
-    const result = await presentPaywall(feature);
-    // Scaffold / RC-unconfigured → fall back to the in-app paywall screen.
-    if (result === PAYWALL_RESULT.NOT_PRESENTED) {
-      router.push('/paywall');
-    }
+    // Hard paywall: always OUR Clean Dark screen (it owns PAYWALL_VIEWED and
+    // the StoreKit purchase flow) — never the RC-rendered sheet.
+    router.push('/paywall');
   }, [feature]);
 
   // Entitled (or still resolving — never flash a lock at a paying user): pass through.
