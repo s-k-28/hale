@@ -286,6 +286,110 @@ export default defineSchema({
     achievedAt: v.optional(v.number()),
   }).index('by_user', ['userId']),
 
+  // ── Community (anonymous peer feed) ───────────────────────────
+  // SECURITY INVARIANT: anonProfiles is the userId↔pseudonym mapping and is
+  // SERVER-ONLY. No public return value ever includes userId on community
+  // content; every query shapes fields explicitly (see hale-community-architecture.md).
+
+  // communityGroups — 6 seeded rows ONLY (5 groups + the 'global' pseudo-group).
+  // No user-created groups. Copy (descriptions/empty states) lives client-side
+  // in src/constants/communityCopy.ts keyed by slug; the server stores identity.
+  communityGroups: defineTable({
+    slug: v.string(), // 'day-one-club' | 'cravings-right-now' | 'milestones' | 'vaping-zyn' | 'relapse-restart' | 'global'
+    name: v.string(),
+    isGlobal: v.boolean(), // true only for the 'global' pseudo-group
+    sortOrder: v.number(), // browse-screen ordering (global first = 0)
+    memberCount: v.number(), // denormalized; ++ when an anonProfile is created. "member-ish" — never per-user public.
+  }).index('by_slug', ['slug']),
+
+  // anonProfiles — ONE pseudonym per (userId, groupId). The global feed is its
+  // own pseudo-group, so a user's global handle differs from their group handles.
+  // Rate limiting is per anonProfile (per-group buckets).
+  anonProfiles: defineTable({
+    userId: v.id('users'), // SERVER-ONLY — never returned for other users
+    groupId: v.id('communityGroups'),
+    handle: v.string(), // "steady-otter-47" — unique within a group
+    avatarSeed: v.string(), // 6-char hex; UI derives a deterministic hue
+    createdAt: v.number(), // epoch ms
+  })
+    .index('by_user_group', ['userId', 'groupId']) // profile lookup + join idempotency
+    .index('by_group_handle', ['groupId', 'handle']), // collision-safe handle generation
+
+  // communityPosts — text-only, 500 chars, shadow-ban moderation states.
+  // 'shadowed' posts render as published TO THEIR AUTHOR, hidden from others.
+  communityPosts: defineTable({
+    groupId: v.id('communityGroups'),
+    userId: v.id('users'), // SERVER-ONLY
+    anonProfileId: v.id('anonProfiles'),
+    body: v.string(), // trimmed, 1..500 chars (validatePostBody)
+    status: v.union(v.literal('pending'), v.literal('published'), v.literal('shadowed')),
+    flags: v.optional(
+      v.object({
+        pii: v.boolean(),
+        crisis: v.boolean(),
+        glamorizing: v.boolean(),
+        harassment: v.boolean(),
+      }),
+    ), // set by moderation; absent while pending
+    crisisAcked: v.optional(v.boolean()), // author dismissed the crisis card
+    reactionCount: v.number(), // denormalized; maintained by toggleReaction
+    ts: v.number(), // epoch ms — server-side only; clients get coarse labels
+  })
+    .index('by_group_ts', ['groupId', 'ts']) // group feed (status filtered in handler — shadow-ban interleaving)
+    .index('by_user_ts', ['userId', 'ts']) // author's own posts / crisis alerts
+    .index('by_profile_ts', ['anonProfileId', 'ts']) // rolling-hour rate limit
+    .index('by_status_ts', ['status', 'ts']), // moderation-requeue sweep (stuck 'pending')
+
+  // communityComments — same moderation pipeline + shadow semantics as posts.
+  communityComments: defineTable({
+    postId: v.id('communityPosts'),
+    groupId: v.id('communityGroups'), // denormalized from the post (profile resolution)
+    userId: v.id('users'), // SERVER-ONLY
+    anonProfileId: v.id('anonProfiles'),
+    body: v.string(),
+    status: v.union(v.literal('pending'), v.literal('published'), v.literal('shadowed')),
+    flags: v.optional(
+      v.object({
+        pii: v.boolean(),
+        crisis: v.boolean(),
+        glamorizing: v.boolean(),
+        harassment: v.boolean(),
+      }),
+    ),
+    crisisAcked: v.optional(v.boolean()),
+    ts: v.number(),
+  })
+    .index('by_post_ts', ['postId', 'ts'])
+    .index('by_user_ts', ['userId', 'ts']) // author's crisis alerts
+    .index('by_status_ts', ['status', 'ts']), // moderation-requeue sweep (stuck 'pending')
+
+  // communityReactions — one "With you" per user per post. Count lives on the
+  // post; NEVER aggregated per profile (no clout).
+  communityReactions: defineTable({
+    postId: v.id('communityPosts'),
+    userId: v.id('users'), // SERVER-ONLY
+    ts: v.number(),
+  }).index('by_post_user', ['postId', 'userId']), // myReaction point-lookup + toggle
+
+  // communityReports — audit trail; no automated action in v1.
+  communityReports: defineTable({
+    reporterUserId: v.id('users'), // SERVER-ONLY
+    targetType: v.union(v.literal('post'), v.literal('comment')),
+    targetId: v.string(), // Id<'communityPosts'> | Id<'communityComments'> as string
+    reason: v.optional(v.string()),
+    ts: v.number(),
+  })
+    .index('by_reporter_target', ['reporterUserId', 'targetType', 'targetId']) // dedupe
+    .index('by_target', ['targetType', 'targetId']),
+
+  // communityMutes — muter hides one anonProfile's content (posts + comments)
+  // for themselves only. Prefix query on muterUserId loads the muter's set.
+  communityMutes: defineTable({
+    muterUserId: v.id('users'), // SERVER-ONLY
+    mutedProfileId: v.id('anonProfiles'),
+    ts: v.number(),
+  }).index('by_muter_profile', ['muterUserId', 'mutedProfileId']),
+
   // DERIVED (no table): live counter, $ saved, milestone curve, craving analytics,
   // league scores (counted from checkIns at query time).
 });

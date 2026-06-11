@@ -41,4 +41,12 @@ crons.daily(
  */
 crons.hourly('proactive-nudge', { minuteUTC: 0 }, internal.pushes.proactiveNudgeSweep);
 
+/**
+ * moderation-requeue: drains community posts/comments stuck 'pending' (classify
+ * exhausted its retries — typically a missing/bad ANTHROPIC_API_KEY). Without
+ * this, content authored during an outage would never publish even after the
+ * key is fixed. Idempotent + batched; a no-op when nothing is stuck.
+ */
+crons.interval('moderation-requeue', { minutes: 15 }, internal.communityModeration.requeueStalePending, {});
+
 export default crons;

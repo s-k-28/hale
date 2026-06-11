@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { House, Users, Sparkles, User } from 'lucide-react-native';
+import { House, Users, HeartHandshake, Sparkles, User } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { usePushTags } from '@/hooks/usePushTags';
 import { identifyUser, setCohortSnapshot } from '@/lib/analytics';
@@ -93,6 +93,15 @@ export default function TabsLayout() {
         options={{
           title: 'Squad',
           tabBarIcon: ({ color, size }) => <Users color={color} size={size} strokeWidth={2.5} />,
+        }}
+      />
+      <Tabs.Screen
+        name="community"
+        options={{
+          title: 'Community',
+          tabBarIcon: ({ color, size }) => (
+            <HeartHandshake color={color} size={size} strokeWidth={2.5} />
+          ),
         }}
       />
       <Tabs.Screen

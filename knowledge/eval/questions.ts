@@ -1,5 +1,5 @@
 /**
- * EvalAgent question set — 25 things a real quitting user asks. Used by
+ * EvalAgent question set — 40 things a real quitting user asks. Used by
  * convex/sageKnowledge.ts `runEval` to verify retrieval returns on-topic chunks.
  * `topic` is the namespace we EXPECT to dominate the results (loose check).
  */
@@ -31,4 +31,19 @@ export const EVAL_QUESTIONS: { q: string; topic: Topic }[] = [
   { q: 'I feel depressed since quitting, is that a thing?', topic: 'withdrawal' },
   { q: 'I get cravings when I drink alcohol with friends', topic: 'behavioral' },
   { q: "I'm bored and that's when I want to vape most", topic: 'behavioral' },
+  { q: 'Urges are getting hard to control, I feel myself getting angrier', topic: 'mood' },
+  { q: "I snapped at my girlfriend for no reason, I'm not like this", topic: 'mood' },
+  { q: "I'm so stressed at work and smoking was my only way to cope", topic: 'mood' },
+  { q: 'I keep having panic-attack feelings since I quit', topic: 'mood' },
+  { q: 'How do I calm down without a cigarette?', topic: 'mood' },
+  { q: 'How do I quit a disposable vape, do I just stop cold turkey?', topic: 'vaping' },
+  { q: 'Should I taper down my vape nicotine strength first?', topic: 'vaping' },
+  { q: 'Are nicotine pouches like Zyn a good way to get off vaping?', topic: 'vaping' },
+  { q: "I can't fall asleep without hitting my vape first", topic: 'lifestyle' },
+  { q: "I'm eating everything in sight since I quit", topic: 'lifestyle' },
+  { q: 'Does working out actually help with cravings?', topic: 'lifestyle' },
+  { q: 'How do I survive a night out drinking without smoking?', topic: 'lifestyle' },
+  { q: 'What actually gets better in my body when I quit?', topic: 'benefits' },
+  { q: 'How long until my lungs recover after quitting?', topic: 'benefits' },
+  { q: 'Is it even worth quitting after 10 years of smoking?', topic: 'benefits' },
 ];

@@ -8,6 +8,7 @@
 import { components } from './_generated/api';
 import { RAG } from '@convex-dev/rag';
 import { google } from '@ai-sdk/google';
+import { v } from 'convex/values';
 import { internalAction } from './_generated/server';
 import { EMBEDDING, importanceFor, isAllowlisted } from '../knowledge/sources.config';
 import { CORPUS } from '../knowledge/corpus';
@@ -42,14 +43,18 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export const ingestAll = internalAction({
   // throttleMs: delay between sources to stay under the embedding free-tier
   // rate limit (Gemini free tier ≈ 100 embed requests/min). 0 to disable.
-  args: {},
-  handler: async (ctx) => {
+  // start/count: ingest a slice of the corpus — the full corpus at 8s/source
+  // no longer fits in one action's runtime limit, so drive it in batches:
+  //   npx convex run rag:ingestAll '{"start": 0, "count": 25}'
+  args: { start: v.optional(v.number()), count: v.optional(v.number()) },
+  handler: async (ctx, { start, count }) => {
     const throttleMs = 8000;
     let sources = 0;
     let skipped = 0;
     const perTopic: Record<string, number> = {};
 
-    for (const entry of CORPUS) {
+    const batch = CORPUS.slice(start ?? 0, count ? (start ?? 0) + count : undefined);
+    for (const entry of batch) {
       // Belt-and-suspenders: enforce the allowlist again at ingest time.
       if (!isAllowlisted(entry.sourceUrl) || !entry.chunks.length) {
         skipped++;
@@ -80,8 +85,8 @@ export const ingestAll = internalAction({
       perTopic[entry.topic] = (perTopic[entry.topic] ?? 0) + 1;
     }
 
-    const totalChunks = CORPUS.reduce((n, e) => n + e.chunks.length, 0);
+    const totalChunks = batch.reduce((n, e) => n + e.chunks.length, 0);
     console.log(`[rag] ingested ${sources} sources (${totalChunks} chunks), skipped ${skipped}`, perTopic);
-    return { sources, skipped, totalChunks, perTopic };
+    return { sources, skipped, totalChunks, perTopic, corpusSize: CORPUS.length };
   },
 });
