@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react'
 import { KeyboardAvoidingView, Platform, View } from 'react-native'
-import { Link } from 'expo-router'
+import { Link, Redirect } from 'expo-router'
 import { Screen, Button, Lead, Muted } from '@/ui'
 import { RNText } from '@/ui/internal'
 import { InviteCodeEntry } from '@/components/InviteCodeEntry'
+import { getAgeConfirmed } from '@/lib/ageGate'
 
 /** HALE logo block (design HaleLogo): emerald rounded square + wordmark. */
 function HaleLogo({ size = 50 }: { size?: number }) {
@@ -26,6 +28,15 @@ function HaleLogo({ size = 50 }: { size?: number }) {
 
 /** Welcome → quiz. Clean Dark v2: logo block, mixed-case hero, one emerald CTA. */
 export default function Welcome() {
+  // 21+ gate (Guideline 2.18): runs BEFORE any cessation content. null while
+  // the stored answer loads (blank beat, no flash of gated content).
+  const [ageOk, setAgeOk] = useState<boolean | null>(null)
+  useEffect(() => {
+    getAgeConfirmed().then(setAgeOk)
+  }, [])
+  if (ageOk === null) return <Screen edges={['top', 'bottom']}>{null}</Screen>
+  if (!ageOk) return <Redirect href="/(onboarding)/age" />
+
   return (
     <Screen edges={['top', 'bottom']}>
       {/* Keyboard padding so the invite-code input (bottom of screen, autoFocus)
