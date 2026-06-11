@@ -15,9 +15,8 @@ import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
 import { X } from 'lucide-react-native';
 import { LANDMARK_DAYS } from '@convex/model/plan';
 import { track, Ev } from '@/lib/analytics';
-import { Button } from '@/components/ui/Button';
-import { Display, Heading, Body, Label } from '@/components/ui/Text';
-import { colors } from '@/theme/colors';
+import { Button, Eyebrow, Body, Muted } from '@/ui';
+import { clean } from '@/theme/clean';
 import TransformationCard, { shareCard } from './TransformationCard';
 
 /**
@@ -26,8 +25,8 @@ import TransformationCard, { shareCard } from './TransformationCard';
  * that motivates the share: lime confetti rains, the TransformationCard presents,
  * and a single prominent Share CTA turns the moment into acquisition.
  *
- * Bold Momentum re-skin: a near-black void overlay, electric-lime confetti, the
- * reskinned card popped in, loud Anton/Archivo type, and a "SHARE THIS MOMENT"
+ * Clean Dark v2: a near-black overlay, emerald confetti, the reskinned card
+ * popped in, Sora type, and a "Share this moment"
  * lime CTA. Built to be screenshotted.
  *
  * Grounded in the milestone-celebration pattern (Duolingo streak freeze screens,
@@ -112,7 +111,7 @@ export default function MilestoneCelebration({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-void" style={{ backgroundColor: colors.void }}>
+      <View className="flex-1 bg-bg" style={{ backgroundColor: clean.bg }}>
         <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
           <View className="flex-1 px-6 pb-6">
             {/* Dismiss */}
@@ -122,24 +121,24 @@ export default function MilestoneCelebration({
                 hitSlop={12}
                 accessibilityRole="button"
                 accessibilityLabel="Close"
-                className="h-10 w-10 items-center justify-center rounded-full border border-line bg-coal active:bg-card"
+                className="h-11 w-11 items-center justify-center rounded-pill border border-stroke bg-surface-2 active:opacity-80"
               >
-                <X color={colors.chalk} size={18} strokeWidth={2.5} />
+                <X color={clean.fg} size={18} strokeWidth={2.2} />
               </Pressable>
             </View>
 
             {/* Title — demoted to a small overline so the card's huge "N DAYS"
                 is the SINGLE hero (was a competing text-3xl headline). */}
             <View className="mt-1 items-center">
-              <Label className="text-center text-volt">{copy.title} · Milestone reached</Label>
-              <Body className="mt-2 text-center text-base text-ash">
+              <Eyebrow className="text-center text-accent">{copy.title} · Milestone reached</Eyebrow>
+              <Body className="mt-2 text-center text-base">
                 {copy.sub}
               </Body>
             </View>
 
             {/* The shareable artifact, popped in. */}
             <PoppedCard>
-              {/* Float the shareable card on its own plane with a volt-glow halo
+              {/* Float the shareable card on its own plane with a accent-glow halo
                   (the card's own surface is intentionally left untouched — it is
                   the share artifact). The glow + the demoted headline above make
                   the card's "30" the single hero. */}
@@ -149,7 +148,7 @@ export default function MilestoneCelebration({
                   // enough to show its footer tagline — fixes the clipped
                   // "QUIT NICOTINE WITH HALE" without touching the shared artifact.
                   width: Math.min(330, SCREEN_W - 56),
-                  shadowColor: colors.volt,
+                  shadowColor: clean.accent,
                   shadowOpacity: 0.2,
                   shadowRadius: 26,
                   shadowOffset: { width: 0, height: 14 },
@@ -179,7 +178,7 @@ export default function MilestoneCelebration({
                 accessibilityRole="button"
                 className="mt-3 items-center py-3"
               >
-                <Label className="text-ash">Keep going</Label>
+                <Eyebrow>Keep going</Eyebrow>
               </Pressable>
             </View>
           </View>
@@ -235,13 +234,13 @@ const BURST_ORIGIN_X = SCREEN_W / 2;
 const BURST_ORIGIN_Y = SCREEN_H * 0.46; // ≈ the floating card's centre
 const PARTICLE_COUNT = 60;
 const BURST_TOTAL_MS = 2200; // max delay (~180) + max lifetime (~2000)
-// Electric-lime is the loud accent; voltDim + white + a dim grey give depth.
+// Emerald is the focal accent; accent-2 + white + a dim grey give depth.
 const PARTICLE_PALETTE: Array<[number, number, number]> = [
-  [198, 255, 61], // volt
-  [198, 255, 61], // volt (weighted)
-  [159, 210, 46], // voltDim
-  [244, 247, 242], // chalk/white spark
-  [138, 147, 140], // dim
+  [52, 211, 153], // accent
+  [52, 211, 153], // accent (weighted)
+  [94, 227, 176], // accent-2
+  [234, 241, 236], // fg/white spark
+  [97, 163, 155], // dim
 ];
 
 function MilestoneParticles() {

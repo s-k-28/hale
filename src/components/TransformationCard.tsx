@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { track, Ev } from '@/lib/analytics';
-import { colors } from '@/theme/colors';
+import { clean } from '@/theme/clean';
 
 /**
  * TransformationCard — the viral seed (P3). A beautiful, screenshot-able proof
@@ -13,7 +13,7 @@ import { colors } from '@/theme/colors';
  * indicator, and a subtle HALE wordmark.
  *
  * Bold Momentum re-skin: near-black surface, an electric-lime gradient glow, a
- * HUGE Anton (font-display) day number, "$X SAVED", a lime recovery bar, and a
+ * HUGE Sora day number, "$X SAVED", an emerald recovery bar, and a
  * loud HALE wordmark. Built to be screenshotted on TikTok.
  *
  * Grounded in the share-card pattern proven by category leaders (Strava activity
@@ -47,10 +47,10 @@ export type TransformationCardProps = {
 
 // Capture-safe font families (mirror tailwind.config.js fontFamily entries).
 const FONTS = {
-  display: 'Anton_400Regular',
-  heading: 'Archivo_800ExtraBold',
-  body: 'HankenGrotesk_500Medium',
-  bodyBold: 'HankenGrotesk_700Bold',
+  display: 'Sora_700Bold',
+  heading: 'Sora_700Bold',
+  body: 'Sora_500Medium',
+  bodyBold: 'Sora_700Bold',
 };
 
 function fmtMoney(n: number) {
@@ -125,8 +125,8 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
         // inner gradient is flex:1, so the card MUST keep a defined aspect ratio —
         // in the celebration we use a TALLER ratio (fitContent) so the content has
         // room to breathe and the footer tagline can never clip.
-        className="w-full overflow-hidden rounded-3xl bg-void"
-        style={{ aspectRatio: fitContent ? 0.64 : 0.72, backgroundColor: colors.void }}
+        className="w-full overflow-hidden rounded-3xl bg-bg"
+        style={{ aspectRatio: fitContent ? 0.64 : 0.72, backgroundColor: clean.bg }}
       >
         {/* Base near-black wash with a faint lime-tinted floor. */}
         <LinearGradient
@@ -137,7 +137,7 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
         >
           {/* Electric-lime glow blooming from the top-left (capture-safe). */}
           <LinearGradient
-            colors={['rgba(198,255,61,0.42)', 'rgba(198,255,61,0.08)', 'rgba(198,255,61,0)']}
+            colors={['rgba(52,211,153,0.42)', 'rgba(52,211,153,0.08)', 'rgba(52,211,153,0)']}
             start={{ x: 0.1, y: 0 }}
             end={{ x: 0.85, y: 0.9 }}
             style={{
@@ -150,7 +150,7 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
           />
           {/* Secondary low glow to seat the stat block in lime light. */}
           <LinearGradient
-            colors={['rgba(198,255,61,0)', 'rgba(198,255,61,0.10)']}
+            colors={['rgba(52,211,153,0)', 'rgba(52,211,153,0.10)']}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={{
@@ -167,70 +167,70 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center">
                 <View
-                  className="mr-2.5 h-7 w-7 items-center justify-center rounded-lg bg-volt"
-                  style={{ backgroundColor: colors.volt }}
+                  className="mr-2.5 h-7 w-7 items-center justify-center rounded-lg bg-accent"
+                  style={{ backgroundColor: clean.accent }}
                 >
                   <Text
-                    className="text-base text-volt-ink"
-                    style={{ fontFamily: FONTS.heading, color: colors.void }}
+                    className="text-base text-accent-ink"
+                    style={{ fontFamily: FONTS.heading, color: clean.bg }}
                   >
                     H
                   </Text>
                 </View>
                 <Text
-                  className="text-lg uppercase tracking-[4px] text-chalk"
-                  style={{ fontFamily: FONTS.heading, color: colors.chalk }}
+                  className="text-lg uppercase tracking-[4px] text-fg"
+                  style={{ fontFamily: FONTS.heading, color: clean.fg }}
                 >
                   HALE
                 </Text>
               </View>
               {firstName ? (
                 <Text
-                  className="text-xs uppercase tracking-[2px] text-ash"
-                  style={{ fontFamily: FONTS.bodyBold, color: colors.ash }}
+                  className="text-xs uppercase tracking-[2px] text-fg-2"
+                  style={{ fontFamily: FONTS.bodyBold, color: clean.fg2 }}
                 >
                   {firstName}
                 </Text>
               ) : null}
             </View>
 
-            {/* Hero: the day count — HUGE Anton numeral */}
+            {/* Hero: the day count — HUGE Sora numeral */}
             <View>
               <Text
-                className="text-[11px] uppercase tracking-[5px] text-volt"
-                style={{ fontFamily: FONTS.heading, color: colors.volt }}
+                className="text-[11px] uppercase tracking-[5px] text-accent"
+                style={{ fontFamily: FONTS.heading, color: clean.accent }}
               >
                 Nicotine-free
               </Text>
               <View className="mt-1 flex-row items-end">
                 <Text
-                  className="text-volt-ink"
+                  className="text-accent-ink"
                   style={{
                     fontFamily: FONTS.display,
                     fontSize: 132,
-                    // Anton's tall numerals clip when lineHeight == fontSize;
+                    // Tall numerals clip when lineHeight == fontSize;
                     // ~1.14x gives the glyph tops room (the "0"→"U" clip fix).
                     lineHeight: 150,
-                    color: colors.chalk,
+                    color: clean.fg,
                   }}
                 >
                   {dispDays}
                 </Text>
                 <Text
-                  className="mb-4 ml-3 text-volt"
+                  className="mb-4 ml-3 text-accent"
                   style={{
                     fontFamily: FONTS.display,
                     fontSize: 34,
                     lineHeight: 36,
-                    color: colors.volt,
+                    color: clean.accent,
                   }}
                 >
                   {wholeDays === 1 ? 'DAY' : 'DAYS'}
                 </Text>
               </View>
               <Text
-                className="-mt-1 text-base text-chalk"
-                style={{ fontFamily: FONTS.body, color: colors.chalk }}
+                className="-mt-1 text-base text-fg"
+                style={{ fontFamily: FONTS.body, color: clean.fg }}
               >
                 {wholeDays === 1 ? 'and counting.' : 'clean and counting.'}
               </Text>
@@ -239,23 +239,23 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
             {/* Stats: money + recovery */}
             <View>
               <View
-                className="rounded-2xl border border-line bg-card p-5"
-                style={{ backgroundColor: colors.card, borderColor: colors.line }}
+                className="rounded-2xl border border-stroke bg-card p-5"
+                style={{ backgroundColor: clean.surface, borderColor: clean.stroke }}
               >
                 <Text
-                  className="text-[11px] uppercase tracking-[3px] text-ash"
-                  style={{ fontFamily: FONTS.bodyBold, color: colors.ash }}
+                  className="text-[11px] uppercase tracking-[3px] text-fg-2"
+                  style={{ fontFamily: FONTS.bodyBold, color: clean.fg2 }}
                 >
                   Money saved
                 </Text>
                 <View className="mt-1 flex-row items-baseline">
                   <Text
-                    className="text-chalk"
+                    className="text-fg"
                     style={{
                       fontFamily: FONTS.display,
                       fontSize: 54,
                       lineHeight: 58,
-                      color: colors.chalk,
+                      color: clean.fg,
                     }}
                   >
                     {fmtMoney(dispMoney)}
@@ -266,27 +266,27 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
                   <View className="mt-5">
                     <View className="flex-row items-center justify-between">
                       <Text
-                        className="text-[11px] uppercase tracking-[3px] text-ash"
-                        style={{ fontFamily: FONTS.bodyBold, color: colors.ash }}
+                        className="text-[11px] uppercase tracking-[3px] text-fg-2"
+                        style={{ fontFamily: FONTS.bodyBold, color: clean.fg2 }}
                       >
                         Recovery
                       </Text>
                       <Text
-                        className="text-sm text-chalk"
-                        style={{ fontFamily: FONTS.bodyBold, color: colors.chalk }}
+                        className="text-sm text-fg"
+                        style={{ fontFamily: FONTS.bodyBold, color: clean.fg }}
                       >
                         {dispPct}%
                       </Text>
                     </View>
                     <View
                       className="mt-2 h-2.5 w-full overflow-hidden rounded-full"
-                      style={{ backgroundColor: '#1F2723' }}
+                      style={{ backgroundColor: 'rgba(255,255,255,0.10)' }}
                     >
                       <View
-                        className="h-full rounded-full bg-volt"
+                        className="h-full rounded-full bg-accent"
                         style={{
                           width: `${dispPct}%`,
-                          backgroundColor: colors.volt,
+                          backgroundColor: clean.accent,
                         }}
                       />
                     </View>
@@ -296,13 +296,13 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
 
               {/* Brand attribution — this card is screenshotted + shared, so the
                   wordmark is the viral hook and must read clearly. Phrase in a
-                  legible mid-tone, HALE itself in chalk so the brand pops. */}
+                  legible mid-tone, HALE itself in fg so the brand pops. */}
               <Text
                 className="mt-4 text-center text-[12px] uppercase tracking-[3px]"
-                style={{ fontFamily: FONTS.bodyBold, color: '#C4CCC6' }}
+                style={{ fontFamily: FONTS.bodyBold, color: '#97A39B' }}
               >
                 Quit nicotine with{' '}
-                <Text style={{ color: colors.chalk }}>HALE</Text>
+                <Text style={{ color: clean.fg }}>HALE</Text>
               </Text>
             </View>
           </View>
