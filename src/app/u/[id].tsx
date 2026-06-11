@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { View } from 'react-native'
+import { View, ActivityIndicator } from 'react-native'
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useConvexAuth, useMutation, useQuery } from 'convex/react'
-import { ActivityIndicator } from 'react-native'
 import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
 import { track, Ev } from '@/lib/analytics'
 import { setPendingBuddy } from '@/lib/pendingBuddy'
-import { Screen } from '@/components/ui/Screen'
-import { Heading, Body } from '@/components/ui/Text'
-import { Button } from '@/components/ui/Button'
-import { colors } from '@/theme/colors'
+import { Screen, H2, Lead, Button } from '@/ui'
+import { clean } from '@/theme/clean'
 
 /**
  * Buddy-invite deep-link handler (S1/S2). Reachable via hale://u/<inviterId>.
@@ -79,23 +76,23 @@ export default function AcceptInvite() {
       <View className="flex-1 items-center justify-center px-8">
         {error ? (
           <>
-            <Heading className="text-center text-2xl">
+            <H2 className="text-center">
               {error === 'caller_paired'
                 ? 'You already have a buddy'
                 : error === 'inviter_paired'
                   ? 'They’re already paired up'
                   : 'Couldn’t pair you up'}
-            </Heading>
-            <Body className="mt-3 text-center text-base leading-6 text-ash">
+            </H2>
+            <Lead className="mt-3 text-center">
               {error === 'caller_paired'
                 ? 'HALE pairs you with one buddy at a time, and you’re already paired.'
                 : error === 'inviter_paired'
                   ? 'Your friend already has a buddy right now. You can still find your own in the Squad tab.'
                   : 'That invite link looks invalid or expired. Ask your buddy to send a fresh one.'}
-            </Body>
+            </Lead>
             <Button
               variant="primary"
-              label={error === 'generic' ? 'GO TO HALE' : 'GO TO YOUR SQUAD'}
+              label={error === 'generic' ? 'Go to HALE' : 'Go to your Squad'}
               onPress={() =>
                 router.replace(error === 'generic' ? '/(tabs)/today' : '/(tabs)/squad')
               }
@@ -104,11 +101,11 @@ export default function AcceptInvite() {
           </>
         ) : (
           <>
-            <ActivityIndicator color={colors.volt} />
-            <Heading className="mt-6 text-center text-2xl">Pairing you up…</Heading>
-            <Body className="mt-2 text-center text-base text-ash">
+            <ActivityIndicator color={clean.accent} />
+            <H2 className="mt-6 text-center">Pairing you up…</H2>
+            <Lead className="mt-2 text-center">
               Linking your streaks so you don’t do this alone.
-            </Body>
+            </Lead>
           </>
         )}
       </View>

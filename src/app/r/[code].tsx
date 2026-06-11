@@ -2,9 +2,8 @@ import { View, ActivityIndicator } from 'react-native'
 import { Redirect, useLocalSearchParams } from 'expo-router'
 import { useQuery } from 'convex/react'
 import { api } from '@convex/_generated/api'
-import { Screen } from '@/components/ui/Screen'
-import { Body } from '@/components/ui/Text'
-import { colors } from '@/theme/colors'
+import { Screen, Body } from '@/ui'
+import { clean } from '@/theme/clean'
 
 /**
  * Friendly referral deep link (hale://r/<code>). Resolves the human-readable
@@ -21,8 +20,8 @@ export default function ReferralCode() {
     return (
       <Screen edges={['top', 'bottom']}>
         <View className="flex-1 items-center justify-center px-8">
-          <ActivityIndicator color={colors.volt} />
-          <Body className="mt-4 text-center text-ash">Opening your invite…</Body>
+          <ActivityIndicator color={clean.accent} />
+          <Body className="mt-4 text-center">Opening your invite…</Body>
         </View>
       </Screen>
     )
