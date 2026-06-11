@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { Pressable, View, StyleSheet } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Lock } from 'lucide-react-native';
@@ -13,15 +12,13 @@ import { H2, Body } from './Text';
 import { Button } from './Button';
 
 /**
- * LockedFeature — the ONE reusable blurred-paywall treatment (Clean Dark v2,
- * the design's gate visual language applied to the inline blur — the
- * standalone gate screens in the prototype stayed unwired by its own flow map,
- * so gating keeps living in place over the real content).
+ * LockedFeature — the ONE reusable lock-gate treatment (Clean Dark v2).
  *
- * Entitled (or still resolving) → children render untouched. Locked → the real
- * premium content renders BLURRED and inert under a centered unlock CTA, so
- * free users see exactly what they're missing. Tapping fires
- * paywall_feature_tapped { feature } and presents the paywall.
+ * Entitled (or still resolving) → children render untouched. Locked → the
+ * premium content is rendered for layout only and FULLY HIDDEN behind a
+ * near-opaque Clean Dark scrim with the lock chrome on top. No native blur
+ * module is involved (a missing BlurView used to throw and leak content).
+ * Tapping fires paywall_feature_tapped { feature } and presents the paywall.
  *
  * `variant`: 'overlay' fills its parent (whole-screen gates); 'inline' is a
  * self-sized rounded card (a gated section inside a screen).
@@ -32,7 +29,6 @@ export function LockedFeature({
   variant = 'inline',
   title = 'Unlock with HALE+',
   subtitle,
-  blurIntensity = 22,
 }: {
   /** Stable id for analytics + paywall surface tagging (e.g. 'analytics'). */
   feature: string;
@@ -40,7 +36,6 @@ export function LockedFeature({
   variant?: 'overlay' | 'inline';
   title?: string;
   subtitle?: string;
-  blurIntensity?: number;
 }) {
   const { hasHALEPlus, loading } = usePremium();
 
@@ -68,19 +63,17 @@ export function LockedFeature({
       className={variant === 'overlay' ? 'flex-1' : ''}
       style={[styles.container, rounded]}
     >
-      {/* The real premium content, rendered but inert (blurred + untouchable). */}
+      {/* The locked premium content: rendered for layout (so 'overlay' gates
+          keep the screen's height) but inert and dimmed under an OPAQUE scrim.
+          The gate must never depend on a native blur module — an unavailable
+          BlurView used to throw 'Unimplemented component' and leak legible
+          premium content under the overlay copy. */}
       <View pointerEvents="none" style={styles.contentLayer}>
         {children}
       </View>
 
-      {/* Gaussian blur over the content — "frosted glass" peek at what's locked. */}
-      <BlurView
-        intensity={blurIntensity}
-        tint="dark"
-        style={[StyleSheet.absoluteFill, rounded]}
-        pointerEvents="none"
-      />
-      {/* Base-tinted scrim so the lock chrome reads on any underlying content. */}
+      {/* Near-opaque Clean Dark scrim: fully hides the content and gives the
+          lock chrome a solid backing — intentional, no blur required. */}
       <View
         pointerEvents="none"
         style={[StyleSheet.absoluteFill, styles.scrim, rounded]}
@@ -114,11 +107,14 @@ const styles = StyleSheet.create({
     borderRadius: 22,
   },
   contentLayer: {
-    // Dim the underlying content a touch so the blur reads as "locked", not "loading".
-    opacity: 0.6,
+    // Belt and suspenders: even if the scrim ever failed to render, the
+    // content underneath is too faint to read.
+    opacity: 0.35,
   },
   scrim: {
-    backgroundColor: 'rgba(11,15,13,0.55)',
+    // Near-opaque base (#0B0F0D at 97%): premium content is NOT legible
+    // through the gate, and the overlay copy sits on solid ground.
+    backgroundColor: 'rgba(11,15,13,0.97)',
     borderWidth: 1,
     borderColor: 'rgba(52,211,153,0.26)',
   },
