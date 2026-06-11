@@ -23,6 +23,10 @@ import { Platform } from 'react-native';
 // TODO(launch): replace with the real owned domain before the store build.
 export const LINK_DOMAIN = 'go.haleapp.com';
 
+// TODO(launch): this page must be live before submission — the in-app link
+// (You tab) AND the App Store Connect privacy-policy field both point at it.
+export const PRIVACY_POLICY_URL = 'https://haleapp.com/privacy';
+
 /** The shareable referral link: opens HALE if installed, web redirect if not. */
 export function referralLink(code: string): string {
   return `https://${LINK_DOMAIN}/r/${code}`;

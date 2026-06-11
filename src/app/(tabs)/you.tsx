@@ -3,13 +3,15 @@ import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import type { View as RNView } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { BarChart3, BookOpenCheck, Check, ChevronRight, Crown, Flame, Gift, Share2 } from 'lucide-react-native';
+import { BarChart3, BookOpenCheck, Check, ChevronRight, Crown, Flame, Gift, Share2, ShieldCheck } from 'lucide-react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { api } from '@convex/_generated/api';
 import {
   HEALTH_MILESTONES,
   reachedHealthMilestones,
 } from '@convex/model/plan';
 import { track, Ev } from '@/lib/analytics';
+import { PRIVACY_POLICY_URL } from '@/lib/links';
 import TransformationCard, { shareCard } from '@/components/TransformationCard';
 import {
   Screen,
@@ -320,6 +322,16 @@ function YouContent({
             title="Disclaimers & sources"
             sub="Health claims, cited. Not medical advice."
             onPress={() => router.push('/disclaimers')}
+          />
+          <YouLink
+            icon={<ShieldCheck color={clean.accent} size={20} strokeWidth={2.2} />}
+            title="Privacy policy"
+            sub="What we store and why. No ads, no tracking."
+            onPress={() => {
+              void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {
+                // No browser available — nothing sensible to do silently here.
+              });
+            }}
           />
         </View>
       </ScrollView>
