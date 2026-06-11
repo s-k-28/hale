@@ -5,6 +5,7 @@ import { Screen, Button, Lead, Muted } from '@/ui'
 import { RNText } from '@/ui/internal'
 import { InviteCodeEntry } from '@/components/InviteCodeEntry'
 import { getAgeConfirmed } from '@/lib/ageGate'
+import { getDisclaimerAck } from '@/lib/disclaimer'
 
 /** HALE logo block (design HaleLogo): emerald rounded square + wordmark. */
 function HaleLogo({ size = 50 }: { size?: number }) {
@@ -28,14 +29,18 @@ function HaleLogo({ size = 50 }: { size?: number }) {
 
 /** Welcome → quiz. Clean Dark v2: logo block, mixed-case hero, one emerald CTA. */
 export default function Welcome() {
-  // 21+ gate (Guideline 2.18): runs BEFORE any cessation content. null while
-  // the stored answer loads (blank beat, no flash of gated content).
-  const [ageOk, setAgeOk] = useState<boolean | null>(null)
+  // Pre-content gates: 21+ confirmation (Guideline 2.18) then the medical
+  // disclaimer acknowledgement (Guideline 1.4.1). null while the stored
+  // answers load (blank beat, no flash of gated content).
+  const [gate, setGate] = useState<'loading' | 'age' | 'notice' | 'ok'>('loading')
   useEffect(() => {
-    getAgeConfirmed().then(setAgeOk)
+    Promise.all([getAgeConfirmed(), getDisclaimerAck()]).then(([age, ack]) =>
+      setGate(!age ? 'age' : !ack ? 'notice' : 'ok'),
+    )
   }, [])
-  if (ageOk === null) return <Screen edges={['top', 'bottom']}>{null}</Screen>
-  if (!ageOk) return <Redirect href="/(onboarding)/age" />
+  if (gate === 'loading') return <Screen edges={['top', 'bottom']}>{null}</Screen>
+  if (gate === 'age') return <Redirect href="/(onboarding)/age" />
+  if (gate === 'notice') return <Redirect href="/(onboarding)/notice" />
 
   return (
     <Screen edges={['top', 'bottom']}>

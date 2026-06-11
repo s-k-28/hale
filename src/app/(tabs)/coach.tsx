@@ -19,7 +19,7 @@ import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { presentPaywall } from '@/lib/paywall';
-import { Body, Display, H2 as Heading, Eyebrow as Label } from '@/ui';
+import { Body, Display, Muted, H2 as Heading, Eyebrow as Label } from '@/ui';
 import { clean } from '@/theme/clean';
 import Animated, {
   Easing,
@@ -140,6 +140,7 @@ export default function Coach() {
         <View>
           <Heading className="text-3xl text-fg">SAGE</Heading>
           <Label className="mt-1 text-fg-2">Your quit coach · always on</Label>
+          <Muted className="mt-1 text-[11px]">General support, not medical advice.</Muted>
         </View>
         <View className="h-11 w-11 items-center justify-center rounded-full bg-accent">
           <Wind color={clean.accentInk} size={20} strokeWidth={2.75} />

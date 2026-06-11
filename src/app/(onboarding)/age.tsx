@@ -14,7 +14,7 @@ export default function AgeGate() {
 
   const confirm = async () => {
     await setAgeConfirmed()
-    router.replace('/(onboarding)/welcome')
+    router.replace('/(onboarding)/notice')
   }
 
   if (blocked) {

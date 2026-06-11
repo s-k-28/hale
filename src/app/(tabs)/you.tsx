@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import type { View as RNView } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { BarChart3, Check, ChevronRight, Crown, Flame, Gift, Share2 } from 'lucide-react-native';
+import { BarChart3, BookOpenCheck, Check, ChevronRight, Crown, Flame, Gift, Share2 } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import {
   HEALTH_MILESTONES,
@@ -314,6 +314,12 @@ function YouContent({
             title="Your insights"
             sub="Craving trends + recovery, HALE+."
             onPress={() => router.push('/analytics')}
+          />
+          <YouLink
+            icon={<BookOpenCheck color={clean.accent} size={20} strokeWidth={2.2} />}
+            title="Disclaimers & sources"
+            sub="Health claims, cited. Not medical advice."
+            onPress={() => router.push('/disclaimers')}
           />
         </View>
       </ScrollView>
