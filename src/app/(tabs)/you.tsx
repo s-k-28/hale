@@ -269,7 +269,7 @@ function YouContent({
                 <Crown color={clean.accentInk} size={22} strokeWidth={2.5} />
               </View>
               <View className="flex-1">
-                <Heading className="text-xl">YOU&apos;RE ON HALE+</Heading>
+                <Heading className="text-xl">You&apos;re on HALE+</Heading>
                 <Body className="mt-1 text-[13px] text-fg-2">
                   Thank you for backing your own freedom.
                 </Body>
@@ -286,7 +286,7 @@ function YouContent({
             feature="widgets"
             variant="inline"
             title="Glanceable widgets"
-            subtitle="Your clean-time and money saved on your home screen — unlock with HALE+."
+            subtitle="Your clean-time and money saved on your home screen, unlocked with HALE+."
           >
             <View className="flex-row gap-3 p-1">
               <View className="flex-1 rounded-3xl bg-surface-2 px-4 py-5">

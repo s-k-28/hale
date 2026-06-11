@@ -75,7 +75,7 @@ export default function Toolkit() {
         feature="advanced_toolkit"
         variant="overlay"
         title="Unlock the advanced toolkit"
-        subtitle="Urge-surfing, your trigger patterns, and your craving-time map — with HALE+."
+        subtitle="Urge-surfing, your trigger patterns, and your craving-time map, with HALE+."
       >
         <ScrollView contentContainerClassName="px-5 pb-16 pt-2" showsVerticalScrollIndicator={false}>
           <UrgeSurf />
@@ -92,7 +92,7 @@ export default function Toolkit() {
 const SURF_STEPS = [
   {
     title: 'Notice the wave',
-    body: 'Where do you feel the craving in your body? Name it. A craving is a wave — it rises, crests, and always falls.',
+    body: 'Where do you feel the craving in your body? Name it. A craving is a wave: it rises, crests, and always falls.',
   },
   {
     title: 'Don’t fight it',
@@ -104,7 +104,7 @@ const SURF_STEPS = [
   },
   {
     title: 'Ride it down',
-    body: 'Feel it start to ease. It’s already fading. You didn’t act on it — you watched it pass. That’s the skill, and you just used it.',
+    body: 'Feel it start to ease. It’s already fading. You didn’t act on it. You watched it pass. That’s the skill, and you just used it.',
   },
 ];
 
@@ -140,7 +140,7 @@ function UrgeSurf() {
             <View className="h-14 w-14 items-center justify-center rounded-2xl bg-accent">
               <Waves color={clean.accentInk} size={26} strokeWidth={2.5} />
             </View>
-            <Heading className="mt-5 text-2xl">RIDE THE WAVE</Heading>
+            <Heading className="mt-5 text-2xl">Ride the wave</Heading>
             <Body className="mt-2 text-base leading-6 text-fg-2">
               A 4-step guided practice for riding a craving out instead of fighting it. Takes about
               a minute.
@@ -200,7 +200,7 @@ function TriggerInsight({ patterns }: { patterns: Patterns | undefined }) {
         </View>
         {total === 0 ? (
           <Body className="mt-3 text-[15px] leading-relaxed text-fg-2">
-            Log a few cravings (from the SOS screen) and your personal patterns will appear here —
+            Log a few cravings (from the SOS screen) and your personal patterns will appear here:
             your hardest hour and most common trigger.
           </Body>
         ) : (
@@ -249,7 +249,7 @@ function CravingHeatmap({ patterns }: { patterns: Patterns | undefined }) {
 
         {patterns.total === 0 ? (
           <Body className="mt-3 text-[15px] leading-relaxed text-fg-2">
-            Your 24-hour craving map fills in as you log cravings — so you can see your danger hours
+            Your 24-hour craving map fills in as you log cravings, so you can see your danger hours
             coming and plan around them.
           </Body>
         ) : (

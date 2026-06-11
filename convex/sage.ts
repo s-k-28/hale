@@ -52,7 +52,7 @@ function tierOf(
  */
 
 const FALLBACK_REPLY =
-  "I'm here with you. Cravings peak and pass in just a few minutes — try a few slow breaths and ride this wave out. You've got this.";
+  "I'm here with you. Cravings peak and pass in just a few minutes. Try a few slow breaths and ride this wave out. You've got this.";
 
 /** The authed user's full Sage thread, oldest → newest (chat order). */
 export const messages = query({

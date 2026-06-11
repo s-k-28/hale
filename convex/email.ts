@@ -80,12 +80,12 @@ export const sendTrialReminder = internalAction({
     const html = `
       <div style="font-family: -apple-system, system-ui, sans-serif; line-height: 1.6; color: #1a1a1a;">
         <p>${greeting}</p>
-        <p>You started something hard — and you're still here. That matters more than you know.</p>
+        <p>You started something hard, and you're still here. That matters more than you know.</p>
         <p>Your HALE trial is wrapping up soon. Quitting nicotine isn't a one-week thing,
         and the days ahead are exactly when having your streak, your buddy, and Sage in your
         corner makes the biggest difference.</p>
         <p>Keep your momentum going. We're rooting for you.</p>
-        <p style="margin-top: 24px;">— The HALE team</p>
+        <p style="margin-top: 24px;">The HALE team</p>
       </div>
     `;
 

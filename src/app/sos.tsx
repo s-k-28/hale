@@ -278,7 +278,7 @@ export default function CravingSos() {
 
         <View className="mt-10">
           <Heading className="text-5xl leading-[0.95]">You're not{'\n'}in danger.</Heading>
-          <Display className="mt-2 text-6xl leading-tight text-coral">THIS PASSES.</Display>
+          <Display className="mt-2 text-6xl leading-tight text-coral">This passes.</Display>
           <Body className="mt-5 text-base leading-relaxed text-fg-2">
             A craving peaks in a few minutes, then fades, whether or not you act on it. Let's get
             you to the other side. Pick one:
@@ -758,7 +758,7 @@ function SlipChoose({
 
         <View className="mt-4">
           <Heading className="text-4xl leading-[0.95]">Slips are part of quitting,</Heading>
-          <Display className="mt-2 text-5xl leading-tight text-accent">NOT THE END.</Display>
+          <Display className="mt-2 text-5xl leading-tight text-accent">Not the end.</Display>
         </View>
         <Body className="mt-5 text-base leading-relaxed text-fg-2">
           Be honest with yourself; it's the only way the data helps you. Which one fits?
@@ -883,7 +883,7 @@ function RecoverKindly({
           <View className="items-center pt-12">
             <WarmHeart />
             <Heading className="text-center text-4xl leading-[0.95]">This isn't a reset.</Heading>
-            <Display className="mt-2 text-center text-6xl leading-tight text-fg">FRESH RUN.</Display>
+            <Display className="mt-2 text-center text-6xl leading-tight text-fg">Fresh run.</Display>
             <Body className="mt-5 text-center text-base leading-relaxed text-fg-2">
               Quitting nicotine almost never happens in one clean line. What you've built so far
               doesn't disappear, it's still yours.

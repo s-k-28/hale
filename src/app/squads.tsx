@@ -155,7 +155,7 @@ function YourSquads({ squads }: { squads: MySquad[] }) {
         <View className="h-12 w-12 items-center justify-center rounded-2xl bg-accent/15">
           <Users color={clean.accent} size={24} strokeWidth={2.5} />
         </View>
-        <Heading className="mt-4 text-xl">NO SQUADS YET</Heading>
+        <Heading className="mt-4 text-xl">No squads yet</Heading>
         <Body className="mt-2 text-sm leading-5 text-fg-2">
           Create one and share the code, join a friend&apos;s with their code, or discover a public
           squad below.
@@ -348,7 +348,7 @@ function CreateSquad() {
             <View className="h-12 w-12 items-center justify-center rounded-2xl bg-accent">
               <Users color={clean.accentInk} size={24} strokeWidth={2.5} />
             </View>
-            <Heading className="mt-4 text-2xl">SQUAD CREATED</Heading>
+            <Heading className="mt-4 text-2xl">Squad created</Heading>
             <Body className="mt-2 text-sm leading-5 text-fg-2">
               Share this code so your people can join.
             </Body>

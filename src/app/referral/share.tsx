@@ -66,7 +66,7 @@ export default function ReferralShare() {
       <View className="flex-1 px-gutter pt-4">
         <H1>Send your invite</H1>
         <Lead className="mt-3">
-          Here's exactly what your friend gets — your link opens HALE if they have it, and the
+          Here's exactly what your friend gets. Your link opens HALE if they have it, and the
           code works the moment they install.
         </Lead>
 

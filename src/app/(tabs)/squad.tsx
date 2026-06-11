@@ -217,7 +217,7 @@ function PairedState({
     setHeartBurst((n) => n + 1);
     track(Ev.NUDGE_SENT, { type: 'cheer', surface: 'squad' });
     cheer({ type: 'cheer' })
-      .then(() => toast.success("Support sent 💪"))
+      .then(() => toast.success("Support sent"))
       .catch(() => {
         setCheered(false); // revert the optimistic state so they can retry
         toast.error("Couldn't send support. Try again");

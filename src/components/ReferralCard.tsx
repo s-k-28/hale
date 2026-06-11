@@ -57,7 +57,7 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
     if (!progress) return;
     if (prevReward.current === false && progress.rewardActive) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toast.success('🎉 You unlocked 7 days of HALE+');
+      toast.success('You unlocked 7 days of HALE+');
     }
     prevReward.current = progress.rewardActive;
   }, [progress]);
@@ -99,7 +99,7 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
               </Body>
             </View>
             <Body className="mt-3 text-base leading-6 text-fg-2">
-              You brought {completedCount} friends onto HALE and paired up. Keep inviting — every
+              You brought {completedCount} friends onto HALE and paired up. Keep inviting: every
               buddy makes quitting stick.
             </Body>
             <Button
@@ -118,7 +118,7 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
             <Heading className="mt-5 text-2xl">Unlock 7 days of HALE+</Heading>
             <Body className="mt-2 text-base leading-6 text-fg-2">
               Invite 3 friends who join HALE and pair up with a buddy, and you’ll unlock a week
-              of full access — analytics, unlimited Sage, and more.
+              of full access: analytics, unlimited Sage, and more.
             </Body>
 
             {/* Progress meter — "X of 3 friends joined & paired". */}

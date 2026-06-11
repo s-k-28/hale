@@ -138,7 +138,7 @@ function OptInState({
         <View className="h-14 w-14 items-center justify-center rounded-2xl bg-accent">
           <Trophy color={clean.accentInk} size={26} strokeWidth={2.5} />
         </View>
-        <Heading className="mt-5 text-2xl">JOIN THIS WEEK</Heading>
+        <Heading className="mt-5 text-2xl">Join this week</Heading>
         <Body className="mt-2 text-base leading-6 text-fg-2">
           Opt in to land in a friendly weekly league with others at your stage. Every clean check-in
           this week earns a point, climb the board, stay quit.

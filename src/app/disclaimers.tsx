@@ -26,7 +26,7 @@ const CLAIMS: { claim: string; source: string }[] = [
   },
   {
     claim: 'Within about 48 hours, nicotine is largely out of your system.',
-    source: 'NHS; commonly reported — clearance varies by product and person',
+    source: 'NHS; commonly reported. Clearance varies by product and person',
   },
   {
     claim: 'Within about 72 hours, breathing often eases as bronchial tubes relax.',
@@ -42,7 +42,7 @@ const CLAIMS: { claim: string; source: string }[] = [
   },
   {
     claim: 'Over the first month, many people report cravings becoming less frequent and less intense.',
-    source: 'Commonly reported — individual experience varies',
+    source: 'Commonly reported; individual experience varies',
   },
   {
     claim: 'Within 1–12 months, lung function and cilia recovery improve.',

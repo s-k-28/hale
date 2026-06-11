@@ -26,9 +26,9 @@ function nudgeCopy(type: NudgeType, fromName: string | null): { title: string; b
   const who = fromName?.trim() ? fromName.trim() : 'Your buddy';
   switch (type) {
     case 'cheer':
-      return { title: `${who} is cheering you on`, body: `Proud of you. Keep it going! 🎉` };
+      return { title: `${who} is cheering you on`, body: `Proud of you. Keep it going!` };
     case 'support':
-      return { title: `${who} has your back`, body: `Thinking of you today — you've got this. 💪` };
+      return { title: `${who} has your back`, body: `Thinking of you today. You've got this.` };
     case 'rally':
       return { title: `${who} is rallying with you`, body: `Tough moment? I'm right here with you. Let's go.` };
   }
@@ -147,8 +147,8 @@ export const cheer = mutation({
 
     await ctx.scheduler.runAfter(0, internal.pushes.notifyUser, {
       userId: toUser,
-      title: 'Your buddy is cheering you on 💪',
-      body: 'Keep your streak going — they’re counting on you.',
+      title: 'Your buddy is cheering you on',
+      body: 'Keep your streak going. They’re counting on you.',
       // Routing tag so a tapped push opens the buddy/nudge inbox (parity with send()).
       data: { kind: 'nudge', type, fromUser },
     });

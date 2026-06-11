@@ -52,7 +52,7 @@ export function InviteCodeEntry() {
     return (
       <View className="mt-4 items-center">
         <Body className="text-center text-sm text-accent">
-          ✓ Invite applied — we’ll credit your friend when you pair up
+          Invite applied. We’ll credit your friend when you pair up.
         </Body>
       </View>
     );
@@ -98,17 +98,17 @@ export function InviteCodeEntry() {
           className="rounded-xl bg-accent px-5 py-3 active:opacity-80 disabled:opacity-40"
         >
           <Body className="font-sora-bold text-sm text-accent-ink">
-            {state === 'checking' ? '…' : 'APPLY'}
+            {state === 'checking' ? '…' : 'Apply'}
           </Body>
         </Pressable>
       </View>
       {state === 'notfound' ? (
         <Body className="mt-2 text-center text-xs text-fg-3">
-          That code didn’t match — double-check it and try again.
+          That code didn’t match. Double-check it and try again.
         </Body>
       ) : state === 'error' ? (
         <Body className="mt-2 text-center text-xs text-fg-3">
-          Couldn’t check the code — check your connection and try again.
+          Couldn’t check the code. Check your connection and try again.
         </Body>
       ) : null}
     </View>
