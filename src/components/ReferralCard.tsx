@@ -30,17 +30,26 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
   // Materialize the code + the share link (idempotent) once we're authed.
   // The link is the https universal link (src/lib/links.ts) — it survives the
   // no-app-installed case, which a hale:// scheme link does not.
+  // A failed fetch is NOT terminal: the share button stays enabled and retries
+  // the fetch inline, so a network blip never leaves a dead button.
   const [link, setLink] = useState<{ url: string; code: string } | null>(null);
-  const ensuredRef = useRef(false);
+  const linkRef = useRef<typeof link>(null);
+  const ensureLink = useCallback(async () => {
+    if (linkRef.current) return linkRef.current;
+    try {
+      const { code } = await getOrCreateCode();
+      const next = { url: referralLink(code), code };
+      linkRef.current = next;
+      setLink(next);
+      return next;
+    } catch {
+      return null; // caller decides how to surface it
+    }
+  }, [getOrCreateCode]);
   useEffect(() => {
-    if (ensuredRef.current || progress === undefined || progress === null) return;
-    ensuredRef.current = true;
-    getOrCreateCode()
-      .then(({ code }) => setLink({ url: referralLink(code), code }))
-      .catch(() => {
-        ensuredRef.current = false; // allow a retry on next render
-      });
-  }, [progress, getOrCreateCode]);
+    if (progress === undefined || progress === null) return;
+    void ensureLink();
+  }, [progress, ensureLink]);
 
   // Celebrate the reward unlock once per session (false -> true transition).
   const prevReward = useRef<boolean | null>(null);
@@ -54,14 +63,18 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
   }, [progress]);
 
   const onShare = useCallback(async () => {
-    if (!link) return;
+    const l = await ensureLink();
+    if (!l) {
+      toast.error("Couldn't load your invite link. Check your connection and try again.");
+      return;
+    }
     track(Ev.REFERRAL_LINK_SHARED, { surface });
     try {
-      await Share.share(inviteShareParams(referralShareText(link.code), link.url));
+      await Share.share(inviteShareParams(referralShareText(l.code), l.url));
     } catch {
       // Share dismissed — no-op.
     }
-  }, [link, surface]);
+  }, [ensureLink, surface]);
 
   if (progress === undefined || progress === null) return null;
 
@@ -93,7 +106,6 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
               variant="secondary"
               label="Share my invite link"
               onPress={onShare}
-              disabled={!link}
               className="mt-6"
             />
           </>
@@ -154,7 +166,6 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
               variant="primary"
               label="Share my invite link"
               onPress={onShare}
-              disabled={!link}
               accessibilityLabel="Share your referral link"
               className="mt-6"
             />

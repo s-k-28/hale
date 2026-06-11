@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Share, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useMutation } from 'convex/react'
@@ -19,23 +19,37 @@ export default function ReferralShare() {
   const { from } = useLocalSearchParams<{ from?: string }>()
   const getOrCreateCode = useMutation(api.referrals.getOrCreateMyCode)
   const [code, setCode] = useState<string | null>(null)
-  const ensured = useRef(false)
+  const [notice, setNotice] = useState<string | null>(null)
+  const codeRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    if (ensured.current) return
-    ensured.current = true
-    getOrCreateCode()
-      .then((r) => setCode(r.code))
-      .catch(() => {
-        ensured.current = false // retry on next mount
-      })
+  // A failed fetch is NOT terminal: the share button stays enabled and retries
+  // the fetch inline, so a network blip never leaves a dead button.
+  const ensureCode = useCallback(async (): Promise<string | null> => {
+    if (codeRef.current) return codeRef.current
+    try {
+      const r = await getOrCreateCode()
+      codeRef.current = r.code
+      setCode(r.code)
+      setNotice(null)
+      return r.code
+    } catch {
+      return null
+    }
   }, [getOrCreateCode])
 
+  useEffect(() => {
+    void ensureCode()
+  }, [ensureCode])
+
   const onShare = async () => {
-    if (!code) return
+    const c = await ensureCode()
+    if (!c) {
+      setNotice("Couldn't load your invite code. Check your connection and try again.")
+      return
+    }
     track(Ev.REFERRAL_LINK_SHARED, { surface: from === 'onboarding' ? 'share_onboarding' : 'share_screen' })
     try {
-      await Share.share(inviteShareParams(referralShareText(code), referralLink(code)))
+      await Share.share(inviteShareParams(referralShareText(c), referralLink(c)))
     } catch {
       // Share dismissed — no-op.
     }
@@ -72,7 +86,10 @@ export default function ReferralShare() {
       </View>
 
       <View className="px-gutter pb-[30px] pt-4">
-        <Button variant="primary" label="Share invite" disabled={!code} onPress={onShare} />
+        {notice ? (
+          <Body className="mb-3 text-center text-sm text-fg-2">{notice}</Body>
+        ) : null}
+        <Button variant="primary" label="Share invite" onPress={onShare} />
       </View>
     </Screen>
   )
