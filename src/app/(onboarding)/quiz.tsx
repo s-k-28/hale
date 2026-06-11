@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Share,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useConvexAuth, useMutation } from 'convex/react';
@@ -31,7 +30,6 @@ import {
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { setPendingBuddy, takePendingBuddy } from '@/lib/pendingBuddy';
-import { buddyLink, buddyShareText, inviteShareParams } from '@/lib/links';
 import {
   Screen,
   Button,
@@ -1006,18 +1004,14 @@ function PushOptIn({ onDecide }: { onDecide: (granted: boolean) => void }) {
 /**
  * Buddy-pairing as the ACTIVATION event (P1). Shown after the push opt-in for
  * users who didn't arrive already paired via a deep link (design tail order).
- * The default path leads to a buddy in session one — invite a friend (prefilled
- * deep link) or matchmaking (pair with a waiting quitter by product/stage/
+ * The default path leads to a buddy in session one — invite a friend (via the
+ * referral hub) or matchmaking (pair with a waiting quitter by product/stage/
  * timezone); a solo bridge is allowed but de-emphasized. Every path emits clean
  * events (invite_offered, buddy_invited, matchmaking_*, buddy_paired,
  * solo_bridge_taken) so K-factor + the paired-vs-solo wedge are measurable.
- *
- * NOTE: the design's late nav rewire ("Invite a buddy" → the referral hub)
- * lands with step 19 when /referral exists — until then the share sheet is the
- * invite action, same as production today.
  */
 function InviteBuddyStep({ onDone }: { onDone: () => void }) {
-  const invite = useMutation(api.buddies.invite);
+  const router = useRouter();
   const requestMatch = useMutation(api.buddies.requestMatch);
   const [busy, setBusy] = useState(false);
 
@@ -1025,19 +1019,14 @@ function InviteBuddyStep({ onDone }: { onDone: () => void }) {
     track(Ev.INVITE_OFFERED, { invite_source: 'onboarding', is_default_path: true });
   }, []);
 
-  const onInvite = async () => {
+  // The design's late nav rewire: "Invite a buddy" opens the referral hub
+  // (invite + referral are ONE loop — the hub's share carries the typed-code
+  // fallback and counts toward the 7-day reward). BUDDY_INVITED still fires so
+  // the K-factor funnel keeps its anchor event.
+  const onInvite = () => {
     if (busy) return;
-    setBusy(true);
-    try {
-      const { userId } = await invite();
-      const link = buddyLink(userId);
-      track(Ev.BUDDY_INVITED, { invite_source: 'onboarding', pairing_method: 'invite', link_id: userId });
-      await Share.share(inviteShareParams(buddyShareText(), link));
-    } catch {
-      // Share dismissed / invite failed — still land in the app (invite is pending).
-    }
-    setBusy(false);
-    onDone();
+    track(Ev.BUDDY_INVITED, { invite_source: 'onboarding', pairing_method: 'invite' });
+    router.push({ pathname: '/referral', params: { from: 'onboarding' } });
   };
 
   const onMatch = async () => {
@@ -1094,7 +1083,6 @@ function InviteBuddyStep({ onDone }: { onDone: () => void }) {
           <Button
             variant="primary"
             label="Invite a buddy"
-            loading={busy}
             onPress={onInvite}
             accessibilityLabel="Invite a buddy"
           />
