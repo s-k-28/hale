@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as _devtest from "../_devtest.js";
 import type * as analytics from "../analytics.js";
 import type * as auth from "../auth.js";
 import type * as buddies from "../buddies.js";
@@ -19,10 +20,11 @@ import type * as feed from "../feed.js";
 import type * as goals from "../goals.js";
 import type * as http from "../http.js";
 import type * as leagues from "../leagues.js";
-import type * as migrations from "../migrations.js";
+import type * as model_buddy from "../model/buddy.js";
 import type * as model_cohort from "../model/cohort.js";
 import type * as model_entitlement from "../model/entitlement.js";
 import type * as model_plan from "../model/plan.js";
+import type * as model_rcWebhook from "../model/rcWebhook.js";
 import type * as model_sage from "../model/sage.js";
 import type * as model_streak from "../model/streak.js";
 import type * as model_trial from "../model/trial.js";
@@ -43,6 +45,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  _devtest: typeof _devtest;
   analytics: typeof analytics;
   auth: typeof auth;
   buddies: typeof buddies;
@@ -54,10 +57,11 @@ declare const fullApi: ApiFromModules<{
   goals: typeof goals;
   http: typeof http;
   leagues: typeof leagues;
-  migrations: typeof migrations;
+  "model/buddy": typeof model_buddy;
   "model/cohort": typeof model_cohort;
   "model/entitlement": typeof model_entitlement;
   "model/plan": typeof model_plan;
+  "model/rcWebhook": typeof model_rcWebhook;
   "model/sage": typeof model_sage;
   "model/streak": typeof model_streak;
   "model/trial": typeof model_trial;

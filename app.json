@@ -8,7 +8,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "hale",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0A0C0B",
+    "backgroundColor": "#0B0F0D",
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.haleapp.hale",
@@ -21,7 +21,7 @@
     "android": {
       "package": "com.haleapp.hale",
       "adaptiveIcon": {
-        "backgroundColor": "#0A0C0B",
+        "backgroundColor": "#0B0F0D",
         "foregroundImage": "./assets/images/adaptive-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
@@ -64,11 +64,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0A0C0B",
+          "backgroundColor": "#0B0F0D",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 120,
           "dark": {
-            "backgroundColor": "#0A0C0B",
+            "backgroundColor": "#0B0F0D",
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 120
           }

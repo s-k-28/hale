@@ -6,22 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SecureStore from 'expo-secure-store';
 import { useFonts } from 'expo-font';
-import { Anton_400Regular } from '@expo-google-fonts/anton';
-import {
-  Archivo_600SemiBold,
-  Archivo_700Bold,
-  Archivo_800ExtraBold,
-  Archivo_900Black,
-} from '@expo-google-fonts/archivo';
-import {
-  HankenGrotesk_400Regular,
-  HankenGrotesk_500Medium,
-  HankenGrotesk_600SemiBold,
-  HankenGrotesk_700Bold,
-  HankenGrotesk_800ExtraBold,
-} from '@expo-google-fonts/hanken-grotesk';
-// Clean Dark (v2) — Sora is the new system's single family; old families above
-// remain registered until the per-screen migration finishes, then get purged.
+// Clean Dark (v2) — Sora is the single type family.
 import {
   Sora_300Light,
   Sora_400Regular,
@@ -56,16 +41,6 @@ const secureStorage = {
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    Anton_400Regular,
-    Archivo_600SemiBold,
-    Archivo_700Bold,
-    Archivo_800ExtraBold,
-    Archivo_900Black,
-    HankenGrotesk_400Regular,
-    HankenGrotesk_500Medium,
-    HankenGrotesk_600SemiBold,
-    HankenGrotesk_700Bold,
-    HankenGrotesk_800ExtraBold,
     Sora_300Light,
     Sora_400Regular,
     Sora_500Medium,

@@ -14,14 +14,7 @@ module.exports = {
       spacing: tokens.spacing,
       borderRadius: tokens.radius,
       fontFamily: {
-        display: ['Anton_400Regular'], // huge condensed numerals / hero
-        heading: ['Archivo_800ExtraBold'],
-        'heading-bold': ['Archivo_700Bold'],
-        body: ['HankenGrotesk_400Regular'],
-        'body-medium': ['HankenGrotesk_500Medium'],
-        'body-semibold': ['HankenGrotesk_600SemiBold'],
-        'body-bold': ['HankenGrotesk_700Bold'],
-        // ── Clean Dark (v2): Sora is the ONLY family in the new system ──
+        // Clean Dark (v2): Sora is the ONLY family.
         sora: ['Sora_400Regular'],
         'sora-light': ['Sora_300Light'],
         'sora-medium': ['Sora_500Medium'],
