@@ -130,7 +130,7 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
       >
         {/* Base near-black wash with a faint lime-tinted floor. */}
         <LinearGradient
-          colors={['#0A0C0B', '#0E120D', '#0A0C0B']}
+          colors={['#0B0F0D', '#0E1311', '#0B0F0D']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{ flex: 1 }}
