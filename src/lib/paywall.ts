@@ -1,3 +1,4 @@
+import Purchases from 'react-native-purchases';
 import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { env, has } from './config';
 import { isPremium } from './revenuecat';
@@ -43,6 +44,19 @@ function revenueCatConfigured(): boolean {
 export async function presentPaywall(surface?: string): Promise<PAYWALL_RESULT> {
   // Unconfigured → no native module to call. Degrade gracefully.
   if (!revenueCatConfigured()) return PAYWALL_RESULT.NOT_PRESENTED;
+
+  // Offerings pre-check (Guideline 3.1.1 robustness): if RevenueCat can't
+  // load a current offering (network failure, store misconfiguration), the
+  // native template would present broken — an empty sheet plus RC's own
+  // error alert. Detect that BEFORE presenting and report NOT_PRESENTED so
+  // callers show the clean in-app fallback with its retry state instead.
+  // Presentation-only guard; entitlement logic is untouched.
+  try {
+    const offerings = await Purchases.getOfferings();
+    if (!offerings.current) return PAYWALL_RESULT.NOT_PRESENTED;
+  } catch {
+    return PAYWALL_RESULT.NOT_PRESENTED;
+  }
 
   track(Ev.PAYWALL_VIEWED, surface ? { surface } : undefined);
 

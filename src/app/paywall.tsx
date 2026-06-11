@@ -78,6 +78,11 @@ const BENEFITS: { title: string; detail: string; Icon: IconCmp }[] = [
 
 export default function Paywall() {
   const [phase, setPhase] = useState<Phase>('presenting');
+  // Retry state for the fallback (Guideline 3.1.1): when the native flow
+  // can't load offerings, the Start CTA retries and we say so plainly —
+  // never blank, never an infinite spinner, never a link out to a browser.
+  const [retrying, setRetrying] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   const ranRef = useRef(false);
 
   const dismiss = () => {
@@ -112,6 +117,23 @@ export default function Paywall() {
     };
   }, []);
 
+  // Tapping Start on the fallback retries the native purchase flow. If RC
+  // still can't serve offerings, show the unavailable notice and keep the
+  // retry available.
+  const onStart = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    setUnavailable(false);
+    const result = await presentPaywall('fallback_retry');
+    setRetrying(false);
+    if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
+      dismiss();
+    } else if (result === PAYWALL_RESULT.NOT_PRESENTED) {
+      setUnavailable(true);
+    }
+    // CANCELLED → user closed the native sheet; stay here quietly.
+  };
+
   // While the native sheet is presenting (or we're closing), keep a calm,
   // on-brand backdrop underneath rather than a flash of empty space.
   if (phase !== 'fallback') {
@@ -122,14 +144,31 @@ export default function Paywall() {
     );
   }
 
-  return <HalePlusUpsell onMaybeLater={dismiss} />;
+  return (
+    <HalePlusUpsell
+      onMaybeLater={dismiss}
+      onStart={onStart}
+      retrying={retrying}
+      unavailable={unavailable}
+    />
+  );
 }
 
 /* ------------------------------------------------------------------ */
 /* In-app fallback upsell (scaffold / RC-unconfigured)                 */
 /* ------------------------------------------------------------------ */
 
-function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
+function HalePlusUpsell({
+  onMaybeLater,
+  onStart,
+  retrying,
+  unavailable,
+}: {
+  onMaybeLater: () => void;
+  onStart: () => void;
+  retrying: boolean;
+  unavailable: boolean;
+}) {
   return (
     <SafeAreaView className="flex-1 bg-bg" edges={['top', 'bottom']}>
       {/* Close — top right, hairline surface chip */}
@@ -197,7 +236,13 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
           <Body className="ml-2 text-fg-2 text-sm">/yr · $6.67/mo</Body>
         </View>
 
-        <SheenButton onPress={onMaybeLater} />
+        <SheenButton onPress={onStart} label={unavailable ? 'Try again' : 'Start HALE+'} busy={retrying} />
+        {unavailable ? (
+          <Body className="mt-3 text-center text-[13px] leading-5 text-fg-2">
+            Subscriptions aren't available right now. Check your connection and try again — your
+            14-day full-access window keeps working in the meantime.
+          </Body>
+        ) : null}
 
         <Pressable
           onPress={onMaybeLater}
@@ -218,7 +263,15 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
  * without nagging. The sheen is clipped to the button's rounded rect; the Button's
  * own press physics + lift shadow are untouched (the clip only wraps the highlight).
  */
-function SheenButton({ onPress }: { onPress: () => void }) {
+function SheenButton({
+  onPress,
+  label = 'Start HALE+',
+  busy = false,
+}: {
+  onPress: () => void;
+  label?: string;
+  busy?: boolean;
+}) {
   const [w, setW] = useState(0);
   const x = useSharedValue(0);
   const BAND = 110;
@@ -246,7 +299,7 @@ function SheenButton({ onPress }: { onPress: () => void }) {
 
   return (
     <View className="relative" onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-      <Button label="Start HALE+" variant="primary" onPress={onPress} />
+      <Button label={label} variant="primary" loading={busy} onPress={onPress} />
       {/* Clip the sheen to the button's rounded rect; pointerEvents none so the
           highlight never eats a tap. Inset clip only — the Button's lift shadow,
           which lives on the Button itself, is not clipped. */}
