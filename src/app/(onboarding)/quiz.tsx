@@ -26,19 +26,32 @@ import {
   Wind as Lungs,
   Compass,
   Bell,
-  Flame,
   TrendingUp,
 } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { setPendingBuddy, takePendingBuddy } from '@/lib/pendingBuddy';
 import { buddyLink, buddyShareText, inviteShareParams } from '@/lib/links';
-import { Screen } from '@/components/ui/Screen';
-import { Display, Heading, Body, Label } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { Pill } from '@/components/ui/Pill';
+import {
+  Screen,
+  Button,
+  IconBtn,
+  Steps,
+  OptRow,
+  Input,
+  UnderlineInput,
+  Eyebrow,
+  H1,
+  H3,
+  Lead,
+  Body,
+  Muted,
+  Card2,
+  CardHero,
+} from '@/ui';
+import { RNText } from '@/ui/internal';
 import { RiseIn } from '@/components/motion';
-import { colors } from '@/theme/colors';
+import { clean } from '@/theme/clean';
 import { track, Ev } from '@/lib/analytics';
 import { requestPushPermission } from '@/lib/onesignal';
 import { identifyPurchaser } from '@/lib/revenuecat';
@@ -52,15 +65,17 @@ import {
 } from '@convex/model/plan';
 
 /* ------------------------------------------------------------------------- *
- * O1 — Onboarding quiz → plan reveal → commitment. (Bold Momentum re-skin.)
+ * O1 — Onboarding quiz → plan reveal → commitment. (Clean Dark v2.)
  *
- * Grounded in the canonical "quiz → personalized plan" pattern used by Cal AI,
- * Headspace, Fabulous and the leading quit-nicotine apps (Smoke Free / QuitNow):
- *   • one question per full-screen step, large tappable cards, progress dots
- *   • a short "building your plan" beat (manufactured anticipation)
- *   • a celebratory PLAN REVEAL leading with the hero $ number + a health
- *     recovery timeline, with a "general guidance, not medical advice" note
- *   • a single-decision COMMITMENT screen, then a help-framed push opt-in
+ * Seven questions (design): product → daily amount → unit cost → triggers →
+ * toughest time → motivation → name; then building → plan reveal → commit →
+ * push opt-in → invite-a-buddy (the design's tail order).
+ *
+ * The savings inputs are SPLIT (decision 2026-06-10): we ask units/day and
+ * $ per unit separately — exactly what the backend schema stores
+ * (baselinePerDay × unitCost). All money math is a pure function of their
+ * product, so the numbers match the old single monthly-spend input whenever
+ * perDay × cost == monthly / 30 (locked by __tests__/plan.test.ts).
  *
  * Decision 2 (deferred sign-up): all answers live in LOCAL React state. We touch
  * the backend ONLY at commit — signIn('anonymous') THEN completeOnboarding.
@@ -70,7 +85,8 @@ type ProductType = 'vape' | 'pouch' | 'cig' | 'mixed';
 
 type Answers = {
   productType: ProductType | null;
-  monthlySpend: number | null; // $ spent per month — the single savings input
+  perDay: number | null; // units per day (pods / pouches / cigarettes)
+  unitCost: number | null; // $ per unit
   triggers: string[];
   hardestHour: number | null;
   motivation: string;
@@ -79,7 +95,8 @@ type Answers = {
 
 const INITIAL: Answers = {
   productType: null,
-  monthlySpend: null,
+  perDay: null,
+  unitCost: null,
   triggers: [],
   hardestHour: null,
   motivation: '',
@@ -91,21 +108,21 @@ type Glyph = (props: { color?: string; size?: number; strokeWidth?: number }) =>
 
 /* ---- option sets (copy is per-product so the unit language stays honest) ---- */
 
-const PRODUCTS: { value: ProductType; label: string; Icon: Glyph; unit: string }[] = [
-  { value: 'vape', label: 'Vape / e-cig', Icon: Wind, unit: 'vapes' },
-  { value: 'pouch', label: 'Nicotine pouches', Icon: Package, unit: 'pouches' },
-  { value: 'cig', label: 'Cigarettes', Icon: Cigarette, unit: 'cigarettes' },
-  { value: 'mixed', label: 'A mix of things', Icon: Shuffle, unit: 'units' },
+const PRODUCTS: {
+  value: ProductType;
+  label: string;
+  Icon: Glyph;
+  unit: string;
+  unitPl: string;
+}[] = [
+  { value: 'vape', label: 'Vape / e-cig', Icon: Wind, unit: 'pod', unitPl: 'pods' },
+  { value: 'pouch', label: 'Nicotine pouches', Icon: Package, unit: 'pouch', unitPl: 'pouches' },
+  { value: 'cig', label: 'Cigarettes', Icon: Cigarette, unit: 'cigarette', unitPl: 'cigarettes' },
+  { value: 'mixed', label: 'A mix of things', Icon: Shuffle, unit: 'unit', unitPl: 'units' },
 ];
 
-// Monthly spend presets ($/month, across everything). We ask for total dollars
-// directly — NOT units × cost — so the savings number reflects exactly what the
-// user says they spend. The custom input covers anyone outside these brackets.
-const MONTHLY_SPEND_CHOICES = [20, 40, 80, 120, 200, 350];
-// Average days in a month — converts the monthly $ answer into the $/day the
-// savings math (moneySaved / projectedAnnualSavings) expects.
-const DAYS_PER_MONTH = 30;
-
+// Trigger labels per the design (Q4 tile grid) — 'Social' and 'Scrolling'
+// replace the older long-form labels.
 const TRIGGER_CHOICES = [
   'Stress',
   'Boredom',
@@ -113,8 +130,8 @@ const TRIGGER_CHOICES = [
   'Coffee',
   'Alcohol',
   'Driving',
-  'Social settings',
-  'Phone / scrolling',
+  'Social',
+  'Scrolling',
   'Waking up',
   'Work breaks',
 ];
@@ -154,10 +171,11 @@ const MOTIVATIONS: { value: string; label: string; Icon: Glyph }[] = [
   { value: 'control', label: 'Take back control', Icon: Compass },
 ];
 
-/* The ordered question steps that own a progress dot. */
+/* The ordered question steps that own a progress segment. */
 type StepKey =
   | 'productType'
-  | 'monthlySpend'
+  | 'perDay'
+  | 'unitCost'
   | 'triggers'
   | 'hardestHour'
   | 'motivation'
@@ -165,14 +183,15 @@ type StepKey =
 
 const QUESTION_STEPS: StepKey[] = [
   'productType',
-  'monthlySpend',
+  'perDay',
+  'unitCost',
   'triggers',
   'hardestHour',
   'motivation',
   'name',
 ];
 
-type Phase = 'questions' | 'building' | 'reveal' | 'commit' | 'invitebuddy' | 'push';
+type Phase = 'questions' | 'building' | 'reveal' | 'commit' | 'push' | 'invitebuddy';
 
 /* ------------------------------------------------------------------------- */
 
@@ -218,12 +237,18 @@ export default function Quiz() {
   const [answers, setAnswers] = useState<Answers>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Whether the deep-link redemption already paired this user at commit —
+  // decides where the push step exits to (design tail: commit → push → invite).
+  const [pairedInOnboarding, setPairedInOnboarding] = useState(false);
   // Raw text for each step's "enter your own" input. Empty = using a preset;
   // non-empty = a custom value (presets read deselected while it's filled).
-  const [customSpend, setCustomSpend] = useState('');
   const [customTrigger, setCustomTrigger] = useState('');
   const [customHour, setCustomHour] = useState('');
   const [customMotivation, setCustomMotivation] = useState('');
+  // Raw text for the two numeric entries (Q2/Q3) so partial input ("0.", "12.")
+  // doesn't fight the parsed value.
+  const [perDayText, setPerDayText] = useState('');
+  const [unitCostText, setUnitCostText] = useState('');
 
   useEffect(() => {
     track(Ev.ONBOARDING_STARTED);
@@ -233,13 +258,16 @@ export default function Quiz() {
     setAnswers((a) => ({ ...a, [key]: value }));
 
   const step = QUESTION_STEPS[stepIndex];
+  const product = PRODUCTS.find((p) => p.value === answers.productType) ?? PRODUCTS[3];
 
   const canAdvance = useMemo(() => {
     switch (step) {
       case 'productType':
         return answers.productType !== null;
-      case 'monthlySpend':
-        return answers.monthlySpend !== null && answers.monthlySpend > 0;
+      case 'perDay':
+        return answers.perDay !== null && answers.perDay > 0;
+      case 'unitCost':
+        return answers.unitCost !== null && answers.unitCost > 0;
       case 'triggers':
         return answers.triggers.length > 0;
       case 'hardestHour':
@@ -280,15 +308,13 @@ export default function Quiz() {
     return () => clearTimeout(t);
   }, [phase]);
 
-  /* The "wow" numbers — PURE math, computed entirely client-side (Decision 2). */
+  /* The "wow" numbers — PURE math, computed entirely client-side (Decision 2).
+     Split inputs (decision 2026-06-10): baselinePerDay and unitCost are stored
+     exactly as asked; every downstream number is their product (model/plan.ts). */
   const profile: QuitProfile = {
     productType: (answers.productType ?? 'mixed') as ProductType,
-    // We ask for total $/month directly; the savings model works in $/day. Store
-    // the daily rate as baselinePerDay with unitCost=1, so dailySpend (and every
-    // downstream number) == monthlySpend / 30. No units × cost multiplication —
-    // what the user typed is exactly what we project.
-    baselinePerDay: (answers.monthlySpend ?? 0) / DAYS_PER_MONTH,
-    unitCost: 1,
+    baselinePerDay: answers.perDay ?? 0,
+    unitCost: answers.unitCost ?? 0,
   };
   const annual = Math.round(projectedAnnualSavings(profile));
   const monthly = Math.round(annual / 12);
@@ -349,7 +375,7 @@ export default function Quiz() {
       // Redeem a pending buddy invite (S1: auto-pair on first open via deep link).
       // This is ALSO the referral trigger: attribution (install via link) then
       // completion (buddy-pair). Install alone never counts — pairing is the bar.
-      let pairedInOnboarding = false;
+      let paired = false;
       const pendingBuddy = await takePendingBuddy();
       if (pendingBuddy) {
         const referrerId = pendingBuddy as Id<'users'>;
@@ -370,7 +396,7 @@ export default function Quiz() {
         try {
           const pair = await pairWith({ inviterId: referrerId, pairingMethod: 'invite_onboard' });
           track(Ev.BUDDY_PAIRED, { via: 'invite_onboard', pairing_method: 'invite_onboard' });
-          pairedInOnboarding = true;
+          paired = true;
           // Funnel events keyed on the referrer (fired from the invitee's device).
           // pair.referrerId is the server's authoritative attribution — it can
           // differ from the link's referrerId if this user was attributed earlier.
@@ -389,14 +415,15 @@ export default function Quiz() {
         }
         // Nothing durable happened (attribution never reached the server AND no
         // pair landed) → put the invite back so it isn't lost to one bad moment.
-        if (!attributionDurable && !pairedInOnboarding) {
+        if (!attributionDurable && !paired) {
           void setPendingBuddy(referrerId);
         }
       }
-      // Pairing is the ACTIVATION event: if they didn't already arrive paired (deep
-      // link), route to the dedicated invite/matchmaking step so the default path
-      // leads to a buddy in session one — then the push opt-in.
-      setPhase(pairedInOnboarding ? 'push' : 'invitebuddy');
+      // Design tail order: commit → push opt-in → buddy step. The push step's
+      // exit uses pairedInOnboarding to skip the buddy step for users who
+      // already arrived paired via a deep link.
+      setPairedInOnboarding(paired);
+      setPhase('push');
     } catch (e) {
       setError('Something went wrong starting your plan. Please try again.');
       setSubmitting(false);
@@ -405,7 +432,13 @@ export default function Quiz() {
 
   const finishPushStep = (granted: boolean) => {
     if (granted) requestPushPermission(); // only after the explainer (Decision 2)
-    router.replace('/(tabs)/today');
+    // Already paired via deep link → straight into the app; else the buddy step
+    // (pairing is the activation event — the default path leads to a buddy).
+    if (pairedInOnboarding) {
+      router.replace('/(tabs)/today');
+    } else {
+      setPhase('invitebuddy');
+    }
   };
 
   /* ----------------------------- render phases ---------------------------- */
@@ -437,12 +470,12 @@ export default function Quiz() {
     );
   }
 
-  if (phase === 'invitebuddy') {
-    return <InviteBuddyStep onDone={() => setPhase('push')} />;
-  }
-
   if (phase === 'push') {
     return <PushOptIn onDecide={finishPushStep} />;
+  }
+
+  if (phase === 'invitebuddy') {
+    return <InviteBuddyStep onDone={() => router.replace('/(tabs)/today')} />;
   }
 
   /* ----------------------------- question phase --------------------------- */
@@ -453,37 +486,19 @@ export default function Quiz() {
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* header: back + progress dots */}
-        <View className="flex-row items-center px-5 pt-1">
-          <Pressable
-            onPress={goBack}
-            hitSlop={12}
-            className="h-10 w-10 items-center justify-center rounded-full border border-line bg-coal active:bg-card"
-          >
-            <ChevronLeft color={colors.chalk} size={22} strokeWidth={2.5} />
-          </Pressable>
-          <View className="flex-1 flex-row items-center justify-center gap-1.5">
-            {QUESTION_STEPS.map((_, i) => (
-              <View
-                key={i}
-                className={
-                  i === stepIndex
-                    ? 'h-1.5 w-7 rounded-full bg-volt'
-                    : i < stepIndex
-                      ? 'h-1.5 w-3 rounded-full bg-volt/40'
-                      : 'h-1.5 w-3 rounded-full bg-line'
-                }
-              />
-            ))}
-          </View>
-          <View className="h-10 w-10" />
+        {/* header: back + progress steps (design .steps segments) */}
+        <View className="flex-row items-center justify-between px-5 pt-1">
+          <IconBtn onPress={goBack} hitSlop={12} accessibilityLabel="Back">
+            <ChevronLeft color={clean.fg} size={22} strokeWidth={2.5} />
+          </IconBtn>
+          <Steps total={QUESTION_STEPS.length} current={stepIndex} />
+          <View className="h-11 w-11" />
         </View>
 
         <ScrollView
           className="flex-1"
           // grow + justify-center = "center the question when it's short, scroll when
-          // it's long." Kills the top-clustered chips + dead-space void on the
-          // short questions (baseline, cost, name) without clipping the tall ones.
+          // it's long" (design 'oblist'). No gray dead-space at the bottom.
           contentContainerClassName="grow px-gutter py-6 justify-center"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -495,50 +510,72 @@ export default function Quiz() {
               subtitle="We tailor your plan to what you use."
             >
               {PRODUCTS.map((p) => (
-                <ChoiceCard
+                <OptRow
                   key={p.value}
-                  Icon={p.Icon}
                   label={p.label}
-                  selected={answers.productType === p.value}
+                  on={answers.productType === p.value}
                   onPress={() => set('productType', p.value)}
+                  icon={
+                    <p.Icon
+                      color={answers.productType === p.value ? clean.accentInk : clean.fg2}
+                      size={22}
+                      strokeWidth={2.2}
+                    />
+                  }
                 />
               ))}
             </Question>
           )}
 
-          {step === 'monthlySpend' && (
+          {step === 'perDay' && (
             <Question
               index={stepIndex}
-              title="How much do you spend a month?"
-              subtitle="Roughly, across everything — vapes, pods, pouches, packs. This is the number we turn into money back in your pocket."
+              title={`How many ${product.unitPl} a day?`}
+              subtitle="Ballpark is fine. We use it to size your savings."
             >
-              <View className="flex-row flex-wrap gap-3">
-                {MONTHLY_SPEND_CHOICES.map((n) => (
-                  <PillChoice
-                    key={n}
-                    label={`$${n}`}
-                    // While a custom number is typed, presets read as deselected.
-                    selected={customSpend === '' && answers.monthlySpend === n}
-                    onPress={() => {
-                      setCustomSpend('');
-                      set('monthlySpend', n);
-                    }}
-                  />
-                ))}
-              </View>
-              <TextInput
-                value={customSpend}
+              <Eyebrow className="mb-3">{product.unitPl} per day</Eyebrow>
+              <UnderlineInput
+                filled={answers.perDay !== null && answers.perDay > 0}
+                value={perDayText}
                 onChangeText={(t) => {
                   const digits = t.replace(/[^0-9]/g, '');
-                  setCustomSpend(digits);
-                  set('monthlySpend', digits ? parseInt(digits, 10) : null);
+                  setPerDayText(digits);
+                  const n = digits ? parseInt(digits, 10) : 0;
+                  set('perDay', n > 0 ? n : null);
                 }}
-                placeholder="Or enter a dollar amount per month, e.g. 50"
-                placeholderTextColor={colors.ash}
+                placeholder="0"
                 keyboardType="number-pad"
                 returnKeyType="done"
                 onSubmitEditing={() => canAdvance && goNext()}
-                className="mt-4 rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
+                suffix="a day"
+                accessibilityLabel={`${product.unitPl} per day`}
+              />
+            </Question>
+          )}
+
+          {step === 'unitCost' && (
+            <Question
+              index={stepIndex}
+              title={`What does one ${product.unit} cost?`}
+              subtitle="Roughly. This is what we'll turn into money back in your pocket."
+            >
+              <Eyebrow className="mb-3">Cost per {product.unit}</Eyebrow>
+              <UnderlineInput
+                filled={answers.unitCost !== null && answers.unitCost > 0}
+                value={unitCostText}
+                onChangeText={(t) => {
+                  const cleaned = t.replace(/[^0-9.]/g, '');
+                  setUnitCostText(cleaned);
+                  const n = parseFloat(cleaned);
+                  set('unitCost', Number.isFinite(n) && n > 0 ? n : null);
+                }}
+                placeholder="0.00"
+                keyboardType="decimal-pad"
+                returnKeyType="done"
+                onSubmitEditing={() => canAdvance && goNext()}
+                prefix="$"
+                suffix="each"
+                accessibilityLabel={`Cost per ${product.unit}`}
               />
             </Question>
           )}
@@ -547,49 +584,58 @@ export default function Quiz() {
             <Question
               index={stepIndex}
               title="When do cravings hit hardest?"
-              subtitle="Pick all that apply, your plan will plan around these."
+              subtitle="Pick all that hit. Your plan works around them."
             >
-              <View className="flex-row flex-wrap gap-3">
-                {TRIGGER_CHOICES.map((t) => {
-                  const selected = answers.triggers.includes(t);
-                  return (
-                    <PillChoice
-                      key={t}
-                      label={t}
-                      selected={selected}
-                      onPress={() =>
-                        set(
-                          'triggers',
+              {/* Design Q4: 2-column grid of checkbox tiles (multi-select reads
+                  as checkboxes, distinct from the single-select radios). */}
+              <View className="flex-row flex-wrap" style={{ gap: 10 }}>
+                {[...TRIGGER_CHOICES, ...answers.triggers.filter((t) => !TRIGGER_CHOICES.includes(t))].map(
+                  (t) => {
+                    const selected = answers.triggers.includes(t);
+                    return (
+                      <Pressable
+                        key={t}
+                        onPress={() =>
+                          set(
+                            'triggers',
+                            selected
+                              ? answers.triggers.filter((x) => x !== t)
+                              : [...answers.triggers, t],
+                          )
+                        }
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected }}
+                        className={`h-[62px] flex-row items-center gap-3 rounded-tile px-4 active:scale-[0.98] ${
                           selected
-                            ? answers.triggers.filter((x) => x !== t)
-                            : [...answers.triggers, t],
-                        )
-                      }
-                    />
-                  );
-                })}
-                {/* Custom triggers the user typed — selected by definition; tap to remove. */}
-                {answers.triggers
-                  .filter((t) => !TRIGGER_CHOICES.includes(t))
-                  .map((t) => (
-                    <PillChoice
-                      key={t}
-                      label={t}
-                      selected
-                      onPress={() =>
-                        set(
-                          'triggers',
-                          answers.triggers.filter((x) => x !== t),
-                        )
-                      }
-                    />
-                  ))}
+                            ? 'border-[1.5px] border-accent-edge bg-accent-soft'
+                            : 'border border-stroke bg-surface'
+                        }`}
+                        style={{ width: '48%', flexGrow: 1 }}
+                      >
+                        <View
+                          className={`h-[23px] w-[23px] items-center justify-center rounded-md ${
+                            selected ? 'bg-accent' : 'border border-stroke-2'
+                          }`}
+                        >
+                          {selected ? (
+                            <Check color={clean.accentInk} size={15} strokeWidth={3} />
+                          ) : null}
+                        </View>
+                        <RNText
+                          className="flex-1 font-sora-semibold text-[15px] text-fg"
+                          numberOfLines={1}
+                        >
+                          {t}
+                        </RNText>
+                      </Pressable>
+                    );
+                  },
+                )}
               </View>
-              <TextInput
+              <Input
                 value={customTrigger}
                 onChangeText={setCustomTrigger}
                 placeholder="Add your own, type and press return"
-                placeholderTextColor={colors.ash}
                 autoCapitalize="sentences"
                 returnKeyType="done"
                 onSubmitEditing={() => {
@@ -599,7 +645,7 @@ export default function Quiz() {
                   }
                   setCustomTrigger('');
                 }}
-                className="mt-4 rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
+                className="mt-4"
               />
             </Question>
           )}
@@ -611,30 +657,29 @@ export default function Quiz() {
               subtitle="We'll check in with you right before it."
             >
               {HOUR_BANDS.map((b) => (
-                <ChoiceCard
+                <OptRow
                   key={b.hour}
                   label={b.label}
                   // A typed custom time deselects the bands.
-                  selected={customHour === '' && answers.hardestHour === b.hour}
+                  on={customHour === '' && answers.hardestHour === b.hour}
                   onPress={() => {
                     setCustomHour('');
                     set('hardestHour', b.hour);
                   }}
                 />
               ))}
-              <TextInput
+              <Input
                 value={customHour}
                 onChangeText={(t) => {
                   setCustomHour(t);
                   set('hardestHour', parseHourInput(t));
                 }}
                 placeholder="Or enter a time, e.g. 9am, 2pm, 14:00"
-                placeholderTextColor={colors.ash}
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="done"
                 onSubmitEditing={() => canAdvance && goNext()}
-                className="mt-1 rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
+                className="mt-1"
               />
             </Question>
           )}
@@ -646,29 +691,38 @@ export default function Quiz() {
               subtitle="Your reason shows up when cravings do."
             >
               {MOTIVATIONS.map((m) => (
-                <ChoiceCard
+                <OptRow
                   key={m.value}
-                  Icon={m.Icon}
                   label={m.label}
-                  selected={customMotivation === '' && answers.motivation === m.value}
+                  on={customMotivation === '' && answers.motivation === m.value}
                   onPress={() => {
                     setCustomMotivation('');
                     set('motivation', m.value);
                   }}
+                  icon={
+                    <m.Icon
+                      color={
+                        customMotivation === '' && answers.motivation === m.value
+                          ? clean.accentInk
+                          : clean.fg2
+                      }
+                      size={22}
+                      strokeWidth={2.2}
+                    />
+                  }
                 />
               ))}
-              <TextInput
+              <Input
                 value={customMotivation}
                 onChangeText={(t) => {
                   setCustomMotivation(t);
                   set('motivation', t.trim());
                 }}
                 placeholder="Or write your own reason"
-                placeholderTextColor={colors.ash}
                 autoCapitalize="sentences"
                 returnKeyType="done"
                 onSubmitEditing={() => canAdvance && goNext()}
-                className="mt-1 rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
+                className="mt-1"
               />
             </Question>
           )}
@@ -679,25 +733,23 @@ export default function Quiz() {
               title="What should we call you?"
               subtitle="Just a first name, so your plan feels like yours. Optional."
             >
-              <TextInput
+              <Input
                 value={answers.name}
                 onChangeText={(t) => set('name', t)}
                 placeholder="First name"
-                placeholderTextColor={colors.ash}
                 autoCapitalize="words"
                 autoCorrect={false}
                 returnKeyType="done"
                 onSubmitEditing={() => canAdvance && goNext()}
-                className="rounded-2xl border border-line bg-coal px-5 py-4 font-body-medium text-lg text-chalk"
               />
             </Question>
           )}
         </ScrollView>
 
-        {/* sticky CTA */}
-        <View className="px-6 pb-3 pt-2">
+        {/* in-flow CTA, pinned to the bottom (design ObChrome cta slot) */}
+        <View className="px-gutter pb-[30px] pt-4">
           <Button
-            label={stepIndex === QUESTION_STEPS.length - 1 ? 'BUILD MY PLAN' : 'CONTINUE'}
+            label={stepIndex === QUESTION_STEPS.length - 1 ? 'Build my plan' : 'Continue'}
             variant="primary"
             disabled={!canAdvance}
             onPress={goNext}
@@ -729,43 +781,30 @@ function BuildingPlan({ name }: { name: string }) {
   return (
     <Screen edges={['top', 'bottom']}>
       <View className="flex-1 items-center justify-center px-8">
-        <View className="mb-8 h-16 w-16 items-center justify-center rounded-2xl border border-line bg-coal">
-          <Flame color={colors.volt} size={30} strokeWidth={2.5} />
-        </View>
-        <ActivityIndicator color={colors.volt} size="large" />
-        <Heading className="mt-8 text-center text-3xl leading-tight">
-          {name ? `HANG TIGHT,\n${name.toUpperCase()}` : 'HANG TIGHT'}
-        </Heading>
-        <Body className="mt-3 text-center font-body-medium text-base text-ash">
-          Building your personalized quit plan
-        </Body>
+        <ActivityIndicator color={clean.accent} size="large" />
+        <H1 className="mt-8 text-center">
+          {name ? `Hang tight, ${name}` : 'Hang tight'}
+        </H1>
+        <Lead className="mt-3 text-center">Building your personalized quit plan</Lead>
 
-        <View className="mt-12 w-full gap-3">
+        <View className="mt-12 w-full" style={{ gap: 10 }}>
           {lines.map((l, i) => (
             <View
               key={l}
-              className={
+              className={`flex-row items-center gap-3 rounded-tile px-4 py-3.5 ${
                 i < done
-                  ? 'flex-row items-center gap-3 rounded-2xl border border-volt/30 bg-volt/10 px-4 py-3.5'
-                  : 'flex-row items-center gap-3 rounded-2xl border border-line bg-coal px-4 py-3.5'
-              }
+                  ? 'border border-accent-edge bg-accent-soft'
+                  : 'border border-stroke bg-surface'
+              }`}
             >
               <View
-                className={
-                  i < done
-                    ? 'h-7 w-7 items-center justify-center rounded-full bg-volt'
-                    : 'h-7 w-7 items-center justify-center rounded-full border border-line'
-                }
+                className={`h-7 w-7 items-center justify-center rounded-pill ${
+                  i < done ? 'bg-accent' : 'border border-stroke-2'
+                }`}
               >
-                {i < done ? <Check color={colors.voltInk} size={16} strokeWidth={3} /> : null}
+                {i < done ? <Check color={clean.accentInk} size={16} strokeWidth={3} /> : null}
               </View>
-              <Body
-                className={
-                  i < done
-                    ? 'flex-1 font-body-semibold text-base text-chalk'
-                    : 'flex-1 font-body-medium text-base text-ash'
-                }
-              >
+              <Body className={`flex-1 ${i < done ? 'font-sora-semibold text-fg' : 'text-fg-3'}`}>
                 {l}
               </Body>
             </View>
@@ -811,75 +850,73 @@ function PlanReveal({
   onContinue: () => void;
 }) {
   // Hero savings counts up on mount; the milestone rows stagger-rise below it.
+  // No status badge above the headline (anti-AI rule from the design chat).
   const animatedAnnual = useCountUp(annual);
   return (
     <Screen edges={['top', 'bottom']}>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pt-6 pb-10"
+        contentContainerClassName="px-gutter pt-7 pb-10"
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-5">
-          <Pill tone="volt">YOUR PLAN IS READY</Pill>
-        </View>
-        <Heading className="text-3xl leading-tight">
-          {name ? `${name.toUpperCase()}, HERE'S WHAT` : "HERE'S WHAT"}
-          {'\n'}QUITTING GIVES BACK
-        </Heading>
+        <H1>
+          {name ? `${name}, here's what` : "Here's what"}
+          {'\n'}quitting gives back
+        </H1>
 
-        {/* hero savings card — the giant lime number */}
-        <View className="mt-7 overflow-hidden rounded-3xl border border-volt/30 bg-volt/10 p-6">
-          <Label className="text-volt/80">Projected savings this year</Label>
-          <Display className="mt-1 text-7xl leading-tight text-volt">
+        {/* hero savings card — the screen's ONE emerald focal element */}
+        <CardHero pad className="mt-7">
+          <Eyebrow className="text-accent">Projected savings this year</Eyebrow>
+          <RNText className="mt-2 font-sora-bold text-[56px] leading-[60px] tracking-[-1.68px] text-accent">
             ${animatedAnnual.toLocaleString()}
-          </Display>
+          </RNText>
           <View className="mt-5 flex-row gap-3">
-            <View className="flex-1 rounded-2xl border border-line bg-coal p-4">
-              <Label>First month</Label>
-              <Display className="mt-1 text-3xl text-chalk">
+            <Card2 pad className="flex-1">
+              <Eyebrow>First month</Eyebrow>
+              <RNText className="mt-1.5 font-sora-bold text-[28px] tracking-[-0.56px] text-fg">
                 ${firstMonth.toLocaleString()}
-              </Display>
-            </View>
-            <View className="flex-1 rounded-2xl border border-line bg-coal p-4">
-              <Label>Every month</Label>
-              <Display className="mt-1 text-3xl text-chalk">
+              </RNText>
+            </Card2>
+            <Card2 pad className="flex-1">
+              <Eyebrow>Every month</Eyebrow>
+              <RNText className="mt-1.5 font-sora-bold text-[28px] tracking-[-0.56px] text-fg">
                 ${monthly.toLocaleString()}
-              </Display>
-            </View>
+              </RNText>
+            </Card2>
           </View>
-        </View>
+        </CardHero>
 
-        {/* health recovery timeline — clean dark list */}
+        {/* health recovery timeline */}
         <View className="mt-9 flex-row items-center gap-2">
-          <TrendingUp color={colors.volt} size={20} strokeWidth={2.5} />
-          <Heading className="text-xl">Your body heals fast</Heading>
+          <TrendingUp color={clean.fg2} size={20} strokeWidth={2.2} />
+          <H3>Your body heals fast</H3>
         </View>
-        <View className="mt-4 gap-2.5">
+        <View className="mt-4" style={{ gap: 10 }}>
           {milestones.map((m, i) => (
             // Rows fade-rise in sequence (40ms stagger) so the recovery timeline
             // reveals itself on mount — the body healing, step by step.
             <RiseIn key={m.label} index={i}>
-              <View className="flex-row items-center gap-4 rounded-2xl border border-line bg-coal p-4">
-                <View className="h-9 w-9 items-center justify-center rounded-full border border-line bg-card">
-                  <Display className="text-lg leading-tight text-volt">{i + 1}</Display>
+              <View className="flex-row items-center gap-4 rounded-tile border border-stroke bg-surface p-4">
+                <View className="h-9 w-9 items-center justify-center rounded-pill border border-stroke bg-surface-2">
+                  <RNText className="font-sora-bold text-[15px] text-fg-2">{i + 1}</RNText>
                 </View>
                 <View className="flex-1">
-                  <Label className="text-ash">{formatHours(m.hours)}</Label>
-                  <Body className="mt-0.5 font-body-semibold text-base text-chalk">{m.label}</Body>
+                  <Eyebrow>{formatHours(m.hours)}</Eyebrow>
+                  <Body className="mt-0.5 font-sora-semibold text-fg">{m.label}</Body>
                 </View>
               </View>
             </RiseIn>
           ))}
         </View>
 
-        <Body className="mt-6 font-body text-xs leading-5 text-ash">
+        <Muted className="mt-6 text-[12px] leading-5">
           Recovery timelines reflect commonly reported milestones and are general guidance, not
           medical advice. Everyone&apos;s body is different, talk to a clinician about your health.
-        </Body>
+        </Muted>
       </ScrollView>
 
-      <View className="px-6 pb-3 pt-2">
-        <Button label="CONTINUE" variant="primary" onPress={onContinue} />
+      <View className="px-gutter pb-[30px] pt-4">
+        <Button label="Continue" variant="primary" onPress={onContinue} />
       </View>
     </Screen>
   );
@@ -901,57 +938,83 @@ function CommitScreen({
 }) {
   return (
     <Screen edges={['top', 'bottom']}>
-      <View className="flex-1 justify-center px-7">
-        <View className="mb-7 h-20 w-20 items-center justify-center rounded-3xl border border-volt/30 bg-volt/10">
-          <Flame color={colors.volt} size={38} strokeWidth={2.5} />
-        </View>
-
-        <Heading className="text-5xl leading-none">
-          {name ? `READY,\n${name.toUpperCase()}?` : 'READY TO\nSTART?'}
-        </Heading>
-        <Body className="mt-5 font-body-medium text-base leading-6 text-ash">
+      <View className="flex-1 justify-center px-gutter">
+        <H1 className="text-[38px] leading-[42px]">
+          {name ? `Ready,\n${name}?` : 'Ready to\nstart?'}
+        </H1>
+        <Lead className="mt-5">
           Your quit clock starts the moment you commit. From here you&apos;ll see your clean time,
           your money saved, and you won&apos;t do it alone.
-        </Body>
+        </Lead>
 
-        <View className="mt-8 rounded-3xl border border-line bg-coal p-5">
-          <Label>On track to save</Label>
-          <Display className="mt-1 text-6xl leading-tight text-volt">
+        {/* the screen's ONE emerald focal element */}
+        <CardHero pad className="mt-8">
+          <Eyebrow>On track to save</Eyebrow>
+          <RNText className="mt-1 font-sora-bold text-[56px] leading-[60px] tracking-[-1.68px] text-accent">
             ${annual.toLocaleString()}
-          </Display>
-          <Label className="mt-1 text-ash">this year</Label>
-        </View>
+          </RNText>
+          <Eyebrow className="mt-1">this year</Eyebrow>
+        </CardHero>
 
         {error ? (
-          <Body className="mt-5 font-body-semibold text-center text-sm text-sos">{error}</Body>
+          <Body className="mt-5 text-center font-sora-semibold text-sm text-coral">{error}</Body>
         ) : null}
       </View>
 
-      <View className="px-6 pb-3 pt-2">
+      <View className="px-gutter pb-[30px] pt-4">
         <Button
-          label="I'M COMMITTING. START MY QUIT"
+          label="I'm committing. Start my quit"
           variant="primary"
           loading={submitting}
           disabled={submitting}
           onPress={onCommit}
         />
-        <Label className="mt-4 text-center text-ash/70 normal-case tracking-normal">
+        <Muted className="mt-4 text-center text-[12px]">
           No account needed · we keep your progress safe on this device
-        </Label>
+        </Muted>
       </View>
     </Screen>
   );
 }
 
 /** Help-framed push opt-in — explainer FIRST, then the OS prompt (Decision 2). */
+function PushOptIn({ onDecide }: { onDecide: (granted: boolean) => void }) {
+  return (
+    <Screen edges={['top', 'bottom']}>
+      <View className="flex-1 justify-center px-gutter">
+        <View className="mb-7 h-[58px] w-[58px] items-center justify-center rounded-xl border border-accent-edge bg-accent-soft">
+          <Bell color={clean.accent} size={26} strokeWidth={2.2} />
+        </View>
+
+        <H1 className="text-[34px] leading-[38px]">
+          Want a nudge{'\n'}when it&apos;s hardest?
+        </H1>
+        <Lead className="mt-5">
+          The people who quit for good get a little support right before their toughest hour, a
+          check-in, a craving tip, or a word from your buddy. No spam, ever.
+        </Lead>
+      </View>
+
+      <View className="gap-2 px-gutter pb-[30px] pt-4">
+        <Button label="Yes, support me through it" variant="primary" onPress={() => onDecide(true)} />
+        <Button label="Maybe later" variant="ghost" onPress={() => onDecide(false)} />
+      </View>
+    </Screen>
+  );
+}
+
 /**
- * Buddy-pairing as the ACTIVATION event (P1). Shown right after commitment for
- * users who didn't arrive already paired via a deep link. The default path leads
- * to a buddy in session one — invite a friend (prefilled deep link) or matchmaking
- * (pair with a waiting quitter by product/stage/timezone); a solo bridge is allowed
- * but de-emphasized. Every path emits clean events (invite_offered, buddy_invited,
- * matchmaking_*, buddy_paired, solo_bridge_taken) so K-factor + the paired-vs-solo
- * wedge are measurable from the first cohort.
+ * Buddy-pairing as the ACTIVATION event (P1). Shown after the push opt-in for
+ * users who didn't arrive already paired via a deep link (design tail order).
+ * The default path leads to a buddy in session one — invite a friend (prefilled
+ * deep link) or matchmaking (pair with a waiting quitter by product/stage/
+ * timezone); a solo bridge is allowed but de-emphasized. Every path emits clean
+ * events (invite_offered, buddy_invited, matchmaking_*, buddy_paired,
+ * solo_bridge_taken) so K-factor + the paired-vs-solo wedge are measurable.
+ *
+ * NOTE: the design's late nav rewire ("Invite a buddy" → the referral hub)
+ * lands with step 19 when /referral exists — until then the share sheet is the
+ * invite action, same as production today.
  */
 function InviteBuddyStep({ onDone }: { onDone: () => void }) {
   const invite = useMutation(api.buddies.invite);
@@ -1016,75 +1079,42 @@ function InviteBuddyStep({ onDone }: { onDone: () => void }) {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <View className="flex-1 justify-center px-7">
-        <View className="mb-7 h-20 w-20 items-center justify-center rounded-3xl border border-volt/30 bg-volt/10">
-          <Users color={colors.volt} size={38} strokeWidth={2.5} />
+      <View className="flex-1 justify-center px-gutter">
+        {/* warm = the buddy/together lane */}
+        <View className="mb-7 h-[58px] w-[58px] items-center justify-center rounded-xl border border-warm-edge bg-warm-soft">
+          <Users color={clean.warm} size={26} strokeWidth={2.2} />
         </View>
-        <Heading className="text-4xl leading-tight">QUIT WITH{'\n'}A BUDDY</Heading>
-        <Body className="mt-5 font-body-medium text-base leading-6 text-ash">
+        <H1 className="text-[34px] leading-[38px]">Quit with{'\n'}a buddy</H1>
+        <Lead className="mt-5">
           People with a buddy are far likelier to stay quit. Pair with someone who&apos;ll keep you
           honest, they only ever see your streak, never your slip-ups.
-        </Body>
+        </Lead>
 
         <View className="mt-9 gap-3">
           <Button
             variant="primary"
-            label="INVITE A BUDDY"
+            label="Invite a buddy"
             loading={busy}
             onPress={onInvite}
             accessibilityLabel="Invite a buddy"
           />
-          <Pressable
-            onPress={onMatch}
+          <Button
+            variant="secondary"
+            label="Find me a buddy"
             disabled={busy}
-            accessibilityRole="button"
+            onPress={onMatch}
+            icon={<Shuffle color={clean.fg} size={18} strokeWidth={2.2} />}
             accessibilityLabel="Find me a buddy"
-            className="h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-line bg-coal px-6 active:opacity-80"
-          >
-            <Shuffle color={colors.chalk} size={18} strokeWidth={2.5} />
-            <Heading className="text-sm text-chalk">FIND ME A BUDDY</Heading>
-          </Pressable>
+          />
         </View>
 
-        <Pressable
-          onPress={onSolo}
-          disabled={busy}
-          accessibilityRole="button"
-          className="mt-7 items-center py-2"
-        >
-          <Body className="text-sm text-ash">I&apos;ll start on my own</Body>
-        </Pressable>
-      </View>
-    </Screen>
-  );
-}
-
-function PushOptIn({ onDecide }: { onDecide: (granted: boolean) => void }) {
-  return (
-    <Screen edges={['top', 'bottom']}>
-      <View className="flex-1 justify-center px-7">
-        <View className="mb-7 h-20 w-20 items-center justify-center rounded-3xl border border-volt/30 bg-volt/10">
-          <Bell color={colors.volt} size={38} strokeWidth={2.5} />
-        </View>
-
-        <Heading className="text-4xl leading-tight">
-          WANT A NUDGE{'\n'}WHEN IT&apos;S{'\n'}HARDEST?
-        </Heading>
-        <Body className="mt-5 font-body-medium text-base leading-6 text-ash">
-          The people who quit for good get a little support right before their toughest hour, a
-          check-in, a craving tip, or a word from your buddy. No spam, ever.
-        </Body>
-      </View>
-
-      <View className="gap-3 px-6 pb-3 pt-2">
         <Button
-          label="YES, SUPPORT ME THROUGH IT"
-          variant="primary"
-          onPress={() => onDecide(true)}
+          variant="ghost"
+          label="I'll start on my own"
+          disabled={busy}
+          onPress={onSolo}
+          className="mt-4"
         />
-        <Pressable onPress={() => onDecide(false)} className="py-3">
-          <Label className="text-center text-ash normal-case tracking-normal">Maybe later</Label>
-        </Pressable>
       </View>
     </Screen>
   );
@@ -1110,104 +1140,15 @@ function Question({
       {/* Sage frames every question (HALE's mascot-warmth equivalent) as a flat
           typographic eyebrow — never a bubble/face — with the step folded in so
           the prompt reads as the coach asking it. The title is the screen hero. */}
-      <Label className="text-volt">Sage · {index + 1}/{QUESTION_STEPS.length}</Label>
-      <Heading className="mt-2 text-5xl leading-[0.98]">{title}</Heading>
-      {subtitle ? (
-        <Body className="mt-3 font-body-medium text-sm leading-6 text-ash">{subtitle}</Body>
-      ) : null}
-      <View className="mt-8 gap-3">{children}</View>
-    </View>
-  );
-}
-
-function ChoiceCard({
-  Icon,
-  label,
-  selected,
-  onPress,
-}: {
-  Icon?: Glyph;
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className={
-        selected
-          ? 'flex-row items-center gap-4 rounded-2xl border border-volt bg-raised px-5 py-4'
-          : 'flex-row items-center gap-4 rounded-2xl border border-line bg-coal px-5 py-4 active:bg-card'
-      }
-      // Selected answer rises onto the raised plane with a volt lift — depth
-      // carries the choice, not just a hue tint.
-      style={
-        selected
-          ? { shadowColor: colors.volt, shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 5 } }
-          : undefined
-      }
-    >
-      {Icon ? (
-        <View
-          className={
-            selected
-              ? 'h-10 w-10 items-center justify-center rounded-xl bg-volt'
-              : 'h-10 w-10 items-center justify-center rounded-xl border border-line bg-card'
-          }
-        >
-          <Icon color={selected ? colors.voltInk : colors.ash} size={20} strokeWidth={2.5} />
-        </View>
-      ) : null}
-      <Body
-        className={
-          selected
-            ? 'flex-1 font-body-bold text-base text-chalk'
-            : 'flex-1 font-body-medium text-base text-chalk'
-        }
-      >
-        {label}
-      </Body>
-      <View
-        className={
-          selected
-            ? 'h-7 w-7 items-center justify-center rounded-full bg-volt'
-            : 'h-7 w-7 rounded-full border border-line'
-        }
-      >
-        {selected ? <Check color={colors.voltInk} size={16} strokeWidth={3} /> : null}
+      <Eyebrow className="text-accent">
+        Sage · {index + 1}/{QUESTION_STEPS.length}
+      </Eyebrow>
+      <H1 className="mt-3 max-w-[320px] text-[34px] leading-[38px]">{title}</H1>
+      {subtitle ? <Lead className="mt-3.5">{subtitle}</Lead> : null}
+      <View className="mt-7" style={{ gap: 12 }}>
+        {children}
       </View>
-    </Pressable>
-  );
-}
-
-function PillChoice({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className={
-        selected
-          ? 'rounded-full border border-volt bg-volt px-5 py-3'
-          : 'rounded-full border border-line bg-coal px-5 py-3 active:bg-card'
-      }
-    >
-      <Body
-        className={
-          selected
-            ? 'font-body-bold text-base text-volt-ink'
-            : 'font-body-medium text-base text-chalk'
-        }
-      >
-        {label}
-      </Body>
-    </Pressable>
+    </View>
   );
 }
 

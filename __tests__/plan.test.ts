@@ -138,3 +138,52 @@ describe('health milestones', () => {
     expect(mid).toBeCloseTo(reachedHealthMilestones(start, 3 * MS_PER_DAY).length / HEALTH_MILESTONES.length, 5);
   });
 });
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Quiz input split (decision 2026-06-10): the onboarding quiz moved from ONE
+ * monthly-spend question (stored as baselinePerDay = monthly/30, unitCost = 1)
+ * to TWO questions (units/day + $ per unit, stored verbatim). Every savings
+ * number is a pure function of baselinePerDay × unitCost, so the split is
+ * value-identical whenever perDay × cost == monthly / 30. These tests LOCK
+ * that equivalence with the real values shown to the user on plan-reveal.
+ * ──────────────────────────────────────────────────────────────────────────── */
+describe('quiz split-input equivalence (old monthly-spend vs new perDay × unitCost)', () => {
+  // Old quiz: "$150/month" → baselinePerDay = 5, unitCost = 1 ($5/day).
+  const oldStyle = { productType: 'pouch', baselinePerDay: 150 / DAYS_PER_MONTH, unitCost: 1 } as const;
+  // New quiz: "10 pouches a day at $0.50 each" → the same $5/day.
+  const newStyle = { productType: 'pouch', baselinePerDay: 10, unitCost: 0.5 } as const;
+
+  it('dailySpend identical: $150/mo == 10 × $0.50', () => {
+    expect(dailySpend(newStyle)).toBe(5);
+    expect(dailySpend(newStyle)).toBe(dailySpend(oldStyle));
+  });
+
+  it('plan-reveal numbers identical (annual / every-month / first-month)', () => {
+    const annualOld = Math.round(projectedAnnualSavings(oldStyle));
+    const annualNew = Math.round(projectedAnnualSavings(newStyle));
+    expect(annualNew).toBe(1825); // $5/day × 365
+    expect(annualNew).toBe(annualOld);
+
+    expect(Math.round(annualNew / 12)).toBe(152); // "every month" tile
+    const firstMonthOld = Math.round(moneySaved(oldStyle, 30 * MS_PER_DAY));
+    const firstMonthNew = Math.round(moneySaved(newStyle, 30 * MS_PER_DAY));
+    expect(firstMonthNew).toBe(150); // "first month" tile
+    expect(firstMonthNew).toBe(firstMonthOld);
+  });
+
+  it('a second real pairing: $300/mo == 20 cigarettes × $0.50', () => {
+    const oldB = { productType: 'cig', baselinePerDay: 300 / DAYS_PER_MONTH, unitCost: 1 } as const;
+    const newB = { productType: 'cig', baselinePerDay: 20, unitCost: 0.5 } as const;
+    expect(dailySpend(newB)).toBe(dailySpend(oldB));
+    expect(projectedAnnualSavings(newB)).toBe(projectedAnnualSavings(oldB));
+    expect(moneySaved(newB, 7 * MS_PER_DAY)).toBe(moneySaved(oldB, 7 * MS_PER_DAY));
+  });
+
+  it('the $100/day defensive clamp still applies to split inputs', () => {
+    // 40 pods × $5 = $200/day of input → clamped to MAX_DAILY_SPEND.
+    expect(dailySpend({ baselinePerDay: 40, unitCost: 5 })).toBe(MAX_DAILY_SPEND);
+    expect(projectedAnnualSavings({ productType: 'vape', baselinePerDay: 40, unitCost: 5 })).toBe(
+      MAX_DAILY_SPEND * 365,
+    );
+  });
+});
