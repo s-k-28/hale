@@ -239,7 +239,7 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
             {/* Stats: money + recovery */}
             <View>
               <View
-                className="rounded-2xl border border-stroke bg-card p-5"
+                className="rounded-2xl border border-stroke bg-surface-2 p-5"
                 style={{ backgroundColor: clean.surface, borderColor: clean.stroke }}
               >
                 <Text

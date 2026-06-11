@@ -181,7 +181,7 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
               returnKeyType="done"
               onSubmitEditing={onAdd}
               maxLength={9}
-              className="flex-1 py-3.5 pl-2 font-display text-2xl text-fg"
+              className="flex-1 py-3.5 pl-2 font-sora-bold text-2xl text-fg"
             />
           </View>
 
@@ -214,7 +214,7 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
           {error ? (
             <View className="mt-4 flex-row items-center gap-2">
               <X color={clean.coral} size={14} strokeWidth={3} />
-              <Body className="text-xs text-sos">{error}</Body>
+              <Body className="text-xs text-coral">{error}</Body>
             </View>
           ) : null}
 

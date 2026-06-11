@@ -47,7 +47,7 @@ import { clean } from '@/theme/clean';
  *
  * Decision 3 (anti-shame) lives in the "I slipped" flow: we ask lapse vs relapse,
  * and on a true relapse the recovery screen surfaces LIFETIME saved + best streak
- * (returned by api.relapse.logRelapse) — NEVER a zero — in huge font-display
+ * (returned by api.relapse.logRelapse) — NEVER a zero — in huge display type
  * numerals, plus a Sage reflection.
  *
  * This screen is supportive, not medical advice (disclaimed in the footer).

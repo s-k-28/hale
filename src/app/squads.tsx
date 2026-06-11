@@ -485,7 +485,7 @@ function JoinByCode() {
             maxLength={10}
             returnKeyType="go"
             onSubmitEditing={onJoin}
-            className="flex-1 rounded-2xl border border-stroke bg-bg px-4 py-3.5 font-display text-xl uppercase tracking-[0.18em] text-fg"
+            className="flex-1 rounded-2xl border border-stroke bg-bg px-4 py-3.5 font-sora-bold text-xl uppercase tracking-[0.18em] text-fg"
           />
           <View className="w-28">
             <Button
@@ -498,7 +498,7 @@ function JoinByCode() {
             />
           </View>
         </View>
-        {error ? <Body className="mt-3 text-sm text-sos">{error}</Body> : null}
+        {error ? <Body className="mt-3 text-sm text-coral">{error}</Body> : null}
       </View>
     </View>
   );
