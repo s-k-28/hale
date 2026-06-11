@@ -1,10 +1,30 @@
-import { KeyboardAvoidingView, Platform } from 'react-native'
+import { KeyboardAvoidingView, Platform, View } from 'react-native'
 import { Link } from 'expo-router'
-import { YStack } from 'tamagui'
-import { Screen, Display, Heading, Label, Button, Pill } from '@/components/tama'
+import { Screen, Button, Lead, Muted } from '@/ui'
+import { RNText } from '@/ui/internal'
 import { InviteCodeEntry } from '@/components/InviteCodeEntry'
 
-/** Welcome → quiz. Migrated to Tamagui (Bold Momentum primitives). */
+/** HALE logo block (design HaleLogo): emerald rounded square + wordmark. */
+function HaleLogo({ size = 50 }: { size?: number }) {
+  return (
+    <View className="flex-row items-center" style={{ gap: 10 }}>
+      <View
+        className="items-center justify-center bg-accent"
+        style={{ width: size, height: size, borderRadius: size * 0.26 }}
+      >
+        <RNText
+          className="font-sora-extrabold text-accent-ink"
+          style={{ fontSize: size * 0.52 }}
+        >
+          H
+        </RNText>
+      </View>
+      <RNText className="font-sora-bold text-[22px] tracking-[2px] text-fg">HALE</RNText>
+    </View>
+  )
+}
+
+/** Welcome → quiz. Clean Dark v2: logo block, mixed-case hero, one emerald CTA. */
 export default function Welcome() {
   return (
     <Screen edges={['top', 'bottom']}>
@@ -14,56 +34,30 @@ export default function Welcome() {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-      <YStack flex={1} paddingHorizontal={24}>
-        {/* Hero — huge loud wordmark, generous dark negative space */}
-        <YStack flex={1} justifyContent="center">
-          <YStack marginBottom={24}>
-            <Pill tone="volt">NO MORE NICOTINE</Pill>
-          </YStack>
+        <View className="flex-1 justify-center px-gutter">
+          <HaleLogo />
+          <RNText className="mt-6 font-sora-bold text-[46px] leading-[50px] tracking-[-0.46px] text-fg">
+            Quit{'\n'}nicotine.{'\n'}
+            <RNText className="text-accent">Together.</RNText>
+          </RNText>
+          <Lead className="mt-[22px] max-w-[320px] text-[16.5px]">
+            Build a quit plan that holds. Crush the cravings with people who get it.
+          </Lead>
+        </View>
 
-          <Display color="$chalk" fontSize={96} lineHeight={100} letterSpacing={1}>
-            HALE
-          </Display>
-
-          <Heading color="$volt" fontWeight="900" fontSize={30} lineHeight={34} marginTop={20} letterSpacing={-0.5}>
-            Quit Nicotine.{'\n'}Together.
-          </Heading>
-
-          <Label
-            color="$ash"
-            marginTop={20}
-            fontSize={14}
-            lineHeight={21}
-            textTransform="none"
-            letterSpacing={0}
-            maxWidth={300}
-          >
-            Build a quit plan that actually sticks, and beat the cravings with people who get it.
-          </Label>
-        </YStack>
-      </YStack>
-
-      {/* Primary CTA — the ONE loud lime moment */}
-      <YStack paddingHorizontal={24} paddingBottom={40}>
-        <Link href="/(onboarding)/quiz" asChild>
-          <Button label="BUILD MY QUIT PLAN" variant="primary" />
-        </Link>
-        <Label
-          color="$ash"
-          opacity={0.7}
-          textAlign="center"
-          marginTop={16}
-          textTransform="none"
-          letterSpacing={0}
-        >
-          Free to start · 60-second setup
-        </Label>
-        {/* Typed-code referral fallback — the deferred-attribution path for fresh
-            installs (the share message carries the code; iOS can't pass it
-            through the App Store). Feeds the same pendingBuddy stash a deep
-            link does. */}
-        <InviteCodeEntry />
-      </YStack>
+        <View className="px-gutter pb-10">
+          <Link href="/(onboarding)/quiz" asChild>
+            <Button label="Build my quit plan" variant="primary" />
+          </Link>
+          <Muted className="mt-3.5 text-center text-[12px] uppercase tracking-[0.48px]">
+            Free to start · 60-second setup
+          </Muted>
+          {/* Typed-code referral fallback — the deferred-attribution path for fresh
+              installs (the share message carries the code; iOS can't pass it
+              through the App Store). Feeds the same pendingBuddy stash a deep
+              link does. */}
+          <InviteCodeEntry />
+        </View>
       </KeyboardAvoidingView>
     </Screen>
   )

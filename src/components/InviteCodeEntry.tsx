@@ -5,8 +5,8 @@ import * as Haptics from 'expo-haptics';
 import { api } from '@convex/_generated/api';
 import { setPendingBuddy } from '@/lib/pendingBuddy';
 import { track, Ev } from '@/lib/analytics';
-import { Body } from '@/components/ui/Text';
-import { colors } from '@/theme/colors';
+import { Body } from '@/ui';
+import { clean } from '@/theme/clean';
 
 /**
  * InviteCodeEntry — the typed-code half of referral attribution through install.
@@ -51,7 +51,7 @@ export function InviteCodeEntry() {
   if (state === 'applied') {
     return (
       <View className="mt-4 items-center">
-        <Body className="text-center text-sm text-volt">
+        <Body className="text-center text-sm text-accent">
           ✓ Invite applied — we’ll credit your friend when you pair up
         </Body>
       </View>
@@ -66,7 +66,7 @@ export function InviteCodeEntry() {
         accessibilityLabel="Enter an invite code"
         className="mt-4 items-center py-1 active:opacity-70"
       >
-        <Body className="text-center text-sm text-ash underline">Have an invite code?</Body>
+        <Body className="text-center text-sm text-fg-3 underline">Have an invite code?</Body>
       </Pressable>
     );
   }
@@ -85,29 +85,29 @@ export function InviteCodeEntry() {
           autoFocus
           maxLength={8}
           placeholder="CODE"
-          placeholderTextColor={colors.ash}
+          placeholderTextColor={clean.fg3}
           accessibilityLabel="Invite code"
           onSubmitEditing={apply}
-          className="flex-1 rounded-xl border border-line bg-coal px-4 py-3 text-center font-body-bold text-base tracking-[4px] text-chalk"
+          className="flex-1 rounded-xl border border-stroke bg-surface-2 px-4 py-3 text-center font-sora-bold text-base tracking-[4px] text-fg"
         />
         <Pressable
           onPress={apply}
           disabled={!code.trim() || state === 'checking'}
           accessibilityRole="button"
           accessibilityLabel="Apply invite code"
-          className="rounded-xl bg-volt px-5 py-3 active:opacity-80 disabled:opacity-40"
+          className="rounded-xl bg-accent px-5 py-3 active:opacity-80 disabled:opacity-40"
         >
-          <Body className="font-body-bold text-sm text-volt-ink">
+          <Body className="font-sora-bold text-sm text-accent-ink">
             {state === 'checking' ? '…' : 'APPLY'}
           </Body>
         </Pressable>
       </View>
       {state === 'notfound' ? (
-        <Body className="mt-2 text-center text-xs text-ash">
+        <Body className="mt-2 text-center text-xs text-fg-3">
           That code didn’t match — double-check it and try again.
         </Body>
       ) : state === 'error' ? (
-        <Body className="mt-2 text-center text-xs text-ash">
+        <Body className="mt-2 text-center text-xs text-fg-3">
           Couldn’t check the code — check your connection and try again.
         </Body>
       ) : null}

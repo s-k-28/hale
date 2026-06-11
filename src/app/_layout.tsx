@@ -33,8 +33,6 @@ import {
 import { ConvexReactClient } from 'convex/react';
 import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { PostHogProvider } from 'posthog-react-native';
-import { TamaguiProvider } from 'tamagui';
-import tamaguiConfig from '../../tamagui.config';
 import { env } from '@/lib/config';
 import { initRevenueCat } from '@/lib/revenuecat';
 import { initOneSignal } from '@/lib/onesignal';
@@ -89,7 +87,6 @@ export default function RootLayout() {
 
   const tree = (
     <ConvexAuthProvider client={convex} storage={secureStorage}>
-      <TamaguiProvider config={tamaguiConfig} defaultTheme="dark">
         <StatusBar style="light" />
         {/* Global screen transition: content fades + slides up on enter
             (translateY + opacity), replacing the default right-push. Native
@@ -107,7 +104,6 @@ export default function RootLayout() {
             expo-router's root. Short duration so a toast can't linger onto the next
             screen after navigation (e.g. a check-in toast bleeding onto Coach). */}
         <Toaster duration={2500} />
-      </TamaguiProvider>
     </ConvexAuthProvider>
   );
 
