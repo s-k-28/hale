@@ -7,12 +7,17 @@ import { ChevronLeft, Crown, TrendingDown } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { usePremium } from '@/hooks/usePremium';
-import { Screen } from '@/components/ui/Screen';
-import { Display, Heading, Body, Label } from '@/components/ui/Text';
-import { StatTile } from '@/components/ui/StatTile';
-import { Pill } from '@/components/ui/Pill';
-import { LockedFeature } from '@/components/ui/LockedFeature';
-import { colors } from '@/theme/colors';
+import {
+  Screen,
+  Display,
+  Body,
+  Tile,
+  Badge,
+  H2 as Heading,
+  Eyebrow as Label,
+} from '@/ui';
+import { LockedFeature } from '@/ui';
+import { clean } from '@/theme/clean';
 
 /**
  * Analytics (I5) — craving-trend & recovery analytics, HALE+ gated.
@@ -68,24 +73,21 @@ export default function Analytics() {
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Back"
-            className="h-9 w-9 items-center justify-center rounded-full border border-line bg-coal active:opacity-70"
+            className="h-9 w-9 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-70"
           >
-            <ChevronLeft color={colors.ash} size={20} strokeWidth={2.5} />
+            <ChevronLeft color={clean.fg2} size={20} strokeWidth={2.5} />
           </Pressable>
           <View>
-            <Label className="text-volt">Your data</Label>
+            <Label className="text-accent">Your data</Label>
             <Heading className="mt-0.5 text-3xl leading-[0.9]">INSIGHTS</Heading>
           </View>
         </View>
-        <Pill tone="volt">
-          <Crown color={colors.volt} size={13} strokeWidth={2.75} />
-          <Label className="text-volt">HALE+</Label>
-        </Pill>
+        <Badge label="HALE+" tone="soft" />
       </View>
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.volt} />
+          <ActivityIndicator color={clean.accent} />
         </View>
       ) : (
         // One reusable blurred-paywall treatment. Free users see their real
@@ -120,7 +122,7 @@ function Unlocked({
   if (trend === undefined || recovery === undefined) {
     return (
       <View className="flex-1 items-center justify-center">
-        <ActivityIndicator color={colors.volt} />
+        <ActivityIndicator color={clean.accent} />
       </View>
     );
   }
@@ -145,17 +147,18 @@ function Unlocked({
     >
       {/* Headline stats */}
       <View className="mb-3 flex-row gap-3">
-        <StatTile label="Cravings, 30d" value={String(total30)} accent />
-        <StatTile
-          label="Avg intensity"
-          value={avgIntensity > 0 ? avgIntensity.toFixed(1) : '—'}
+        <Tile k="Cravings, 30d" v={String(total30)} accent className="flex-1" />
+        <Tile
+          k="Avg intensity"
+          v={avgIntensity > 0 ? avgIntensity.toFixed(1) : '—'}
+          className="flex-1"
         />
       </View>
 
       {improving ? (
-        <View className="mb-6 flex-row items-center gap-2 rounded-2xl border border-line bg-coal px-4 py-3">
-          <TrendingDown color={colors.volt} size={18} strokeWidth={2.75} />
-          <Body className="flex-1 text-[13px] leading-relaxed text-chalk">
+        <View className="mb-6 flex-row items-center gap-2 rounded-2xl border border-stroke bg-surface px-4 py-3">
+          <TrendingDown color={clean.accent} size={18} strokeWidth={2.75} />
+          <Body className="flex-1 text-[13px] leading-relaxed text-fg">
             Cravings are easing, fewer in the last two weeks than the two before.
           </Body>
         </View>
@@ -166,7 +169,7 @@ function Unlocked({
       {total30 === 0 ? (
         <EmptyChart message="No cravings logged in the last 30 days. Every craving you log here sharpens this picture." />
       ) : (
-        <View className="mb-8 rounded-3xl border border-line bg-coal p-4">
+        <View className="mb-8 rounded-3xl border border-stroke bg-surface p-4">
           <FrequencyBars data={trend} />
         </View>
       )}
@@ -176,11 +179,11 @@ function Unlocked({
       {loggedDays.length < 2 ? (
         <EmptyChart message="Log cravings across a few days to see how their intensity trends." />
       ) : (
-        <View className="mb-8 rounded-3xl border border-line bg-coal p-4">
+        <View className="mb-8 rounded-3xl border border-stroke bg-surface p-4">
           <IntensityLine data={trend} />
           <View className="mt-3 flex-row items-center justify-between">
-            <Label className="normal-case tracking-normal text-ash">Calmer</Label>
-            <Label className="normal-case tracking-normal text-ash">More intense</Label>
+            <Label className="normal-case tracking-normal text-fg-2">Calmer</Label>
+            <Label className="normal-case tracking-normal text-fg-2">More intense</Label>
           </View>
         </View>
       )}
@@ -189,7 +192,7 @@ function Unlocked({
       <Label className="mb-3">Recovery progress</Label>
       <RecoveryProgress recovery={recovery} />
 
-      <Body className="mt-4 px-1 text-xs leading-relaxed text-ash">
+      <Body className="mt-4 px-1 text-xs leading-relaxed text-fg-2">
         Commonly reported recovery timeline, supportive, not medical advice.
       </Body>
     </ScrollView>
@@ -198,8 +201,8 @@ function Unlocked({
 
 function EmptyChart({ message }: { message: string }) {
   return (
-    <View className="mb-8 rounded-3xl border border-line bg-coal p-6">
-      <Body className="text-[15px] leading-relaxed text-ash">{message}</Body>
+    <View className="mb-8 rounded-3xl border border-stroke bg-surface p-6">
+      <Body className="text-[15px] leading-relaxed text-fg-2">{message}</Body>
     </View>
   );
 }
@@ -229,7 +232,7 @@ function FrequencyBars({ data }: { data: TrendDay[] }) {
             width={barW}
             height={h}
             rx={1.5}
-            fill={d.count === 0 ? colors.line : colors.volt}
+            fill={d.count === 0 ? clean.stroke : clean.accent}
             opacity={d.count === 0 ? 1 : 0.92}
           />
         );
@@ -269,8 +272,8 @@ function IntensityLine({ data }: { data: TrendDay[] }) {
     <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
       <Defs>
         <LinearGradient id="intensityFill" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.volt} stopOpacity={0.28} />
-          <Stop offset="1" stopColor={colors.volt} stopOpacity={0} />
+          <Stop offset="0" stopColor={clean.accent} stopOpacity={0.28} />
+          <Stop offset="1" stopColor={clean.accent} stopOpacity={0} />
         </LinearGradient>
       </Defs>
 
@@ -281,7 +284,7 @@ function IntensityLine({ data }: { data: TrendDay[] }) {
           x2={W}
           y1={yOf(g)}
           y2={yOf(g)}
-          stroke={colors.line}
+          stroke={clean.stroke}
           strokeWidth={1}
         />
       ))}
@@ -289,7 +292,7 @@ function IntensityLine({ data }: { data: TrendDay[] }) {
       <Path d={area} fill="url(#intensityFill)" />
       <Path
         d={line}
-        stroke={colors.volt}
+        stroke={clean.accent}
         strokeWidth={2.5}
         fill="none"
         strokeLinejoin="round"
@@ -305,39 +308,39 @@ function RecoveryProgress({ recovery }: { recovery: Recovery }) {
   const pct =
     recovery.total === 0 ? 0 : Math.round((recovery.reached / recovery.total) * 100);
   return (
-    <View className="rounded-3xl border border-line bg-coal p-5">
+    <View className="rounded-3xl border border-stroke bg-surface p-5">
       <View className="flex-row items-end justify-between">
         <View>
-          <Display className="text-5xl leading-tight tracking-tight text-volt">
+          <Display className="text-5xl leading-tight tracking-tight text-accent">
             {recovery.reached}
-            <Display className="text-2xl text-ash">/{recovery.total}</Display>
+            <Display className="text-2xl text-fg-2">/{recovery.total}</Display>
           </Display>
-          <Label className="mt-2 normal-case tracking-normal text-ash">
+          <Label className="mt-2 normal-case tracking-normal text-fg-2">
             recovery milestones reached
           </Label>
         </View>
-        <Display className="text-3xl text-chalk">{pct}%</Display>
+        <Display className="text-3xl text-fg">{pct}%</Display>
       </View>
 
       {/* Lime progress track */}
-      <View className="mt-5 h-3 overflow-hidden rounded-full bg-void">
-        <View style={{ width: `${pct}%` }} className="h-full rounded-full bg-volt" />
+      <View className="mt-5 h-3 overflow-hidden rounded-full bg-bg">
+        <View style={{ width: `${pct}%` }} className="h-full rounded-full bg-accent" />
       </View>
 
       {recovery.nextLabel ? (
         <View className="mt-5 flex-row items-start">
-          <View className="mr-3 mt-0.5 h-7 w-7 items-center justify-center rounded-full border border-line bg-void">
-            <Crown color={colors.volt} size={14} strokeWidth={2.5} />
+          <View className="mr-3 mt-0.5 h-7 w-7 items-center justify-center rounded-full border border-stroke bg-bg">
+            <Crown color={clean.accent} size={14} strokeWidth={2.5} />
           </View>
           <View className="flex-1">
-            <Label className="text-volt">Next up</Label>
-            <Body className="mt-1 text-[15px] leading-relaxed text-chalk">
+            <Label className="text-accent">Next up</Label>
+            <Body className="mt-1 text-[15px] leading-relaxed text-fg">
               {recovery.nextLabel}
             </Body>
           </View>
         </View>
       ) : (
-        <Body className="mt-5 text-[15px] leading-relaxed text-chalk">
+        <Body className="mt-5 text-[15px] leading-relaxed text-fg">
           Every tracked recovery milestone reached. Your body has come a long way.
         </Body>
       )}

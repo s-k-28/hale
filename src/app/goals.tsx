@@ -12,11 +12,16 @@ import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { Check, ChevronLeft, Gift, Plus, Trash2, X } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
-import { Screen } from '@/components/ui/Screen';
-import { Display, Heading, Body, Label } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { Pill } from '@/components/ui/Pill';
-import { colors } from '@/theme/colors';
+import {
+  Screen,
+  Button,
+  Display,
+  Body,
+  Badge,
+  H2 as Heading,
+  Eyebrow as Label,
+} from '@/ui';
+import { clean } from '@/theme/clean';
 
 /**
  * "Treat yourself" — savings goals (P4).
@@ -60,7 +65,7 @@ export default function Goals() {
   if (isLoading || (isAuthenticated && goals === undefined)) {
     return (
       <Screen className="items-center justify-center">
-        <ActivityIndicator color={colors.volt} />
+        <ActivityIndicator color={clean.accent} />
       </Screen>
     );
   }
@@ -130,26 +135,23 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Back"
-            className="h-9 w-9 items-center justify-center rounded-full border border-line bg-coal active:opacity-70"
+            className="h-9 w-9 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-70"
           >
-            <ChevronLeft color={colors.ash} size={18} strokeWidth={2.5} />
+            <ChevronLeft color={clean.fg2} size={18} strokeWidth={2.5} />
           </Pressable>
-          <Pill tone="volt">
-            <Gift color={colors.volt} size={13} strokeWidth={2.75} />
-            <Label className="text-volt">Treat yourself</Label>
-          </Pill>
+          <Badge label="Treat yourself" tone="soft" />
         </View>
 
         <View className="mb-7">
           <Heading className="text-5xl leading-[0.9]">TREAT{'\n'}YOURSELF</Heading>
-          <Body className="mt-3 text-base leading-relaxed text-ash">
+          <Body className="mt-3 text-base leading-relaxed text-fg-2">
             Every clean day buys back real money. Name what you&apos;re saving for,
             watch it fill.
           </Body>
         </View>
 
-        {/* New goal composer — coal card, lime add button. */}
-        <View className="mb-8 rounded-3xl border border-line bg-coal p-5">
+        {/* New goal composer — surface card, accent add button. */}
+        <View className="mb-8 rounded-3xl border border-stroke bg-surface p-5">
           <Label className="mb-2">What are you saving for?</Label>
           <TextInput
             value={label}
@@ -158,15 +160,15 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
               if (error) setError(null);
             }}
             placeholder="A weekend away, new headphones…"
-            placeholderTextColor={colors.ash}
+            placeholderTextColor={clean.fg2}
             maxLength={60}
             returnKeyType="next"
-            className="rounded-2xl border border-line bg-void px-4 py-3.5 font-body text-base text-chalk"
+            className="rounded-2xl border border-stroke bg-bg px-4 py-3.5 font-sora text-base text-fg"
           />
 
           <Label className="mb-2 mt-5">Dollar target</Label>
-          <View className="flex-row items-center rounded-2xl border border-line bg-void px-4">
-            <Display className="text-2xl text-ash">$</Display>
+          <View className="flex-row items-center rounded-2xl border border-stroke bg-bg px-4">
+            <Display className="text-2xl text-fg-2">$</Display>
             <TextInput
               value={amount}
               onChangeText={(t) => {
@@ -174,12 +176,12 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
                 if (error) setError(null);
               }}
               placeholder="100"
-              placeholderTextColor={colors.ash}
+              placeholderTextColor={clean.fg2}
               keyboardType="number-pad"
               returnKeyType="done"
               onSubmitEditing={onAdd}
               maxLength={9}
-              className="flex-1 py-3.5 pl-2 font-display text-2xl text-chalk"
+              className="flex-1 py-3.5 pl-2 font-display text-2xl text-fg"
             />
           </View>
 
@@ -196,11 +198,11 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
                   }}
                   accessibilityRole="button"
                   className={`rounded-full border px-4 py-2 active:opacity-80 ${
-                    active ? 'border-volt bg-volt/15' : 'border-line bg-void'
+                    active ? 'border-accent-edge bg-accent/15' : 'border-stroke bg-bg'
                   }`}
                 >
                   <Body
-                    className={`font-body-semibold text-xs ${active ? 'text-volt' : 'text-ash'}`}
+                    className={`font-sora-semibold text-xs ${active ? 'text-accent' : 'text-fg-2'}`}
                   >
                     {money(t)}
                   </Body>
@@ -211,7 +213,7 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
 
           {error ? (
             <View className="mt-4 flex-row items-center gap-2">
-              <X color={colors.sos} size={14} strokeWidth={3} />
+              <X color={clean.coral} size={14} strokeWidth={3} />
               <Body className="text-xs text-sos">{error}</Body>
             </View>
           ) : null}
@@ -230,12 +232,12 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
         {/* Goal list. */}
         <Label className="mb-3">Your goals</Label>
         {goals.length === 0 ? (
-          <View className="items-center rounded-3xl border border-line bg-coal px-6 py-10">
-            <View className="mb-4 h-14 w-14 items-center justify-center rounded-2xl bg-volt">
-              <Plus color={colors.voltInk} size={26} strokeWidth={2.75} />
+          <View className="items-center rounded-3xl border border-stroke bg-surface px-6 py-10">
+            <View className="mb-4 h-14 w-14 items-center justify-center rounded-2xl bg-accent">
+              <Plus color={clean.accentInk} size={26} strokeWidth={2.75} />
             </View>
             <Heading className="text-center text-lg">NO GOALS YET</Heading>
-            <Body className="mt-2 text-center text-sm leading-relaxed text-ash">
+            <Body className="mt-2 text-center text-sm leading-relaxed text-fg-2">
               Set your first treat above. The money you&apos;re not spending on
               nicotine adds up faster than you think.
             </Body>
@@ -258,15 +260,15 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: () => void }) {
 
   return (
     <View
-      className={`overflow-hidden rounded-3xl border bg-coal ${
-        done ? 'border-volt/40' : 'border-line'
+      className={`overflow-hidden rounded-3xl border bg-surface ${
+        done ? 'border-accent-edge/40' : 'border-stroke'
       }`}
     >
       <View className="px-5 pt-5">
         <View className="flex-row items-start justify-between">
           <View className="flex-1 pr-3">
-            <Body className="font-body-bold text-lg leading-snug text-chalk">{goal.label}</Body>
-            <Label className="mt-1 normal-case tracking-normal text-ash">
+            <Body className="font-sora-bold text-lg leading-snug text-fg">{goal.label}</Body>
+            <Label className="mt-1 normal-case tracking-normal text-fg-2">
               {money2(goal.saved)} of {money2(goal.targetAmount)}
             </Label>
           </View>
@@ -275,18 +277,18 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: () => void }) {
             hitSlop={10}
             accessibilityRole="button"
             accessibilityLabel={`Delete goal ${goal.label}`}
-            className="h-8 w-8 items-center justify-center rounded-full border border-line bg-void active:opacity-70"
+            className="h-8 w-8 items-center justify-center rounded-full border border-stroke bg-bg active:opacity-70"
           >
-            <Trash2 color={colors.ash} size={15} strokeWidth={2.25} />
+            <Trash2 color={clean.fg2} size={15} strokeWidth={2.25} />
           </Pressable>
         </View>
       </View>
 
       {/* Lime progress bar. */}
       <View className="px-5 pb-2 pt-4">
-        <View className="h-3 overflow-hidden rounded-full bg-void">
+        <View className="h-3 overflow-hidden rounded-full bg-bg">
           <View
-            className="h-3 rounded-full bg-volt"
+            className="h-3 rounded-full bg-accent"
             style={{ width: `${Math.max(done ? 100 : 4, pct)}%` }}
           />
         </View>
@@ -296,18 +298,18 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: () => void }) {
       <View className="flex-row items-center justify-between px-5 pb-5 pt-2">
         {done ? (
           <View className="flex-row items-center gap-2">
-            <View className="h-6 w-6 items-center justify-center rounded-full bg-volt">
-              <Check color={colors.voltInk} size={14} strokeWidth={3} />
+            <View className="h-6 w-6 items-center justify-center rounded-full bg-accent">
+              <Check color={clean.accentInk} size={14} strokeWidth={3} />
             </View>
-            <Heading className="text-sm text-volt">Treat unlocked</Heading>
+            <Heading className="text-sm text-accent">Treat unlocked</Heading>
           </View>
         ) : (
           <View className="flex-row items-baseline gap-1.5">
-            <Display className="text-2xl text-chalk">{money2(goal.remaining)}</Display>
-            <Body className="font-body-semibold text-xs text-ash">to go</Body>
+            <Display className="text-2xl text-fg">{money2(goal.remaining)}</Display>
+            <Body className="font-sora-semibold text-xs text-fg-2">to go</Body>
           </View>
         )}
-        <Display className={`text-2xl ${done ? 'text-volt' : 'text-ash'}`}>{pct}%</Display>
+        <Display className={`text-2xl ${done ? 'text-accent' : 'text-fg-2'}`}>{pct}%</Display>
       </View>
     </View>
   );

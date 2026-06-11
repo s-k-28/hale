@@ -6,13 +6,19 @@ import * as Haptics from 'expo-haptics';
 import { ChevronLeft, Crown, Sparkles, Waves, Clock, Activity } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
-import { Screen } from '@/components/ui/Screen';
-import { Display, Heading, Body, Label, Caption } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { Pill } from '@/components/ui/Pill';
-import { Surface } from '@/components/ui/Surface';
-import { LockedFeature } from '@/components/ui/LockedFeature';
-import { colors } from '@/theme/colors';
+import {
+  Screen,
+  Button,
+  Display,
+  Body,
+  Card,
+  Badge,
+  Muted as Caption,
+  H2 as Heading,
+  Eyebrow as Label,
+} from '@/ui';
+import { LockedFeature } from '@/ui';
+import { clean } from '@/theme/clean';
 
 /**
  * Advanced craving toolkit (HALE+) — the gated "depth" beyond the free SOS
@@ -53,19 +59,16 @@ export default function Toolkit() {
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Back"
-            className="h-9 w-9 items-center justify-center rounded-full border border-line bg-coal active:opacity-70"
+            className="h-9 w-9 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-70"
           >
-            <ChevronLeft color={colors.ash} size={20} strokeWidth={2.5} />
+            <ChevronLeft color={clean.fg2} size={20} strokeWidth={2.5} />
           </Pressable>
           <View>
-            <Label className="text-volt">Craving depth</Label>
+            <Label className="text-accent">Craving depth</Label>
             <Heading className="mt-0.5 text-3xl leading-[0.9]">TOOLKIT</Heading>
           </View>
         </View>
-        <Pill tone="volt">
-          <Crown color={colors.volt} size={13} strokeWidth={2.75} />
-          <Label className="text-volt">HALE+</Label>
-        </Pill>
+        <Badge label="HALE+" tone="soft" />
       </View>
 
       <LockedFeature
@@ -131,14 +134,14 @@ function UrgeSurf() {
   return (
     <View className="mb-8">
       <Label className="mb-3 ml-1">Urge surfing</Label>
-      <Surface level="raised" className="overflow-hidden px-6 py-7">
+      <Card className="overflow-hidden px-6 py-7">
         {!active ? (
           <>
-            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-volt">
-              <Waves color={colors.voltInk} size={26} strokeWidth={2.5} />
+            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-accent">
+              <Waves color={clean.accentInk} size={26} strokeWidth={2.5} />
             </View>
             <Heading className="mt-5 text-2xl">RIDE THE WAVE</Heading>
-            <Body className="mt-2 text-base leading-6 text-ash">
+            <Body className="mt-2 text-base leading-6 text-fg-2">
               A 4-step guided practice for riding a craving out instead of fighting it. Takes about
               a minute.
             </Body>
@@ -150,15 +153,15 @@ function UrgeSurf() {
               {SURF_STEPS.map((_, i) => (
                 <View
                   key={i}
-                  className={`h-1.5 flex-1 rounded-full ${i <= step ? 'bg-volt' : 'bg-line'}`}
+                  className={`h-1.5 flex-1 rounded-full ${i <= step ? 'bg-accent' : 'bg-track'}`}
                 />
               ))}
             </View>
-            <Label className="mt-6 text-volt">
+            <Label className="mt-6 text-accent">
               Step {step + 1} of {SURF_STEPS.length}
             </Label>
             <Heading className="mt-2 text-2xl normal-case">{SURF_STEPS[step].title}</Heading>
-            <Body className="mt-3 text-base leading-7 text-chalk">{SURF_STEPS[step].body}</Body>
+            <Body className="mt-3 text-base leading-7 text-fg">{SURF_STEPS[step].body}</Body>
             <Button
               variant="primary"
               label={step + 1 >= SURF_STEPS.length ? 'I RODE IT OUT' : 'NEXT'}
@@ -167,7 +170,7 @@ function UrgeSurf() {
             />
           </>
         )}
-      </Surface>
+      </Card>
     </View>
   );
 }
@@ -179,8 +182,8 @@ type Patterns = NonNullable<ReturnType<typeof useQuery<typeof api.analytics.crav
 function TriggerInsight({ patterns }: { patterns: Patterns | undefined }) {
   if (patterns === undefined) {
     return (
-      <View className="mb-8 items-center rounded-3xl border border-line bg-coal py-8">
-        <ActivityIndicator color={colors.volt} />
+      <View className="mb-8 items-center rounded-3xl border border-stroke bg-surface py-8">
+        <ActivityIndicator color={clean.accent} />
       </View>
     );
   }
@@ -190,31 +193,31 @@ function TriggerInsight({ patterns }: { patterns: Patterns | undefined }) {
   return (
     <View className="mb-8">
       <Label className="mb-3 ml-1">Your patterns</Label>
-      <View className="rounded-3xl border border-line bg-coal p-5">
+      <View className="rounded-3xl border border-stroke bg-surface p-5">
         <View className="flex-row items-center">
-          <Activity color={colors.volt} size={18} strokeWidth={2.75} />
+          <Activity color={clean.accent} size={18} strokeWidth={2.75} />
           <Heading className="ml-2 text-lg normal-case">What sets you off</Heading>
         </View>
         {total === 0 ? (
-          <Body className="mt-3 text-[15px] leading-relaxed text-ash">
+          <Body className="mt-3 text-[15px] leading-relaxed text-fg-2">
             Log a few cravings (from the SOS screen) and your personal patterns will appear here —
             your hardest hour and most common trigger.
           </Body>
         ) : (
           <View className="mt-4 gap-3">
-            <View className="rounded-2xl bg-void px-4 py-3">
+            <View className="rounded-2xl bg-bg px-4 py-3">
               <Label>Most common trigger</Label>
-              <Body className="mt-1 font-body-semibold text-lg text-chalk">
+              <Body className="mt-1 font-sora-semibold text-lg text-fg">
                 {topTrigger ? topTrigger : 'Not enough data yet'}
               </Body>
             </View>
-            <View className="rounded-2xl bg-void px-4 py-3">
+            <View className="rounded-2xl bg-bg px-4 py-3">
               <Label>Hardest hour</Label>
-              <Body className="mt-1 font-body-semibold text-lg text-chalk">
+              <Body className="mt-1 font-sora-semibold text-lg text-fg">
                 {peakHour != null ? `Around ${hourLabel(peakHour)}` : '—'}
               </Body>
             </View>
-            <Caption className="text-ash">
+            <Caption className="text-fg-2">
               Based on {total} logged {total === 1 ? 'craving' : 'cravings'}. Knowing the when and
               why is half the battle.
             </Caption>
@@ -238,14 +241,14 @@ function CravingHeatmap({ patterns }: { patterns: Patterns | undefined }) {
   return (
     <View className="mb-8">
       <Label className="mb-3 ml-1">Craving-time map</Label>
-      <View className="rounded-3xl border border-line bg-coal p-5">
+      <View className="rounded-3xl border border-stroke bg-surface p-5">
         <View className="flex-row items-center">
-          <Clock color={colors.volt} size={18} strokeWidth={2.75} />
+          <Clock color={clean.accent} size={18} strokeWidth={2.75} />
           <Heading className="ml-2 text-lg normal-case">When cravings hit</Heading>
         </View>
 
         {patterns.total === 0 ? (
-          <Body className="mt-3 text-[15px] leading-relaxed text-ash">
+          <Body className="mt-3 text-[15px] leading-relaxed text-fg-2">
             Your 24-hour craving map fills in as you log cravings — so you can see your danger hours
             coming and plan around them.
           </Body>
@@ -260,16 +263,16 @@ function CravingHeatmap({ patterns }: { patterns: Patterns | undefined }) {
                   <View key={h.hour} style={{ width: '15%' }} className="items-center">
                     <View
                       className="h-9 w-full rounded-lg"
-                      style={{ backgroundColor: colors.volt, opacity }}
+                      style={{ backgroundColor: clean.accent, opacity }}
                     />
-                    <Caption className="mt-1 text-[10px] text-ash">{hourLabel(h.hour)}</Caption>
+                    <Caption className="mt-1 text-[10px] text-fg-2">{hourLabel(h.hour)}</Caption>
                   </View>
                 );
               })}
             </View>
             <View className="mt-4 flex-row items-center justify-between">
-              <Caption className="text-ash">Quiet</Caption>
-              <Caption className="text-ash">Peak</Caption>
+              <Caption className="text-fg-2">Quiet</Caption>
+              <Caption className="text-fg-2">Peak</Caption>
             </View>
           </>
         )}

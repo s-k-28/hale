@@ -8,26 +8,23 @@ import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { usePremium } from '@/hooks/usePremium';
 import { presentPaywall } from '@/lib/paywall';
 import { track, Ev } from '@/lib/analytics';
-import { Heading, Caption } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { colors } from '@/theme/colors';
+import { clean } from '@/theme/clean';
+import { H2, Body } from './Text';
+import { Button } from './Button';
 
 /**
- * LockedFeature — the ONE reusable blurred-paywall treatment.
+ * LockedFeature — the ONE reusable blurred-paywall treatment (Clean Dark v2,
+ * the design's gate visual language applied to the inline blur — the
+ * standalone gate screens in the prototype stayed unwired by its own flow map,
+ * so gating keeps living in place over the real content).
  *
- * Wrap any HALE+ surface. When the user has access it renders `children`
- * untouched (early return — ZERO blur/overlay cost on the happy path, so gated
- * screens never jank or flicker for entitled users). When locked, the real
- * premium content is rendered, BLURRED and non-interactive, under a centered
- * "Unlock with HALE+" overlay — free users see exactly what they're missing.
- * Tapping anywhere fires paywall_feature_tapped { feature } and opens the paywall.
+ * Entitled (or still resolving) → children render untouched. Locked → the real
+ * premium content renders BLURRED and inert under a centered unlock CTA, so
+ * free users see exactly what they're missing. Tapping fires
+ * paywall_feature_tapped { feature } and presents the paywall.
  *
- * `variant`:
- *   • 'overlay' — fills its parent (whole-screen gates, e.g. analytics).
- *   • 'inline'  — a self-sized rounded card (a gated section inside a screen).
- *
- * The dedicated paywall screen (src/app/paywall.tsx) remains the main upsell;
- * this is the in-place "see what you're missing" surface that feeds into it.
+ * `variant`: 'overlay' fills its parent (whole-screen gates); 'inline' is a
+ * self-sized rounded card (a gated section inside a screen).
  */
 export function LockedFeature({
   feature,
@@ -83,7 +80,7 @@ export function LockedFeature({
         style={[StyleSheet.absoluteFill, rounded]}
         pointerEvents="none"
       />
-      {/* Volt-tinted scrim so the lock chrome reads on any underlying content. */}
+      {/* Base-tinted scrim so the lock chrome reads on any underlying content. */}
       <View
         pointerEvents="none"
         style={[StyleSheet.absoluteFill, styles.scrim, rounded]}
@@ -92,15 +89,15 @@ export function LockedFeature({
       {/* Centered unlock CTA. */}
       <View pointerEvents="none" style={styles.cta}>
         <View style={styles.lockBadge}>
-          <Lock size={20} color={colors.voltInk} strokeWidth={2.5} />
+          <Lock size={20} color={clean.accentInk} strokeWidth={2.2} />
         </View>
-        <Heading className="mt-4 text-center text-xl">{title}</Heading>
+        <H2 className="mt-4 text-center">{title}</H2>
         {subtitle ? (
-          <Caption className="mt-1.5 max-w-[260px] text-center">{subtitle}</Caption>
+          <Body className="mt-1.5 max-w-[260px] text-center">{subtitle}</Body>
         ) : null}
         {/* Visual affordance only; the whole surface is the tap target. */}
         <View className="mt-5 w-full max-w-[260px]">
-          <Button variant="primary" label="UNLOCK HALE+" onPress={open} />
+          <Button variant="primary" label="Unlock HALE+" onPress={open} />
         </View>
       </View>
     </Pressable>
@@ -114,16 +111,16 @@ const styles = StyleSheet.create({
     minHeight: 180,
   },
   inlineRadius: {
-    borderRadius: 24,
+    borderRadius: 22,
   },
   contentLayer: {
     // Dim the underlying content a touch so the blur reads as "locked", not "loading".
     opacity: 0.6,
   },
   scrim: {
-    backgroundColor: 'rgba(10,12,11,0.55)',
+    backgroundColor: 'rgba(11,15,13,0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(198,255,61,0.16)',
+    borderColor: 'rgba(52,211,153,0.26)',
   },
   cta: {
     position: 'absolute',
@@ -141,8 +138,8 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.volt,
-    shadowColor: colors.volt,
+    backgroundColor: clean.accent,
+    shadowColor: clean.accent,
     shadowOpacity: 0.35,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },

@@ -11,13 +11,18 @@ import {
 } from '@convex/model/plan';
 import { track, Ev } from '@/lib/analytics';
 import TransformationCard, { shareCard } from '@/components/TransformationCard';
-import { Screen } from '@/components/ui/Screen';
-import { Display, Heading, Body, Label } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { StatTile } from '@/components/ui/StatTile';
-import { Pill } from '@/components/ui/Pill';
-import { LockedFeature } from '@/components/ui/LockedFeature';
-import { colors } from '@/theme/colors';
+import {
+  Screen,
+  Button,
+  Display,
+  Body,
+  Tile,
+  Badge,
+  H2 as Heading,
+  Eyebrow as Label,
+} from '@/ui';
+import { LockedFeature } from '@/ui';
+import { clean } from '@/theme/clean';
 
 /**
  * You — the profile / pride screen (P3). Three jobs:
@@ -70,7 +75,7 @@ export default function You() {
   if (state === undefined) {
     return (
       <Screen className="items-center justify-center">
-        <ActivityIndicator color={colors.volt} />
+        <ActivityIndicator color={clean.accent} />
       </Screen>
     );
   }
@@ -126,14 +131,11 @@ function YouContent({
         {/* Header — loud uppercase wordmark, HALE+ badge anchored right. */}
         <View className="mb-6 flex-row items-end justify-between">
           <View>
-            <Label className="text-volt">Your freedom</Label>
+            <Label className="text-accent">Your freedom</Label>
             <Heading className="mt-1 text-5xl leading-[0.9]">YOU</Heading>
           </View>
           {state.premium ? (
-            <Pill tone="volt" className="mb-1">
-              <Crown color={colors.volt} size={13} strokeWidth={2.75} />
-              <Label className="text-volt">HALE+</Label>
-            </Pill>
+            <Badge label="HALE+" tone="soft" className="mb-1" />
           ) : null}
         </View>
 
@@ -142,8 +144,8 @@ function YouContent({
             'milestone reached' overline + confetti). Same share artifact, different
             context. */}
         <View className="mb-3 flex-row items-center gap-2">
-          <Sparkles color={colors.volt} size={14} strokeWidth={2.75} />
-          <Label className="text-volt">Your story so far</Label>
+          <Sparkles color={clean.accent} size={14} strokeWidth={2.75} />
+          <Label className="text-accent">Your story so far</Label>
         </View>
 
         {/* Shareable transformation card (NEVER gated) — the viral artifact. */}
@@ -161,8 +163,8 @@ function YouContent({
             energy without touching the Button's internals. */}
         <View className="mb-8">
           <View className="mb-2 flex-row items-center gap-2">
-            <Share2 color={colors.volt} size={16} strokeWidth={2.75} />
-            <Label className="text-volt">Built to be screenshotted</Label>
+            <Share2 color={clean.accent} size={16} strokeWidth={2.75} />
+            <Label className="text-accent">Built to be screenshotted</Label>
           </View>
           <Button
             label="Share your progress"
@@ -171,65 +173,66 @@ function YouContent({
           />
         </View>
 
-        {/* Lifetime pride — money loud in lime, streak in chalk. */}
+        {/* Lifetime pride — money loud in accent, streak in fg. */}
         <Label className="mb-3">Lifetime pride</Label>
         <View className="mb-8 flex-row gap-3">
-          <StatTile
-            label="Saved, lifetime"
-            value={money(state.lifetimeMoneySaved)}
+          <Tile
+            k="Saved, lifetime"
+            v={money(state.lifetimeMoneySaved)}
             accent
+            className="flex-1"
           />
-          <StatTile
-            label="Best streak"
-            value={`${state.longestStreak}d`}
+          <Tile
+            k="Best streak"
+            v={`${state.longestStreak}d`}
+            className="flex-1"
           />
         </View>
 
-        {/* Health-milestone history — dark list, lime check icons. */}
+        {/* Health-milestone history — dark list, accent check icons. */}
         <View className="mb-8">
           <View className="mb-3 flex-row items-center justify-between">
             <Label>Your recovery so far</Label>
             {reached.length > 0 ? (
-              <Pill tone="volt">
-                <Label className="text-volt">
-                  {reached.length}/{HEALTH_MILESTONES.length}
-                </Label>
-              </Pill>
+              <Badge
+                label={`${reached.length}/${HEALTH_MILESTONES.length}`}
+                tone="soft"
+              />
             ) : null}
           </View>
 
           {reached.length === 0 ? (
-            <View className="rounded-3xl border border-line bg-coal p-6">
-              <Sparkles color={colors.volt} size={22} strokeWidth={2.5} />
-              <Body className="mt-3 text-base leading-relaxed text-ash">
+            <View className="rounded-3xl border border-stroke bg-surface p-6">
+              <Sparkles color={clean.accent} size={22} strokeWidth={2.5} />
+              <Body className="mt-3 text-base leading-relaxed text-fg-2">
                 Your first recovery milestone unlocks within the hour. Your body
                 starts healing the moment you stop.
               </Body>
             </View>
           ) : (
-            <View className="overflow-hidden rounded-3xl border border-line bg-coal">
+            <View className="overflow-hidden rounded-3xl border border-stroke bg-surface">
               {/* Most-recently reached first — the freshest win on top. */}
               {[...reached].reverse().map((m, i) => (
                 <View
                   key={`${m.hours}`}
                   className={`flex-row items-center px-4 py-4 ${
-                    i === 0 ? '' : 'border-t border-line'
+                    i === 0 ? '' : 'border-t border-stroke'
                   }`}
                 >
-                  <View className="mr-4 h-9 w-9 items-center justify-center rounded-full bg-volt">
-                    <Check color={colors.voltInk} size={18} strokeWidth={3} />
+                  <View className="mr-4 h-9 w-9 items-center justify-center rounded-full bg-accent">
+                    <Check color={clean.accentInk} size={18} strokeWidth={3} />
                   </View>
-                  <Body className="flex-1 pr-3 font-body-semibold text-[15px] text-chalk">
+                  <Body className="flex-1 pr-3 font-sora-semibold text-[15px] text-fg">
                     {m.label}
                   </Body>
-                  <Display className="text-lg text-ash">
+                  <Display className="text-lg text-fg-2">
                     {milestoneWhen(m.hours)}
                   </Display>
                 </View>
               ))}
             </View>
           )}
-          <Body className="mt-3 px-1 text-xs leading-relaxed text-ash">
+          <Body className="mt-3 px-1 text-xs leading-relaxed text-fg-2">
             Commonly reported recovery timeline, supportive, not medical advice.
           </Body>
         </View>
@@ -239,33 +242,33 @@ function YouContent({
           <Pressable
             onPress={goPaywall}
             accessibilityRole="button"
-            className="overflow-hidden rounded-3xl border border-line bg-coal active:opacity-90"
+            className="overflow-hidden rounded-3xl border border-stroke bg-surface active:opacity-90"
           >
             {/* Lime top rail so the upgrade reads as the one premium surface. */}
-            <View className="h-1.5 bg-volt" />
+            <View className="h-1.5 bg-accent" />
             <View className="flex-row items-center px-5 py-5">
-              <View className="mr-4 h-11 w-11 items-center justify-center rounded-2xl bg-volt">
-                <Crown color={colors.voltInk} size={22} strokeWidth={2.5} />
+              <View className="mr-4 h-11 w-11 items-center justify-center rounded-2xl bg-accent">
+                <Crown color={clean.accentInk} size={22} strokeWidth={2.5} />
               </View>
               <View className="flex-1 pr-3">
                 <Heading className="text-xl">UNLOCK HALE+</Heading>
-                <Body className="mt-1 text-[13px] leading-relaxed text-ash">
+                <Body className="mt-1 text-[13px] leading-relaxed text-fg-2">
                   Deeper coaching, richer insights, and more ways to stay free.
                 </Body>
               </View>
-              <ChevronRight color={colors.volt} size={22} strokeWidth={2.5} />
+              <ChevronRight color={clean.accent} size={22} strokeWidth={2.5} />
             </View>
           </Pressable>
         ) : (
-          <View className="overflow-hidden rounded-3xl border border-line bg-coal">
-            <View className="h-1.5 bg-volt" />
+          <View className="overflow-hidden rounded-3xl border border-stroke bg-surface">
+            <View className="h-1.5 bg-accent" />
             <View className="flex-row items-center px-5 py-5">
-              <View className="mr-4 h-11 w-11 items-center justify-center rounded-2xl bg-volt">
-                <Crown color={colors.voltInk} size={22} strokeWidth={2.5} />
+              <View className="mr-4 h-11 w-11 items-center justify-center rounded-2xl bg-accent">
+                <Crown color={clean.accentInk} size={22} strokeWidth={2.5} />
               </View>
               <View className="flex-1">
                 <Heading className="text-xl">YOU&apos;RE ON HALE+</Heading>
-                <Body className="mt-1 text-[13px] text-ash">
+                <Body className="mt-1 text-[13px] text-fg-2">
                   Thank you for backing your own freedom.
                 </Body>
               </View>
@@ -284,15 +287,15 @@ function YouContent({
             subtitle="Your clean-time and money saved on your home screen — unlock with HALE+."
           >
             <View className="flex-row gap-3 p-1">
-              <View className="flex-1 rounded-3xl bg-raised px-4 py-5">
-                <Label className="text-volt">Days free</Label>
-                <Display className="mt-1 text-4xl text-chalk">{Math.floor(days)}</Display>
-                <Body className="mt-1 text-xs text-ash">HALE</Body>
+              <View className="flex-1 rounded-3xl bg-surface-2 px-4 py-5">
+                <Label className="text-accent">Days free</Label>
+                <Display className="mt-1 text-4xl text-fg">{Math.floor(days)}</Display>
+                <Body className="mt-1 text-xs text-fg-2">HALE</Body>
               </View>
-              <View className="flex-1 rounded-3xl bg-raised px-4 py-5">
-                <Label className="text-volt">Saved</Label>
-                <Display className="mt-1 text-4xl text-chalk">{money(state.currentMoneySaved)}</Display>
-                <Body className="mt-1 text-xs text-ash">HALE</Body>
+              <View className="flex-1 rounded-3xl bg-surface-2 px-4 py-5">
+                <Label className="text-accent">Saved</Label>
+                <Display className="mt-1 text-4xl text-fg">{money(state.currentMoneySaved)}</Display>
+                <Body className="mt-1 text-xs text-fg-2">HALE</Body>
               </View>
             </View>
           </LockedFeature>
@@ -301,13 +304,13 @@ function YouContent({
         {/* Phase-2 entry points */}
         <View className="mt-4 gap-3">
           <YouLink
-            icon={<Gift color={colors.volt} size={20} strokeWidth={2.5} />}
+            icon={<Gift color={clean.accent} size={20} strokeWidth={2.5} />}
             title="Treat yourself"
             sub="Set a goal to spend your saved money on."
             onPress={() => router.push('/goals')}
           />
           <YouLink
-            icon={<BarChart3 color={colors.volt} size={20} strokeWidth={2.5} />}
+            icon={<BarChart3 color={clean.accent} size={20} strokeWidth={2.5} />}
             title="Your insights"
             sub="Craving trends + recovery, HALE+."
             onPress={() => router.push('/analytics')}
@@ -334,14 +337,14 @@ function YouLink({
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
-      className="flex-row items-center rounded-2xl border border-line bg-coal px-5 py-4 active:bg-card"
+      className="flex-row items-center rounded-2xl border border-stroke bg-surface px-5 py-4 active:bg-surface-2"
     >
       {icon}
       <View className="ml-3 flex-1">
-        <Body className="font-body-semibold text-base text-chalk">{title}</Body>
-        <Body className="mt-0.5 text-sm text-ash">{sub}</Body>
+        <Body className="font-sora-semibold text-base text-fg">{title}</Body>
+        <Body className="mt-0.5 text-sm text-fg-2">{sub}</Body>
       </View>
-      <ChevronRight color={colors.ash} size={20} />
+      <ChevronRight color={clean.fg2} size={20} />
     </Pressable>
   );
 }
