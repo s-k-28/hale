@@ -9,16 +9,12 @@ import { localDateOf } from '@convex/model/streak';
 import { LANDMARK_DAYS, recoveryFraction } from '@convex/model/plan';
 import { toast } from 'sonner-native';
 import { track, Ev } from '@/lib/analytics';
-import { Screen } from '@/components/ui/Screen';
-import { Display, Heading, Body, Label } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { StatTile } from '@/components/ui/StatTile';
-import { Pill } from '@/components/ui/Pill';
-import { RingGauge } from '@/components/ui/RingGauge';
+import { Screen, Button, Badge, Tile, Eyebrow, H1, H3, Body, Muted, Ring } from '@/ui';
+import { RNText } from '@/ui/internal';
 import MilestoneCelebration from '@/components/MilestoneCelebration';
 import RingBurst from '@/components/RingBurst';
 import { RiseIn } from '@/components/motion';
-import { colors } from '@/theme/colors';
+import { clean } from '@/theme/clean';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -32,11 +28,10 @@ import Animated, {
 } from 'react-native-reanimated';
 
 /**
- * Today — the home dashboard (P1/P2), re-skinned to BOLD MOMENTUM.
- * The live clean-time counter is the star: a giant Anton numeral sitting inside
- * the electric-lime RingGauge, money + lung-recovery stat tiles, a next-health
- * milestone strip, a full-width lime CHECK IN CTA, a loud SOS button, and a
- * compact buddy-status row.
+ * Today — the home dashboard (P1/P2), Clean Dark v2.
+ * The live clean-time counter inside the emerald Ring is the screen's ONE
+ * focal element (green discipline); everything else sits on quiet surfaces.
+ * Buddy/nudge surfaces ride the warm lane; the SOS card is the coral lane.
  *
  * Reactive: useQuery(api.users.todayState) is the single source of truth; the
  * only client-derived state is the 1s "now" tick that animates the counter and
@@ -112,8 +107,8 @@ export default function Today() {
 
   const now = useNow();
   const [checking, setChecking] = useState(false);
-  // Increments on a successful check-in to fire one RingGauge flare + one Skia
-  // RingBurst (the radial lime-particle celebration emanating from the ring).
+  // Increments on a successful check-in to fire one Ring pop + one Skia
+  // RingBurst (the radial particle celebration emanating from the ring).
   const [ringSurge, setRingSurge] = useState(0);
 
   // COUNTER_VIEWED — once, when the screen mounts with real data.
@@ -201,12 +196,11 @@ export default function Today() {
             pairing_method: res.pairingMethod ?? undefined,
             hours_pair_to_checkin: res.hoursPairToCheckin ?? undefined,
           });
-        // Reward beat: success haptic + flame/spark burst over the CTA.
+        // Reward beat: success haptic + particle burst from the ring.
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         setRingSurge((n) => n + 1);
-        // No success toast here: the lime burst + the inline "Locked in for today"
-        // confirmation already say it. A 3rd toast was redundant AND lingered onto
-        // other tabs across navigation. (Error path keeps its toast — see catch.)
+        // No success toast here: the burst + the inline "Locked in for today"
+        // confirmation already say it. (Error path keeps its toast — see catch.)
       }
     } catch {
       // Surface what was a silent failure — a failed tap shouldn't be a dead end.
@@ -220,7 +214,7 @@ export default function Today() {
   if (state === undefined) {
     return (
       <Screen className="items-center justify-center">
-        <ActivityIndicator color={colors.volt} />
+        <ActivityIndicator color={clean.accent} />
       </Screen>
     );
   }
@@ -244,8 +238,6 @@ export default function Today() {
   const streak = state.currentStreak;
   const landmark = nextLandmark(streak);
   // Overall recovery = health milestones reached / total — monotonic, never resets.
-  // (milestoneProgress, used by the ring + strip, is "progress to the NEXT milestone"
-  // and correctly oscillates per-window; it must NOT be shown as overall recovery.)
   const recoveryPct = Math.round(recoveryFraction(state.quitStart, now) * 100);
 
   return (
@@ -254,84 +246,66 @@ export default function Today() {
         contentContainerClassName="px-5 pb-24 pt-3"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header — loud uppercase, lime status flag */}
+        {/* Header — quiet eyebrow + mixed-case title; inline HALE+ badge */}
         <View className="mb-7 flex-row items-end justify-between">
           <View>
-            <Label className="text-volt">Nicotine-free</Label>
-            <Heading className="mt-1 text-3xl">Today</Heading>
+            <Eyebrow>Nicotine-free</Eyebrow>
+            <H1 className="mt-1">Today</H1>
           </View>
-          {state.premium ? (
-            <Pill tone="volt">HALE+</Pill>
-          ) : null}
+          {state.premium ? <Badge label="HALE+" tone="soft" /> : null}
         </View>
 
-        {/* Friend-sourced nudge inbox (S2) — shows when a buddy has reached out. */}
+        {/* Friend-sourced nudge inbox (S2) — a buddy moment, so the warm lane. */}
         <NudgeInbox />
 
-        {/* HERO — live clean-time counter inside the lime RingGauge. A faint volt
-            bloom behind it lifts the focal element onto its own plane (lime light =
-            focus); it carries the most breathing room on the screen. */}
+        {/* HERO — live clean-time counter inside the emerald Ring: the screen's
+            ONE green focal element. */}
         <View className="mb-8 items-center">
           <View className="relative items-center justify-center">
-            <View
-              className="absolute -inset-4 rounded-full bg-volt/[0.05]"
-              style={{ pointerEvents: 'none' }}
-            />
-            <RingGauge
+            <Ring
               progress={freshStart ? Math.max(milestoneProgress, 0.08) : milestoneProgress}
               size={272}
-              stroke={12}
+              stroke={10}
               surge={ringSurge}
             >
-              <Label className="text-ash">Clean for</Label>
+              <Eyebrow className="text-[10.5px] tracking-[1.9px]">Clean for</Eyebrow>
               <HeroDays days={t.days} />
-              <Label className="-mt-1 text-volt">
+              <Eyebrow className="text-accent text-[11.5px] tracking-[2.3px]">
                 {t.days === 1 ? 'Day' : 'Days'}
-              </Label>
-              <View className="mt-3 flex-row items-end">
-                <CounterUnit value={pad(t.hours)} label="h" />
-                <Dot />
-                <CounterUnit value={pad(t.minutes)} label="m" />
-                <Dot />
-                <CounterUnit value={pad(t.seconds)} label="s" />
+              </Eyebrow>
+              <View className="mt-3.5 flex-row items-end" style={{ gap: 16 }}>
+                <CounterUnit value={pad(t.hours)} label="H" />
+                <CounterUnit value={pad(t.minutes)} label="M" />
+                <CounterUnit value={pad(t.seconds)} label="S" />
               </View>
-            </RingGauge>
-            {/* Skia radial lime-particle burst on check-in, centered on the ring.
+            </Ring>
+            {/* Skia radial particle burst on check-in, centered on the ring.
                 Keyed on the surge counter so each check-in remounts + re-fires it. */}
             {ringSurge > 0 ? <RingBurst key={ringSurge} /> : null}
           </View>
         </View>
 
-        {/* Next health milestone strip */}
+        {/* Next health milestone strip — quiet surface, fg countdown */}
         <RiseIn index={1}>
         {milestone ? (
-          <View
-            className={`mb-3 rounded-3xl border px-5 py-4 ${
-              freshStart ? 'border-volt/25 bg-volt/[0.06]' : 'border-line bg-coal'
-            }`}
-          >
+          <View className="mb-3 rounded-panel border border-stroke bg-surface px-5 py-4">
             <View className="flex-row items-center justify-between">
-              <Label className={freshStart ? 'text-volt' : undefined}>
-                {freshStart ? 'First milestone' : 'Next milestone'}
-              </Label>
-              <Display className="text-2xl text-volt">
+              <Eyebrow>{freshStart ? 'First milestone' : 'Next milestone'}</Eyebrow>
+              <RNText className="font-sora-bold text-[22px] tracking-[-0.44px] text-fg">
                 {countdownLabel(milestoneRemainingMs)}
-              </Display>
+              </RNText>
             </View>
-            <Body
-              className="mt-1.5 font-body-medium text-[15px] text-chalk"
-              numberOfLines={2}
-            >
+            <Body className="mt-1.5 font-sora-medium text-fg" numberOfLines={2}>
               {milestone.label}
             </Body>
             {freshStart ? (
-              <Body className="mt-1 font-body-medium text-[13px] text-volt">
+              <Muted className="mt-1 text-[13px]">
                 You've already started, your body is responding right now.
-              </Body>
+              </Muted>
             ) : null}
-            <View className="mt-3 h-2 w-full overflow-hidden rounded-full bg-void">
+            <View className="mt-3 h-2 w-full overflow-hidden rounded-pill bg-track">
               <View
-                className="h-full rounded-full bg-volt"
+                className="h-full rounded-pill bg-accent"
                 style={{
                   width: `${Math.round(Math.max(milestoneProgress, freshStart ? 0.08 : 0) * 100)}%`,
                 }}
@@ -339,36 +313,35 @@ export default function Today() {
             </View>
           </View>
         ) : (
-          <View className="mb-3 rounded-3xl border border-line bg-coal px-5 py-4">
-            <Label className="text-volt">Fully recovered</Label>
-            <Body className="mt-1.5 font-body-medium text-[15px] text-chalk">
+          <View className="mb-3 rounded-panel border border-stroke bg-surface px-5 py-4">
+            <Eyebrow>Fully recovered</Eyebrow>
+            <Body className="mt-1.5 font-sora-medium text-fg">
               Every milestone reached. Your body has come a long way.
             </Body>
           </View>
         )}
         </RiseIn>
 
-        {/* Stat tiles, money saved (lime accent) + lung recovery */}
+        {/* Stat tiles — money saved + recovery */}
         <RiseIn index={2}>
         <View className="mb-3 flex-row gap-3">
-          <StatTile label="Money saved" value={money(state.currentMoneySaved)} />
+          <Tile k="Money saved" v={money(state.currentMoneySaved)} className="flex-1" />
           {/* Soften the bare "0%" on day 0, frame it as the start, not a void. */}
-          <StatTile label="Recovery" value={recoveryPct === 0 ? 'Day 1' : `${recoveryPct}%`} />
+          <Tile k="Recovery" v={recoveryPct === 0 ? 'Day 1' : `${recoveryPct}%`} className="flex-1" />
         </View>
         </RiseIn>
         {/* Lifetime line only when it ADDS info, i.e. there's history beyond this
             run (post-relapse). On a first run current == lifetime, so showing it
             just echoes the Money saved tile. */}
         {state.lifetimeMoneySaved > state.currentMoneySaved ? (
-          <Body className="mb-7 font-body text-xs text-ash">
+          <Muted className="mb-7 text-xs">
             {money(state.lifetimeMoneySaved)} kept in your pocket, all-time.
-          </Body>
+          </Muted>
         ) : (
           <View className="mb-7" />
         )}
 
-        {/* Primary CTA — one-tap daily check-in. The celebratory burst now fires
-            at the hero ring (RingBurst), where the streak lives, not over the CTA. */}
+        {/* Primary CTA — one-tap daily check-in (the screen's one green action). */}
         <View className="mb-3">
           <Button
             label={alreadyCheckedIn ? 'Checked in, clean today' : 'Check in, clean today'}
@@ -380,60 +353,58 @@ export default function Today() {
         </View>
         {alreadyCheckedIn ? (
           <View className="mb-3 flex-row items-center justify-center gap-1.5">
-            <Check color={colors.volt} size={14} strokeWidth={3} />
-            <Body className="font-body-semibold text-xs text-volt">
-              Locked in for today
-            </Body>
+            <Check color={clean.accent} size={14} strokeWidth={3} />
+            <Body className="font-sora-semibold text-xs text-accent">Locked in for today</Body>
           </View>
         ) : null}
         {state.freezesRemaining > 0 ? (
           <View className="mb-5 flex-row items-center justify-center gap-1.5">
-            <ShieldCheck color={colors.ash} size={14} strokeWidth={2.5} />
-            <Body className="font-body text-xs text-ash">
+            <ShieldCheck color={clean.fg3} size={14} strokeWidth={2.2} />
+            <Muted className="text-xs">
               {state.freezesRemaining} streak freeze
               {state.freezesRemaining === 1 ? '' : 's'} in reserve
-            </Body>
+            </Muted>
           </View>
         ) : (
           <View className="mb-5" />
         )}
 
-        {/* SOS — loud red craving button */}
+        {/* SOS — the coral lane (danger only) */}
         <RiseIn index={3}>
         <Pressable
           onPress={() => {
             // craving_sos_opened fires once, on the SOS screen mount (avoids a double-count).
             router.push('/sos');
           }}
-          className="mb-6 flex-row items-center gap-4 rounded-2xl bg-sos px-6 py-5 active:opacity-90"
+          className="mb-6 flex-row items-center gap-4 rounded-tile bg-coral px-6 py-5 active:opacity-90"
           style={{
-            shadowColor: colors.sos,
-            shadowOpacity: 0.35,
+            shadowColor: clean.coral,
+            shadowOpacity: 0.3,
             shadowRadius: 16,
             shadowOffset: { width: 0, height: 6 },
           }}
         >
-          <Siren color="#ffffff" size={26} strokeWidth={2.5} />
+          <Siren color={clean.coralInk} size={26} strokeWidth={2.2} />
           <View className="flex-1">
-            <Heading className="text-xl text-white">Craving SOS</Heading>
-            <Body className="mt-0.5 font-body-medium text-xs text-white/85">
+            <RNText className="font-sora-bold text-[18px] text-coral-ink">Craving SOS</RNText>
+            <RNText className="mt-0.5 font-sora-medium text-xs text-coral-ink opacity-80">
               Tap for help, it passes in minutes
-            </Body>
+            </RNText>
           </View>
-          <ChevronRight color="#ffffff" size={22} strokeWidth={2.5} />
+          <ChevronRight color={clean.coralInk} size={22} strokeWidth={2.2} />
         </Pressable>
         </RiseIn>
 
-        {/* Buddy status row */}
+        {/* Buddy status row — the warm lane */}
         <RiseIn index={4}>
         <BuddyRow data={buddy} streak={streak} landmark={landmark} longestStreak={state.longestStreak} />
         </RiseIn>
       </ScrollView>
 
-      {/* Bottom scrim — fades scrolling content into the void before the tab bar so
+      {/* Bottom scrim — fades scrolling content into the base before the tab bar so
           the coral SOS card never peeks as a sliver behind it (layering fix). */}
       <LinearGradient
-        colors={['transparent', colors.void, colors.void]}
+        colors={['transparent', clean.bg, clean.bg]}
         style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 96, pointerEvents: 'none' }}
       />
 
@@ -467,26 +438,22 @@ function NudgeInbox() {
       onPress={onOpen}
       accessibilityRole="button"
       accessibilityLabel="Open buddy nudge"
-      className="mb-5 rounded-2xl border border-volt/30 bg-volt/10 px-5 py-4 active:opacity-80"
+      className="mb-5 rounded-tile border border-warm-edge bg-warm-soft px-5 py-4 active:opacity-80"
     >
       <View className="flex-row items-center gap-2">
-        <Flame color={colors.volt} size={18} strokeWidth={2.5} />
-        <Body className="flex-1 font-body-bold text-base text-chalk">{n.title}</Body>
+        <Flame color={clean.warm} size={18} strokeWidth={2.2} />
+        <Body className="flex-1 font-sora-bold text-fg">{n.title}</Body>
       </View>
-      <Body className="mt-1 text-sm leading-5 text-ash">{n.body}</Body>
-      <Body className="mt-2 text-xs text-volt">Tap to dismiss</Body>
+      <Body className="mt-1 text-sm leading-5">{n.body}</Body>
+      <RNText className="mt-2 font-sora-medium text-xs text-warm">Tap to dismiss</RNText>
     </Pressable>
   );
-}
-
-/** A small dim separator dot between time units in the hero. */
-function Dot() {
-  return <Display className="mx-2 -translate-y-1 text-2xl text-line">·</Display>;
 }
 
 /**
  * The hero day count — breathes subtly (a slow ~4s scale cycle) so the live
  * counter reads as alive, not frozen. Scale-only (centered) → no layout shift.
+ * Sized to the design's "numerals breathe" rule (66pt, not the banned 100+).
  */
 function HeroDays({ days }: { days: number }) {
   const scale = useSharedValue(1);
@@ -503,7 +470,16 @@ function HeroDays({ days }: { days: number }) {
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <Animated.View className="mt-1" style={style}>
-      <Display className="text-8xl leading-tight text-chalk">{days}</Display>
+      <RNText
+        className="font-sora-bold text-fg"
+        style={{
+          fontSize: String(days).length > 2 ? 56 : 66,
+          lineHeight: String(days).length > 2 ? 60 : 70,
+          letterSpacing: -1.3,
+        }}
+      >
+        {days}
+      </RNText>
     </Animated.View>
   );
 }
@@ -527,11 +503,13 @@ function CounterUnit({ value, label }: { value: string; label: string }) {
     transform: [{ translateY: (1 - anim.value) * 6 }],
   }));
   return (
-    <View className="items-center">
+    <View className="items-center" style={{ width: 30 }}>
       <Animated.View style={style}>
-        <Display className="text-xl text-ash">{value}</Display>
+        <RNText className="font-sora-semibold text-[16px] text-fg-2">{value}</RNText>
       </Animated.View>
-      <Label className="mt-0.5 text-ash">{label}</Label>
+      <RNText className="mt-0.5 font-sora-semibold text-[9px] tracking-[0.9px] text-fg-4">
+        {label}
+      </RNText>
     </View>
   );
 }
@@ -561,7 +539,7 @@ function BuddyRow({
 }) {
   // Loading the buddy query shouldn't block the screen — render a quiet skeleton.
   if (data === undefined) {
-    return <View className="h-[72px] rounded-2xl border border-line bg-coal" />;
+    return <View className="h-[72px] rounded-tile border border-stroke bg-surface" />;
   }
 
   const buddy = data?.buddy ?? null;
@@ -575,23 +553,23 @@ function BuddyRow({
     return (
       <View>
         <View className="mb-3 flex-row items-center gap-2">
-          <Flame color={colors.volt} size={16} strokeWidth={2.5} />
-          <Label>
+          <Flame color={clean.fg3} size={16} strokeWidth={2.2} />
+          <Eyebrow>
             {streak} day streak · {streakLine}
-          </Label>
+          </Eyebrow>
         </View>
         <Pressable
           onPress={() => router.push('/(tabs)/squad')}
-          className="flex-row items-center justify-between rounded-2xl border border-dashed border-volt/30 bg-coal px-5 py-4 active:opacity-80"
+          className="flex-row items-center justify-between rounded-tile border border-dashed border-warm-edge bg-surface px-5 py-4 active:opacity-80"
         >
           <View className="flex-1 pr-3">
-            <Heading className="text-base">Quit with a buddy</Heading>
-            <Body className="mt-1 font-body text-xs text-ash">
+            <H3 className="text-[16px]">Quit with a buddy</H3>
+            <Muted className="mt-1 text-xs">
               People paired with a buddy are far likelier to stay clean.
-            </Body>
+            </Muted>
           </View>
-          <View className="rounded-full bg-volt px-4 py-2">
-            <Heading className="text-xs text-volt-ink">Invite</Heading>
+          <View className="rounded-pill bg-warm px-4 py-2">
+            <RNText className="font-sora-bold text-xs text-warm-ink">Invite</RNText>
           </View>
         </Pressable>
       </View>
@@ -602,29 +580,29 @@ function BuddyRow({
   return (
     <View>
       <View className="mb-3 flex-row items-center gap-2">
-        <Flame color={colors.volt} size={16} strokeWidth={2.5} />
-        <Label>
+        <Flame color={clean.fg3} size={16} strokeWidth={2.2} />
+        <Eyebrow>
           {streak} day streak · {streakLine}
-        </Label>
+        </Eyebrow>
       </View>
       <Pressable
         onPress={() => router.push('/(tabs)/squad')}
-        className="flex-row items-center rounded-2xl border border-line bg-coal px-4 py-4 active:opacity-80"
+        className="flex-row items-center rounded-tile border border-stroke bg-surface px-4 py-4 active:opacity-80"
       >
-        <View className="mr-3 h-11 w-11 items-center justify-center rounded-full bg-volt">
-          <Heading className="text-base text-volt-ink">
+        <View className="mr-3 h-11 w-11 items-center justify-center rounded-pill bg-warm">
+          <RNText className="font-sora-bold text-[16px] text-warm-ink">
             {name.charAt(0).toUpperCase()}
-          </Heading>
+          </RNText>
         </View>
         <View className="flex-1">
-          <Heading className="text-base">{name}</Heading>
-          <Body className="mt-0.5 font-body text-xs text-ash">
+          <H3 className="text-[16px]">{name}</H3>
+          <Muted className="mt-0.5 text-xs">
             {buddy.currentStreak > 0
               ? `${buddy.currentStreak}-day streak · cheer them on`
               : 'Tap to check in on each other'}
-          </Body>
+          </Muted>
         </View>
-        <ChevronRight color={colors.ash} size={20} strokeWidth={2.5} />
+        <ChevronRight color={clean.fg3} size={20} strokeWidth={2.2} />
       </Pressable>
     </View>
   );

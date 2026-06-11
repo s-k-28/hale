@@ -57,7 +57,7 @@ export default function RingBurst({ onDone }: { onDone?: () => void }) {
       const raw = tv < 0.12 ? tv / 0.12 : 1 - (tv - 0.12) / 0.88;
       const a = Math.max(0, Math.min(1, raw));
       const r = Math.max(0.5, p.size * (1.15 - tv * 0.7));
-      paint.setColor(Skia.Color(p.white ? `rgba(244,247,242,${a})` : `rgba(198,255,61,${a})`));
+      paint.setColor(Skia.Color(p.white ? `rgba(234,241,236,${a})` : `rgba(52,211,153,${a})`));
       canvas.drawCircle(cx, cy, r, paint);
     }
     return recorder.finishRecordingAsPicture();
