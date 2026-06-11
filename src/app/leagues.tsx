@@ -4,11 +4,16 @@ import { useMutation, useQuery } from 'convex/react';
 import { Crown, Layers, Trophy } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
-import { Screen } from '@/components/ui/Screen';
-import { Display, Heading, Body, Label } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { Pill } from '@/components/ui/Pill';
-import { colors } from '@/theme/colors';
+import {
+  Screen,
+  Button,
+  Display,
+  Body,
+  Badge,
+  H2 as Heading,
+  Eyebrow as Label,
+} from '@/ui';
+import { clean } from '@/theme/clean';
 
 /**
  * Leagues (S4) — opt-in weekly, segmented by quit-stage, ranked by consistency.
@@ -80,24 +85,24 @@ export default function Leagues() {
         showsVerticalScrollIndicator={false}
       >
         <View className="flex-row items-center">
-          <Trophy color={colors.volt} size={28} strokeWidth={2.5} />
+          <Trophy color={clean.accent} size={28} strokeWidth={2.5} />
           <Heading className="ml-2 text-4xl">LEAGUE</Heading>
         </View>
-        <Body className="mt-1 text-base text-ash">
+        <Body className="mt-1 text-base text-fg-2">
           A fresh leaderboard every week. Most clean days wins.
         </Body>
 
         {/* Segmented-by-stage note */}
-        <View className="mt-4 flex-row items-center rounded-2xl border border-line bg-coal px-4 py-3">
-          <Layers color={colors.ash} size={16} strokeWidth={2.5} />
-          <Body className="ml-2 flex-1 text-sm leading-5 text-ash">
+        <View className="mt-4 flex-row items-center rounded-2xl border border-stroke bg-surface px-4 py-3">
+          <Layers color={clean.fg2} size={16} strokeWidth={2.5} />
+          <Body className="ml-2 flex-1 text-sm leading-5 text-fg-2">
             Segmented by your stage, you only race people at the same point in their quit.
           </Body>
         </View>
 
         {loading ? (
           <View className="mt-24 items-center">
-            <ActivityIndicator color={colors.volt} />
+            <ActivityIndicator color={clean.accent} />
           </View>
         ) : optedIn ? (
           <JoinedState
@@ -129,21 +134,19 @@ function OptInState({
 }) {
   return (
     <View className="mt-6">
-      <View className="overflow-hidden rounded-3xl border border-line bg-coal px-6 py-8">
-        <View className="h-14 w-14 items-center justify-center rounded-2xl bg-volt">
-          <Trophy color={colors.voltInk} size={26} strokeWidth={2.5} />
+      <View className="overflow-hidden rounded-3xl border border-stroke bg-surface px-6 py-8">
+        <View className="h-14 w-14 items-center justify-center rounded-2xl bg-accent">
+          <Trophy color={clean.accentInk} size={26} strokeWidth={2.5} />
         </View>
         <Heading className="mt-5 text-2xl">JOIN THIS WEEK</Heading>
-        <Body className="mt-2 text-base leading-6 text-ash">
+        <Body className="mt-2 text-base leading-6 text-fg-2">
           Opt in to land in a friendly weekly league with others at your stage. Every clean check-in
           this week earns a point, climb the board, stay quit.
         </Body>
 
         <View className="mt-5 flex-row items-center">
-          <Label className="text-chalk">YOUR SEGMENT</Label>
-          <Pill tone="volt" className="ml-3">
-            <Label className="text-volt">{bucketLabel(bucket)}</Label>
-          </Pill>
+          <Label className="text-fg">Your segment</Label>
+          <Badge label={bucketLabel(bucket)} tone="soft" className="ml-3" />
         </View>
 
         <Button
@@ -156,8 +159,8 @@ function OptInState({
         />
       </View>
 
-      <View className="mt-5 rounded-2xl border border-line bg-coal px-5 py-4">
-        <Label className="text-chalk">HOW IT WORKS</Label>
+      <View className="mt-5 rounded-2xl border border-stroke bg-surface px-5 py-4">
+        <Label className="text-fg">HOW IT WORKS</Label>
         <Rule text="One point for every clean day you check in this week." />
         <Rule text="You only compete with people at your stage of quitting." />
         <Rule text="The board resets every Monday, a clean slate, always." />
@@ -170,8 +173,8 @@ function OptInState({
 function Rule({ text }: { text: string }) {
   return (
     <View className="mt-3 flex-row items-start">
-      <View className="mt-1.5 h-1.5 w-1.5 rounded-full bg-volt" />
-      <Body className="ml-2.5 flex-1 text-sm leading-5 text-ash">{text}</Body>
+      <View className="mt-1.5 h-1.5 w-1.5 rounded-full bg-accent" />
+      <Body className="ml-2.5 flex-1 text-sm leading-5 text-fg-2">{text}</Body>
     </View>
   );
 }
@@ -198,22 +201,22 @@ function JoinedState({
   return (
     <View className="mt-6">
       {/* My standing banner */}
-      <View className="flex-row items-center rounded-2xl border border-volt/30 bg-volt/10 px-5 py-4">
-        <View className="h-12 w-12 items-center justify-center rounded-2xl bg-volt">
-          <Display className="text-2xl text-volt-ink">{rankLabel}</Display>
+      <View className="flex-row items-center rounded-2xl border border-accent-edge/30 bg-accent/10 px-5 py-4">
+        <View className="h-12 w-12 items-center justify-center rounded-2xl bg-accent">
+          <Display className="text-2xl text-accent-ink">{rankLabel}</Display>
         </View>
         <View className="ml-4 flex-1">
-          <Label className="text-volt">YOUR RANK · {bucketLabel(bucket)}</Label>
-          <Body className="font-body-bold text-base text-chalk">
+          <Label className="text-accent">YOUR RANK · {bucketLabel(bucket)}</Label>
+          <Body className="font-sora-bold text-base text-fg">
             {rank ? `${rank} of ${fieldSize}` : 'You’re in'} this week
           </Body>
         </View>
       </View>
 
       {/* Leaderboard */}
-      <View className="mt-4 rounded-3xl border border-line bg-coal px-3 py-3">
+      <View className="mt-4 rounded-3xl border border-stroke bg-surface px-3 py-3">
         <View className="flex-row items-center justify-between px-3 pb-2 pt-1">
-          <Label className="text-chalk">LEADERBOARD</Label>
+          <Label className="text-fg">LEADERBOARD</Label>
           <Label>{fieldSize} {fieldSize === 1 ? 'PLAYER' : 'PLAYERS'}</Label>
         </View>
         {entries.map((e, i) => (
@@ -229,7 +232,7 @@ function JoinedState({
         accessibilityLabel="Leave this week's league"
         className="mt-5"
       />
-      <Body className="mt-3 text-center text-xs text-ash">
+      <Body className="mt-3 text-center text-xs text-fg-2">
         Leaving won’t affect your streak or progress.
       </Body>
     </View>
@@ -242,32 +245,32 @@ function Row({ place, entry }: { place: number; entry: { name: string; score: nu
   return (
     <View
       className={`mt-1.5 flex-row items-center rounded-2xl px-3 py-3 ${
-        me ? 'border border-volt/40 bg-volt/10' : 'bg-void'
+        me ? 'border border-accent-edge/40 bg-accent/10' : 'bg-bg'
       }`}
     >
       {/* Place */}
       <View className="w-7 items-center">
         {top ? (
-          <Crown color={colors.volt} size={18} strokeWidth={2.5} />
+          <Crown color={clean.accent} size={18} strokeWidth={2.5} />
         ) : (
-          <Body className={`font-body-bold text-base ${me ? 'text-volt' : 'text-ash'}`}>{place}</Body>
+          <Body className={`font-sora-bold text-base ${me ? 'text-accent' : 'text-fg-2'}`}>{place}</Body>
         )}
       </View>
 
       {/* Avatar */}
       <View
         className={`ml-1 h-9 w-9 items-center justify-center rounded-full ${
-          me ? 'bg-volt' : 'bg-card'
+          me ? 'bg-accent' : 'bg-surface-2'
         }`}
       >
-        <Body className={`font-body-bold text-sm ${me ? 'text-volt-ink' : 'text-chalk'}`}>
+        <Body className={`font-sora-bold text-sm ${me ? 'text-accent-ink' : 'text-fg'}`}>
           {monogram(entry.name)}
         </Body>
       </View>
 
       {/* Name */}
       <Body
-        className={`ml-3 flex-1 font-body-semibold text-base ${me ? 'text-volt' : 'text-chalk'}`}
+        className={`ml-3 flex-1 font-sora-semibold text-base ${me ? 'text-accent' : 'text-fg'}`}
         numberOfLines={1}
       >
         {me ? 'You' : entry.name}
@@ -275,8 +278,8 @@ function Row({ place, entry }: { place: number; entry: { name: string; score: nu
 
       {/* Score */}
       <View className="flex-row items-baseline">
-        <Display className={`text-2xl ${me ? 'text-volt' : 'text-chalk'}`}>{entry.score}</Display>
-        <Body className="ml-1 text-xs text-ash">{entry.score === 1 ? 'day' : 'days'}</Body>
+        <Display className={`text-2xl ${me ? 'text-accent' : 'text-fg'}`}>{entry.score}</Display>
+        <Body className="ml-1 text-xs text-fg-2">{entry.score === 1 ? 'day' : 'days'}</Body>
       </View>
     </View>
   );

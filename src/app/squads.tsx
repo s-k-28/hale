@@ -5,14 +5,19 @@ import { useMutation, useQuery } from 'convex/react';
 import { ChevronLeft, Flame, Plus, Trophy, Users } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
-import { Screen } from '@/components/ui/Screen';
-import { Display, Heading, Body, Label } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { StatTile } from '@/components/ui/StatTile';
-import { Pill } from '@/components/ui/Pill';
+import {
+  Screen,
+  Button,
+  Display,
+  Body,
+  Tile,
+  Badge,
+  H2 as Heading,
+  Eyebrow as Label,
+} from '@/ui';
 import { LockedFeature } from '@/components/ui/LockedFeature';
 import { usePremium } from '@/hooks/usePremium';
-import { colors } from '@/theme/colors';
+import { clean } from '@/theme/clean';
 
 /**
  * Squads (S3 hub) — the group layer above 1:1 buddies. Four jobs, all reactive
@@ -93,21 +98,21 @@ export default function Squads() {
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="Back"
-          className="mb-4 h-10 w-10 items-center justify-center rounded-full border border-line bg-coal active:opacity-80"
+          className="mb-4 h-10 w-10 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-80"
         >
-          <ChevronLeft color={colors.chalk} size={22} strokeWidth={2.5} />
+          <ChevronLeft color={clean.fg} size={22} strokeWidth={2.5} />
         </Pressable>
 
-        <Label className="text-volt">Quit together</Label>
+        <Label className="text-accent">Quit together</Label>
         <Heading className="mt-1 text-5xl leading-[0.9]">SQUADS</Heading>
-        <Body className="mt-2 text-base leading-6 text-ash">
+        <Body className="mt-2 text-base leading-6 text-fg-2">
           Pick a group going through the same thing. Start a 6-week challenge and stay clean
           together.
         </Body>
 
         {loading ? (
           <View className="mt-24 items-center">
-            <ActivityIndicator color={colors.volt} />
+            <ActivityIndicator color={clean.accent} />
           </View>
         ) : (
           <>
@@ -146,12 +151,12 @@ function YourSquads({ squads }: { squads: MySquad[] }) {
 
   if (squads.length === 0) {
     return (
-      <View className="mt-7 rounded-3xl border border-dashed border-line bg-coal/40 px-5 py-7">
-        <View className="h-12 w-12 items-center justify-center rounded-2xl bg-volt/15">
-          <Users color={colors.volt} size={24} strokeWidth={2.5} />
+      <View className="mt-7 rounded-3xl border border-dashed border-stroke bg-surface/40 px-5 py-7">
+        <View className="h-12 w-12 items-center justify-center rounded-2xl bg-accent/15">
+          <Users color={clean.accent} size={24} strokeWidth={2.5} />
         </View>
         <Heading className="mt-4 text-xl">NO SQUADS YET</Heading>
-        <Body className="mt-2 text-sm leading-5 text-ash">
+        <Body className="mt-2 text-sm leading-5 text-fg-2">
           Create one and share the code, join a friend&apos;s with their code, or discover a public
           squad below.
         </Body>
@@ -203,7 +208,7 @@ function SquadCard({
   }, [squad._id, squad.name, squad.inviteCode]);
 
   return (
-    <View className="overflow-hidden rounded-3xl border border-line bg-coal">
+    <View className="overflow-hidden rounded-3xl border border-stroke bg-surface">
       {/* Tappable header + progress (the toggle). Kept separate from the detail
           so the inner Share button never collides with a nested Pressable. */}
       <Pressable
@@ -214,22 +219,20 @@ function SquadCard({
         className={`px-5 pt-5 active:opacity-90 ${expanded ? 'pb-4' : 'pb-5'}`}
       >
         <View className="flex-row items-center">
-          <View className="h-11 w-11 items-center justify-center rounded-2xl bg-volt">
-            <Users color={colors.voltInk} size={22} strokeWidth={2.5} />
+          <View className="h-11 w-11 items-center justify-center rounded-2xl bg-accent">
+            <Users color={clean.accentInk} size={22} strokeWidth={2.5} />
           </View>
           <View className="ml-3 flex-1 pr-2">
             <Heading className="text-xl normal-case" numberOfLines={1}>
               {squad.name}
             </Heading>
-            <Body className="mt-0.5 text-sm text-ash">
+            <Body className="mt-0.5 text-sm text-fg-2">
               {squad.memberCount} {squad.memberCount === 1 ? 'member' : 'members'}
               {squad.isPublic ? ' · Public' : ' · Private'}
             </Body>
           </View>
           {isOwner ? (
-            <Pill tone="volt">
-              <Label className="text-volt">Owner</Label>
-            </Pill>
+            <Badge label="Owner" tone="soft" />
           ) : null}
         </View>
 
@@ -238,16 +241,16 @@ function SquadCard({
           <View className="pt-4">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-1.5">
-                <Trophy color={colors.volt} size={13} strokeWidth={2.75} />
-                <Label className="text-volt">6-week challenge</Label>
+                <Trophy color={clean.accent} size={13} strokeWidth={2.75} />
+                <Label className="text-accent">6-week challenge</Label>
               </View>
-              <Body className="font-body-semibold text-xs text-ash">
+              <Body className="font-sora-semibold text-xs text-fg-2">
                 {daysLeft(challengeEnd, now)} days left
               </Body>
             </View>
-            <View className="mt-2 h-2.5 overflow-hidden rounded-full bg-void">
+            <View className="mt-2 h-2.5 overflow-hidden rounded-full bg-bg">
               <View
-                className="h-full rounded-full bg-volt"
+                className="h-full rounded-full bg-accent"
                 style={{ width: `${Math.round((progress as number) * 100)}%` }}
               />
             </View>
@@ -257,27 +260,27 @@ function SquadCard({
 
       {/* Inline detail — sibling of the toggle, so its Share button is independent. */}
       {expanded ? (
-        <View className="border-t border-line px-5 py-5">
+        <View className="border-t border-stroke px-5 py-5">
           <View className="flex-row gap-3">
-            <StatTile label="Members" value={String(squad.memberCount)} accent />
+            <Tile k="Members" v={String(squad.memberCount)} accent className="flex-1" />
             {hasChallenge ? (
-              <StatTile label="Days left" value={String(daysLeft(challengeEnd, now))} />
+              <Tile k="Days left" v={String(daysLeft(challengeEnd, now))} className="flex-1" />
             ) : (
-              <StatTile label="Type" value={squad.isPublic ? 'Public' : 'Private'} />
+              <Tile k="Type" v={squad.isPublic ? 'Public' : 'Private'} className="flex-1" />
             )}
           </View>
 
-          <View className="mt-4 flex-row items-center rounded-2xl bg-void px-4 py-3">
+          <View className="mt-4 flex-row items-center rounded-2xl bg-bg px-4 py-3">
             <View className="flex-1">
               <Label>Invite code</Label>
-              <Display className="mt-0.5 text-2xl tracking-widest text-volt">
+              <Display className="mt-0.5 text-2xl tracking-widest text-accent">
                 {squad.inviteCode}
               </Display>
             </View>
           </View>
 
           <Button
-            variant="surface"
+            variant="secondary"
             label="Share invite code"
             onPress={onShareCode}
             accessibilityLabel="Share invite code"
@@ -339,20 +342,20 @@ function CreateSquad() {
 
       {createdCode ? (
         /* Success — show the shareable code. */
-        <View className="overflow-hidden rounded-3xl border border-line bg-coal">
-          <View className="h-1.5 bg-volt" />
+        <View className="overflow-hidden rounded-3xl border border-stroke bg-surface">
+          <View className="h-1.5 bg-accent" />
           <View className="px-5 py-6">
-            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-volt">
-              <Users color={colors.voltInk} size={24} strokeWidth={2.5} />
+            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-accent">
+              <Users color={clean.accentInk} size={24} strokeWidth={2.5} />
             </View>
             <Heading className="mt-4 text-2xl">SQUAD CREATED</Heading>
-            <Body className="mt-2 text-sm leading-5 text-ash">
+            <Body className="mt-2 text-sm leading-5 text-fg-2">
               Share this code so your people can join.
             </Body>
 
-            <View className="mt-4 items-center rounded-2xl bg-void px-4 py-5">
+            <View className="mt-4 items-center rounded-2xl bg-bg px-4 py-5">
               <Label>Invite code</Label>
-              <Display className="mt-1 text-4xl tracking-[0.2em] text-volt">{createdCode}</Display>
+              <Display className="mt-1 text-4xl tracking-[0.2em] text-accent">{createdCode}</Display>
             </View>
 
             <Button
@@ -372,33 +375,33 @@ function CreateSquad() {
           </View>
         </View>
       ) : (
-        <View className="rounded-3xl border border-line bg-coal px-5 py-5">
+        <View className="rounded-3xl border border-stroke bg-surface px-5 py-5">
           <Label>Squad name</Label>
           <TextInput
             value={name}
             onChangeText={setName}
             placeholder="e.g. Quit Crew"
-            placeholderTextColor={colors.ash}
+            placeholderTextColor={clean.fg2}
             maxLength={32}
             autoCapitalize="words"
             returnKeyType="done"
-            className="mt-2 rounded-2xl border border-line bg-void px-4 py-3.5 font-body text-base text-chalk"
+            className="mt-2 rounded-2xl border border-stroke bg-bg px-4 py-3.5 font-sora text-base text-fg"
           />
 
           {/* Public toggle */}
           <View className="mt-5 flex-row items-center justify-between">
             <View className="flex-1 pr-4">
-              <Body className="font-body-semibold text-base text-chalk">Make it public</Body>
-              <Body className="mt-0.5 text-xs leading-4 text-ash">
+              <Body className="font-sora-semibold text-base text-fg">Make it public</Body>
+              <Body className="mt-0.5 text-xs leading-4 text-fg-2">
                 Discoverable by anyone in the app. Off = invite-only.
               </Body>
             </View>
             <Switch
               value={isPublic}
               onValueChange={setIsPublic}
-              trackColor={{ false: colors.line, true: colors.volt }}
-              thumbColor={colors.chalk}
-              ios_backgroundColor={colors.line}
+              trackColor={{ false: clean.stroke, true: clean.accent }}
+              thumbColor={clean.fg}
+              ios_backgroundColor={clean.stroke}
             />
           </View>
 
@@ -406,21 +409,21 @@ function CreateSquad() {
           <View className="mt-5 flex-row items-center justify-between">
             <View className="flex-1 pr-4">
               <View className="flex-row items-center gap-1.5">
-                <Trophy color={colors.volt} size={14} strokeWidth={2.75} />
-                <Body className="font-body-semibold text-base text-chalk">
+                <Trophy color={clean.accent} size={14} strokeWidth={2.75} />
+                <Body className="font-sora-semibold text-base text-fg">
                   Start a {CHALLENGE_WEEKS}-week challenge
                 </Body>
               </View>
-              <Body className="mt-0.5 text-xs leading-4 text-ash">
+              <Body className="mt-0.5 text-xs leading-4 text-fg-2">
                 Everyone aims to stay clean for {CHALLENGE_WEEKS} weeks together.
               </Body>
             </View>
             <Switch
               value={startChallenge}
               onValueChange={setStartChallenge}
-              trackColor={{ false: colors.line, true: colors.volt }}
-              thumbColor={colors.chalk}
-              ios_backgroundColor={colors.line}
+              trackColor={{ false: clean.stroke, true: clean.accent }}
+              thumbColor={clean.fg}
+              ios_backgroundColor={clean.stroke}
             />
           </View>
 
@@ -467,7 +470,7 @@ function JoinByCode() {
   return (
     <View className="mt-8">
       <Label className="mb-3">Join by code</Label>
-      <View className="rounded-3xl border border-line bg-coal px-5 py-5">
+      <View className="rounded-3xl border border-stroke bg-surface px-5 py-5">
         <View className="flex-row items-center gap-3">
           <TextInput
             value={code}
@@ -476,13 +479,13 @@ function JoinByCode() {
               if (error) setError(null);
             }}
             placeholder="CODE"
-            placeholderTextColor={colors.ash}
+            placeholderTextColor={clean.fg2}
             autoCapitalize="characters"
             autoCorrect={false}
             maxLength={10}
             returnKeyType="go"
             onSubmitEditing={onJoin}
-            className="flex-1 rounded-2xl border border-line bg-void px-4 py-3.5 font-display text-xl uppercase tracking-[0.18em] text-chalk"
+            className="flex-1 rounded-2xl border border-stroke bg-bg px-4 py-3.5 font-display text-xl uppercase tracking-[0.18em] text-fg"
           />
           <View className="w-28">
             <Button
@@ -517,18 +520,18 @@ function Discover({
       <Label className="mb-3">Discover</Label>
 
       {squads === undefined ? (
-        <View className="items-center rounded-3xl border border-line bg-coal py-8">
-          <ActivityIndicator color={colors.volt} />
+        <View className="items-center rounded-3xl border border-stroke bg-surface py-8">
+          <ActivityIndicator color={clean.accent} />
         </View>
       ) : squads.length === 0 ? (
-        <View className="rounded-3xl border border-line bg-coal px-5 py-6">
-          <Flame color={colors.volt} size={22} strokeWidth={2.5} />
-          <Body className="mt-3 text-sm leading-5 text-ash">
+        <View className="rounded-3xl border border-stroke bg-surface px-5 py-6">
+          <Flame color={clean.accent} size={22} strokeWidth={2.5} />
+          <Body className="mt-3 text-sm leading-5 text-fg-2">
             No public squads yet. Create one above and make it public to lead the pack.
           </Body>
         </View>
       ) : (
-        <View className="overflow-hidden rounded-3xl border border-line bg-coal">
+        <View className="overflow-hidden rounded-3xl border border-stroke bg-surface">
           {squads.map((s, i) => (
             <DiscoverRow
               key={s._id}
@@ -575,38 +578,36 @@ function DiscoverRow({
   const joined = alreadyIn || done;
 
   return (
-    <View className={`flex-row items-center px-5 py-4 ${first ? '' : 'border-t border-line'}`}>
-      <View className="h-10 w-10 items-center justify-center rounded-2xl bg-volt/15">
-        <Users color={colors.volt} size={20} strokeWidth={2.5} />
+    <View className={`flex-row items-center px-5 py-4 ${first ? '' : 'border-t border-stroke'}`}>
+      <View className="h-10 w-10 items-center justify-center rounded-2xl bg-accent/15">
+        <Users color={clean.accent} size={20} strokeWidth={2.5} />
       </View>
       <View className="ml-3 flex-1 pr-2">
-        <Body className="font-body-semibold text-base text-chalk" numberOfLines={1}>
+        <Body className="font-sora-semibold text-base text-fg" numberOfLines={1}>
           {squad.name}
         </Body>
-        <Body className="mt-0.5 text-xs text-ash">
+        <Body className="mt-0.5 text-xs text-fg-2">
           {squad.memberCount} {squad.memberCount === 1 ? 'member' : 'members'}
         </Body>
       </View>
       {joined ? (
-        <Pill tone="volt">
-          <Label className="text-volt">Joined</Label>
-        </Pill>
+        <Badge label="Joined" tone="soft" />
       ) : (
         <Pressable
           onPress={onJoin}
           disabled={busy}
           accessibilityRole="button"
           accessibilityLabel={`Join ${squad.name}`}
-          className={`h-10 items-center justify-center rounded-full bg-volt px-5 active:bg-volt-dim ${
+          className={`h-10 items-center justify-center rounded-full bg-accent px-5 active:bg-accent-dim ${
             busy ? 'opacity-40' : ''
           }`}
         >
           {busy ? (
-            <ActivityIndicator color={colors.voltInk} size="small" />
+            <ActivityIndicator color={clean.accentInk} size="small" />
           ) : (
             <View className="flex-row items-center gap-1">
-              <Plus color={colors.voltInk} size={15} strokeWidth={3} />
-              <Display className="text-sm uppercase text-volt-ink">Join</Display>
+              <Plus color={clean.accentInk} size={15} strokeWidth={3} />
+              <Display className="text-sm uppercase text-accent-ink">Join</Display>
             </View>
           )}
         </Pressable>
