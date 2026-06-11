@@ -214,6 +214,11 @@ export const resetAll = mutation({
       'matchRequests', // else stale 'waiting' rows pair fresh users with deleted ghosts
       'referrals',
       'activationEvents',
+      // Auth tables too — else a device's surviving Keychain session resolves to
+      // a deleted users doc and completeOnboarding patches a nonexistent ID.
+      'authAccounts',
+      'authSessions',
+      'authRefreshTokens',
     ] as const;
     const counts: Record<string, number> = {};
     for (const t of tables) {
@@ -378,5 +383,18 @@ export const seedLeague = mutation({
         await ctx.db.insert('checkIns', { userId: pid, attemptId: pa, localDate: weekDates[i], status: 'clean', ts: now });
     }
     return { ok: true, userId: u._id, weekKey };
+  },
+});
+
+/** Expire the latest user's app-managed trial → tests the LOCKED gates + paywall
+ *  as a genuinely free user. ⚠️ REMOVE BEFORE LAUNCH. */
+export const expireTrial = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query('users').collect();
+    const latest = users.sort((a, b) => b._creationTime - a._creationTime)[0];
+    if (!latest) throw new Error('no users');
+    await ctx.db.patch(latest._id, { trialEndsAt: Date.now() - 1000, premium: false });
+    return { ok: true, userId: latest._id };
   },
 });

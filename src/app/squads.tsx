@@ -598,7 +598,7 @@ function DiscoverRow({
           disabled={busy}
           accessibilityRole="button"
           accessibilityLabel={`Join ${squad.name}`}
-          className={`h-10 items-center justify-center rounded-full bg-accent px-5 active:bg-accent-dim ${
+          className={`h-10 items-center justify-center rounded-full bg-accent px-5 active:bg-accent-deep ${
             busy ? 'opacity-40' : ''
           }`}
         >

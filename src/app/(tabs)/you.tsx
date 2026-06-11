@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import type { View as RNView } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { BarChart3, Check, ChevronRight, Crown, Gift, Share2, Sparkles } from 'lucide-react-native';
+import { BarChart3, Check, ChevronRight, Crown, Flame, Gift, Share2 } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import {
   HEALTH_MILESTONES,
@@ -132,7 +132,7 @@ function YouContent({
         <View className="mb-6 flex-row items-end justify-between">
           <View>
             <Label className="text-accent">Your freedom</Label>
-            <Heading className="mt-1 text-5xl leading-[0.9]">YOU</Heading>
+            <Heading className="mt-1 text-5xl leading-[0.9]">You</Heading>
           </View>
           {state.premium ? (
             <Badge label="HALE+" tone="soft" className="mb-1" />
@@ -144,7 +144,7 @@ function YouContent({
             'milestone reached' overline + confetti). Same share artifact, different
             context. */}
         <View className="mb-3 flex-row items-center gap-2">
-          <Sparkles color={clean.accent} size={14} strokeWidth={2.75} />
+          <Flame color={clean.accent} size={14} strokeWidth={2.2} />
           <Label className="text-accent">Your story so far</Label>
         </View>
 
@@ -203,7 +203,7 @@ function YouContent({
 
           {reached.length === 0 ? (
             <View className="rounded-3xl border border-stroke bg-surface p-6">
-              <Sparkles color={clean.accent} size={22} strokeWidth={2.5} />
+              <Crown color={clean.accent} size={22} strokeWidth={2.2} />
               <Body className="mt-3 text-base leading-relaxed text-fg-2">
                 Your first recovery milestone unlocks within the hour. Your body
                 starts healing the moment you stop.

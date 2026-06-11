@@ -39,7 +39,7 @@ export default function ReferralHub() {
           Quit together,{'\n'}unlock HALE+ free
         </H1>
         <Lead className="mt-3">
-          Every friend you bring makes quitting stick — for both of you. Three friends who join
+          Every friend you bring makes quitting stick, for both of you. Three friends who join
           and pair up unlock a free week of everything.
         </Lead>
 

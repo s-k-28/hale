@@ -29,7 +29,7 @@ export default function RewardUnlocked() {
           {days} {days === 1 ? 'day' : 'days'} of HALE+,{'\n'}on your friends
         </H1>
         <Lead className="mt-4">
-          Full analytics, unlimited Sage, every tool — yours free because you brought your people
+          Full analytics, unlimited Sage, every tool, free because you brought your people
           with you. No card, nothing auto-charges.
         </Lead>
       </View>

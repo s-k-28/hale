@@ -239,7 +239,7 @@ export default function Coach() {
             accessibilityLabel="Send message to Sage"
             className={`h-12 w-12 items-center justify-center rounded-full ${
               canSend
-                ? 'bg-accent border-b-[3px] border-accent-edge-edge active:bg-accent-dim active:translate-y-0.5'
+                ? 'bg-accent active:bg-accent-deep'
                 : 'bg-surface border border-stroke'
             }`}
             style={
@@ -278,8 +278,8 @@ function Bubble({ message }: { message: SageMessage }) {
         }
         // Sage's reply is elevated onto the raised plane (lighter fill + soft
         // shadow) with an accent voice-rule on its leading edge, so the coach's
-        // words read as the lit, prominent object — not the dimmest thing on
-        // screen. The user's bubble keeps its lime identity.
+        // words read as the lit, prominent object, not the dimmest thing on
+        // screen. The user's bubble keeps its accent identity.
         style={
           isUser
             ? undefined
@@ -306,7 +306,7 @@ function EmptyState() {
   return (
     <View className="flex-1 items-center justify-center px-9">
       <BreathingSage />
-      <Display className="mt-6 text-center text-5xl text-fg">HEY,{'\n'}I&apos;M SAGE</Display>
+      <Display className="mt-6 text-center text-5xl text-fg">Hey,{'\n'}I&apos;m Sage</Display>
       <Body className="mt-4 max-w-[300px] text-center text-base leading-6 text-fg-2">
         Here the second a craving hits. Tell me what&apos;s going on, no judgment,
         just backup to ride it out. It peaks, then it passes.

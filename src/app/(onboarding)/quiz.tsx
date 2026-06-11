@@ -497,7 +497,7 @@ export default function Quiz() {
           className="flex-1"
           // grow + justify-center = "center the question when it's short, scroll when
           // it's long" (design 'oblist'). No gray dead-space at the bottom.
-          contentContainerClassName="grow px-gutter py-6 justify-center"
+          contentContainerClassName="grow px-gutter pt-6 pb-28 justify-center"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -533,6 +533,7 @@ export default function Quiz() {
             >
               <Eyebrow className="mb-3">{product.unitPl} per day</Eyebrow>
               <UnderlineInput
+                autoFocus
                 filled={answers.perDay !== null && answers.perDay > 0}
                 value={perDayText}
                 onChangeText={(t) => {
@@ -559,6 +560,7 @@ export default function Quiz() {
             >
               <Eyebrow className="mb-3">Cost per {product.unit}</Eyebrow>
               <UnderlineInput
+                autoFocus
                 filled={answers.unitCost !== null && answers.unitCost > 0}
                 value={unitCostText}
                 onChangeText={(t) => {

@@ -15,6 +15,7 @@ import Animated, {
 import {
   ChevronLeft,
   Heart,
+  Compass,
   MessageCircle,
   RotateCcw,
   Timer,
@@ -309,7 +310,7 @@ export default function CravingSos() {
             }}
           />
           <Option
-            icon={MessageCircle}
+            icon={Compass}
             title="Advanced toolkit"
             subtitle="Urge-surfing, your trigger patterns, and craving-time map."
             onPress={() => router.push('/toolkit')}
@@ -420,7 +421,7 @@ function CravingLogCapture({
 
         <Button
           variant="primary"
-          label="SAVE & FINISH"
+          label="Save & finish"
           disabled={intensity === null}
           onPress={() =>
             intensity !== null &&

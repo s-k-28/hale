@@ -79,7 +79,7 @@ export default function Analytics() {
           </Pressable>
           <View>
             <Label className="text-accent">Your data</Label>
-            <Heading className="mt-0.5 text-3xl leading-[0.9]">INSIGHTS</Heading>
+            <Heading className="mt-0.5 text-3xl leading-[0.9]">Insights</Heading>
           </View>
         </View>
         <Badge label="HALE+" tone="soft" />
