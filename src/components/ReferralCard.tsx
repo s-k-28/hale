@@ -3,14 +3,12 @@ import { Share, View } from 'react-native';
 import { useMutation, useQuery } from 'convex/react';
 import * as Haptics from 'expo-haptics';
 import { toast } from 'sonner-native';
-import { Gift, Sparkles, Check, Clock } from 'lucide-react-native';
+import { Gift, Check, Clock } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { referralLink, referralShareText, inviteShareParams } from '@/lib/links';
-import { Surface } from '@/components/ui/Surface';
-import { Heading, Body, Label, Caption } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { colors } from '@/theme/colors';
+import { Card, Button, Body, Muted as Caption, H2 as Heading, Eyebrow as Label } from '@/ui';
+import { clean } from '@/theme/clean';
 
 /**
  * ReferralCard — the "Invite friends, unlock HALE+" surface.
@@ -73,27 +71,27 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
   return (
     <View className="mt-8">
       <Label className="mb-3 ml-1">Earn free HALE+</Label>
-      <Surface level="raised" className="overflow-hidden px-6 py-7">
+      <Card className="overflow-hidden px-6 py-7">
         {rewardActive ? (
           /* ── Reward unlocked ───────────────────────────────────────── */
           <>
-            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-volt">
-              <Sparkles color={colors.voltInk} size={26} strokeWidth={2.5} />
+            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-warm">
+              <Gift color={clean.warmInk} size={26} strokeWidth={2.2} />
             </View>
-            <Heading className="mt-5 text-2xl">HALE+ UNLOCKED</Heading>
+            <Heading className="mt-5 text-2xl">HALE+ unlocked</Heading>
             <View className="mt-2 flex-row items-center">
-              <Clock color={colors.volt} size={15} strokeWidth={2.5} />
-              <Body className="ml-1.5 text-base text-volt">
+              <Clock color={clean.warm} size={15} strokeWidth={2.5} />
+              <Body className="ml-1.5 text-base text-warm">
                 {rewardDaysRemaining} {rewardDaysRemaining === 1 ? 'day' : 'days'} of full access left
               </Body>
             </View>
-            <Body className="mt-3 text-base leading-6 text-ash">
+            <Body className="mt-3 text-base leading-6 text-fg-2">
               You brought {completedCount} friends onto HALE and paired up. Keep inviting — every
               buddy makes quitting stick.
             </Body>
             <Button
-              variant="surface"
-              label="SHARE MY INVITE LINK"
+              variant="secondary"
+              label="Share my invite link"
               onPress={onShare}
               disabled={!link}
               className="mt-6"
@@ -102,11 +100,11 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
         ) : (
           /* ── In progress ───────────────────────────────────────────── */
           <>
-            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-volt">
-              <Gift color={colors.voltInk} size={26} strokeWidth={2.5} />
+            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-warm">
+              <Gift color={clean.warmInk} size={26} strokeWidth={2.5} />
             </View>
-            <Heading className="mt-5 text-2xl">UNLOCK 7 DAYS OF HALE+</Heading>
-            <Body className="mt-2 text-base leading-6 text-ash">
+            <Heading className="mt-5 text-2xl">Unlock 7 days of HALE+</Heading>
+            <Body className="mt-2 text-base leading-6 text-fg-2">
               Invite 3 friends who join HALE and pair up with a buddy, and you’ll unlock a week
               of full access — analytics, unlimited Sage, and more.
             </Body>
@@ -114,10 +112,10 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
             {/* Progress meter — "X of 3 friends joined & paired". */}
             <View className="mt-6">
               <View className="flex-row items-center justify-between">
-                <Label className="text-volt">
+                <Label className="text-warm">
                   {completedCount} of {target} friends joined & paired
                 </Label>
-                <Caption className="text-ash">
+                <Caption className="text-fg-2">
                   {remaining === 0 ? 'Complete!' : `${remaining} to go`}
                 </Caption>
               </View>
@@ -125,7 +123,7 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
                 {Array.from({ length: target }).map((_, i) => (
                   <View
                     key={i}
-                    className={`h-2 flex-1 rounded-full ${i < completedCount ? 'bg-volt' : 'bg-line'}`}
+                    className={`h-2 flex-1 rounded-full ${i < completedCount ? 'bg-warm' : 'bg-track'}`}
                   />
                 ))}
               </View>
@@ -133,18 +131,18 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
 
             {/* Sanitized invitee list (only those who installed via the link). */}
             {invitees.length > 0 ? (
-              <View className="mt-5 border-t border-line pt-4">
+              <View className="mt-5 border-t border-stroke pt-4">
                 {invitees.slice(0, 5).map((inv, i) => (
                   <View key={i} className="mt-2 flex-row items-center first:mt-0">
                     {inv.status === 'completed' ? (
-                      <Check color={colors.volt} size={16} strokeWidth={3} />
+                      <Check color={clean.warm} size={16} strokeWidth={3} />
                     ) : (
-                      <Clock color={colors.ash} size={15} strokeWidth={2.5} />
+                      <Clock color={clean.fg2} size={15} strokeWidth={2.5} />
                     )}
-                    <Body className="ml-2 flex-1 text-sm text-ash" numberOfLines={1}>
+                    <Body className="ml-2 flex-1 text-sm text-fg-2" numberOfLines={1}>
                       {inv.name?.trim() || 'A friend'}
                     </Body>
-                    <Caption className="text-ash">
+                    <Caption className="text-fg-2">
                       {inv.status === 'completed' ? 'Joined & paired' : 'Installed'}
                     </Caption>
                   </View>
@@ -154,7 +152,7 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
 
             <Button
               variant="primary"
-              label="SHARE MY INVITE LINK"
+              label="Share my invite link"
               onPress={onShare}
               disabled={!link}
               accessibilityLabel="Share your referral link"
@@ -162,7 +160,7 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
             />
           </>
         )}
-      </Surface>
+      </Card>
     </View>
   );
 }

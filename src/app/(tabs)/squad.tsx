@@ -17,13 +17,18 @@ import { api } from '@convex/_generated/api';
 import { toast } from 'sonner-native';
 import { track, Ev } from '@/lib/analytics';
 import { buddyLink, buddyShareText, inviteShareParams } from '@/lib/links';
-import { Screen } from '@/components/ui/Screen';
-import { Display, Heading, Body, Label } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { Pill } from '@/components/ui/Pill';
-import { Surface } from '@/components/ui/Surface';
+import {
+  Screen,
+  Button,
+  Display,
+  Body,
+  Card,
+  Badge,
+  H2 as Heading,
+  Eyebrow as Label,
+} from '@/ui';
 import { ReferralCard } from '@/components/ReferralCard';
-import { colors } from '@/theme/colors';
+import { clean } from '@/theme/clean';
 import Animated, {
   Easing,
   interpolate,
@@ -36,7 +41,7 @@ import Animated, {
 
 /**
  * Squad (S1/S2) — the social wedge. Two states off a single reactive query.
- * Bold Momentum re-skin — ALL logic preserved (Convex hooks, Share flow, events).
+ * Clean Dark v2 (warm buddy lane) — ALL logic preserved (Convex hooks, Share flow, events).
  */
 
 function monogram(name: string | null): string {
@@ -69,12 +74,12 @@ export default function Squad() {
         contentContainerClassName="px-gutter pb-16 pt-4"
         showsVerticalScrollIndicator={false}
       >
-        <Heading className="text-4xl">SQUAD</Heading>
-        <Body className="mt-1 text-base text-ash">Quitting sticks when you’re not doing it alone.</Body>
+        <Heading className="text-4xl">Squad</Heading>
+        <Body className="mt-1 text-base text-fg-2">Quitting sticks when you’re not doing it alone.</Body>
 
         {loading ? (
           <View className="mt-24 items-center">
-            <ActivityIndicator color={colors.volt} />
+            <ActivityIndicator color={clean.warm} />
           </View>
         ) : buddy ? (
           <PairedState
@@ -121,18 +126,18 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
       {/* One focal hero: the invite is the single action, and the "why it works"
           proof sits INSIDE the card (not a competing second card) so the screen has
           one clear block instead of a stack of equal-weight brochure cards. */}
-      <Surface level="raised" className="overflow-hidden px-6 py-8">
-        <View className="h-14 w-14 items-center justify-center rounded-2xl bg-volt">
-          <Users color={colors.voltInk} size={26} strokeWidth={2.5} />
+      <Card className="overflow-hidden px-6 py-8">
+        <View className="h-14 w-14 items-center justify-center rounded-2xl bg-warm">
+          <Users color={clean.warmInk} size={26} strokeWidth={2.5} />
         </View>
-        <Heading className="mt-5 text-2xl">INVITE A BUDDY</Heading>
-        <Body className="mt-2 text-base leading-6 text-ash">
+        <Heading className="mt-5 text-2xl">Invite a buddy</Heading>
+        <Body className="mt-2 text-base leading-6 text-fg-2">
           Pair with a friend who’s also quitting, or someone who’ll cheer you on. You’ll see each
           other’s streaks and send support when it’s hard.
         </Body>
 
         {/* Proof, folded in — supporting the action, not competing with it. */}
-        <View className="mt-6 border-t border-line pt-5">
+        <View className="mt-6 border-t border-stroke pt-5">
           <BenefitRow text="People with a buddy stay quit longer." />
           <BenefitRow text="A nudge at the right moment beats a craving." />
           <BenefitRow text="Private by design, they never see your slip-ups." />
@@ -140,13 +145,13 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
 
         <Button
           variant="primary"
-          label="SHARE MY INVITE LINK"
+          label="Share my invite link"
           loading={sharing}
           onPress={onInvite}
           accessibilityLabel="Invite a buddy"
           className="mt-7"
         />
-      </Surface>
+      </Card>
     </View>
   );
 }
@@ -154,8 +159,8 @@ function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
 function BenefitRow({ text }: { text: string }) {
   return (
     <View className="mt-3 flex-row items-start">
-      <Check color={colors.volt} size={16} strokeWidth={3} style={{ marginTop: 2 }} />
-      <Body className="ml-2 flex-1 text-sm leading-5 text-ash">{text}</Body>
+      <Check color={clean.warm} size={16} strokeWidth={3} style={{ marginTop: 2 }} />
+      <Body className="ml-2 flex-1 text-sm leading-5 text-fg-2">{text}</Body>
     </View>
   );
 }
@@ -222,44 +227,44 @@ function PairedState({
   return (
     <View className="mt-6">
       {/* Shared-streak banner */}
-      <View className="flex-row items-center rounded-2xl border border-volt/30 bg-volt/10 px-5 py-4">
+      <View className="flex-row items-center rounded-2xl border border-warm-edge/30 bg-warm/10 px-5 py-4">
         <PulsingFlame />
         <View className="ml-3">
-          <Label className="text-volt">SHARED STREAK</Label>
-          <Body className="font-body-bold text-lg text-chalk">
+          <Label className="text-warm">SHARED STREAK</Label>
+          <Body className="font-sora-bold text-lg text-fg">
             {sharedStreak} {sharedStreak === 1 ? 'day' : 'days'} strong together
           </Body>
         </View>
       </View>
 
       {/* Buddy card — sanitized */}
-      <Surface level="raised" className="mt-4 px-6 py-6">
+      <Card className="mt-4 px-6 py-6">
         <View className="flex-row items-center">
-          {/* Warmer avatar: a lime disc with a soft volt glow so the buddy reads as
+          {/* Warmer avatar: an amber disc with a soft warm glow so the buddy reads as
               a person, not a flat form field. */}
           <View
-            className="h-14 w-14 items-center justify-center rounded-full bg-volt"
-            style={{ shadowColor: colors.volt, shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } }}
+            className="h-14 w-14 items-center justify-center rounded-full bg-warm"
+            style={{ shadowColor: clean.warm, shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } }}
           >
-            <Display className="text-2xl text-volt-ink">{monogram(name)}</Display>
+            <Display className="text-2xl text-warm-ink">{monogram(name)}</Display>
           </View>
           <View className="ml-4 flex-1">
             <Heading className="text-xl normal-case">{displayName}</Heading>
-            <Body className="mt-0.5 text-sm text-ash">{lastSeenLabel(lastCheckInLocalDate)}</Body>
+            <Body className="mt-0.5 text-sm text-fg-2">{lastSeenLabel(lastCheckInLocalDate)}</Body>
           </View>
         </View>
 
         {/* Their clean time, framed as a person's progress — NOT a giant lime "0"
-            that read like an alert. Number demoted to chalk; a warm relational line
+            that read like an alert. Number demoted to fg; a warm relational line
             carries the meaning. */}
-        <View className="mt-5 rounded-2xl bg-void px-5 py-4">
+        <View className="mt-5 rounded-2xl bg-bg px-5 py-4">
           <View className="flex-row items-baseline gap-1.5">
-            <Display className="text-2xl text-chalk">{currentStreak}</Display>
-            <Body className="font-body-semibold text-sm text-ash">
+            <Display className="text-2xl text-fg">{currentStreak}</Display>
+            <Body className="font-sora-semibold text-sm text-fg-2">
               {currentStreak === 1 ? 'day' : 'days'} clean
             </Body>
           </View>
-          <Body className="mt-1.5 text-sm leading-5 text-ash">
+          <Body className="mt-1.5 text-sm leading-5 text-fg-2">
             {currentStreak > 0
               ? `Cheer ${displayName} on, a nudge lands right when it's hardest.`
               : `${displayName} just started out. A little support right now goes a long way.`}
@@ -268,7 +273,7 @@ function PairedState({
 
         <View className="relative mt-5">
           <Button
-            variant={cheered ? 'surface' : 'primary'}
+            variant={cheered ? 'secondary' : 'primary'}
             label={cheered ? 'SUPPORT SENT' : 'SEND SUPPORT'}
             disabled={cheered}
             onPress={onCheer}
@@ -280,12 +285,12 @@ function PairedState({
         </View>
 
         <View className="mt-3 flex-row items-center justify-center">
-          <HeartHandshake color={colors.ash} size={13} />
-          <Body className="ml-1.5 text-center text-xs text-ash">
+          <HeartHandshake color={clean.fg2} size={13} />
+          <Body className="ml-1.5 text-center text-xs text-fg-2">
             They’ll see your cheer, never your private details.
           </Body>
         </View>
-      </Surface>
+      </Card>
 
       {/* Quiet escape hatch — one buddy at a time, so switching starts here. */}
       <Pressable
@@ -294,7 +299,7 @@ function PairedState({
         accessibilityLabel={`End pairing with ${displayName}`}
         className="mt-4 items-center py-2 active:opacity-70"
       >
-        <Body className="text-xs text-ash underline">End pairing</Body>
+        <Body className="text-xs text-fg-2 underline">End pairing</Body>
       </Pressable>
     </View>
   );
@@ -316,7 +321,7 @@ function PulsingFlame() {
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <Animated.View style={style}>
-      <Flame color={colors.volt} size={26} strokeWidth={2.5} />
+      <Flame color={clean.warm} size={26} strokeWidth={2.5} />
     </Animated.View>
   );
 }
@@ -342,7 +347,7 @@ function FloatingHeart() {
         style,
       ]}
     >
-      <Heart color={colors.volt} fill={colors.volt} size={30} strokeWidth={2} />
+      <Heart color={clean.warm} fill={clean.warm} size={30} strokeWidth={2} />
     </Animated.View>
   );
 }
@@ -357,13 +362,13 @@ function Phase2Links() {
       <Label className="mb-3 ml-1">More ways to connect</Label>
       <View className="gap-3">
         <NavRow
-          icon={<Users color={colors.ash} size={22} strokeWidth={2.5} />}
+          icon={<Users color={clean.fg2} size={22} strokeWidth={2.5} />}
           title="Squads & challenges"
           sub="Quit alongside a group, start a 6-week challenge."
           onPress={() => router.push('/squads')}
         />
         <NavRow
-          icon={<Trophy color={colors.ash} size={22} strokeWidth={2.5} />}
+          icon={<Trophy color={clean.fg2} size={22} strokeWidth={2.5} />}
           title="Weekly league"
           sub="Climb the consistency board for your stage."
           onPress={() => router.push('/leagues')}
@@ -389,14 +394,14 @@ function NavRow({
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
-      className="flex-row items-center rounded-2xl bg-coal/40 px-5 py-4 active:bg-coal"
+      className="flex-row items-center rounded-2xl bg-surface/40 px-5 py-4 active:bg-surface"
     >
       {icon}
       <View className="ml-3 flex-1">
-        <Body className="font-body-semibold text-base text-chalk">{title}</Body>
-        <Body className="mt-0.5 text-sm text-ash">{sub}</Body>
+        <Body className="font-sora-semibold text-base text-fg">{title}</Body>
+        <Body className="mt-0.5 text-sm text-fg-2">{sub}</Body>
       </View>
-      <ChevronRight color={colors.ash} size={20} />
+      <ChevronRight color={clean.fg2} size={20} />
     </Pressable>
   );
 }
