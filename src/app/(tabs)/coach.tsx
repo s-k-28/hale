@@ -12,7 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toast } from 'sonner-native';
-import { SageMark } from '@/components/SageMark';
 import { ArrowUp, Wind, MessageCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { PAYWALL_RESULT } from 'react-native-purchases-ui';
@@ -318,8 +317,9 @@ function EmptyState() {
 }
 
 /**
- * Sage's mascot, gently breathing (~4s scale cycle) so the empty state reads as a
- * calm presence waiting with you, not a frozen icon. Scale-only → no layout shift.
+ * Sage's presence mark, gently breathing (~4s scale cycle) so the empty state
+ * reads as a calm presence waiting with you, not a frozen icon. Same accent
+ * circle + Wind identity as the header avatar (design rule: no cartoon faces).
  */
 function BreathingSage() {
   const scale = useSharedValue(1);
@@ -336,7 +336,9 @@ function BreathingSage() {
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <Animated.View style={style}>
-      <SageMark size={112} />
+      <View className="h-28 w-28 items-center justify-center rounded-full bg-accent">
+        <Wind color={clean.accentInk} size={48} strokeWidth={2.2} />
+      </View>
     </Animated.View>
   );
 }
