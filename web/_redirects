@@ -4,3 +4,4 @@
 # rules deliberately exclude /.well-known/*.
 /r/*  /index.html  200
 /u/*  /index.html  200
+/privacy  /privacy.html  200
