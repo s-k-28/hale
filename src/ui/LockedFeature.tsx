@@ -96,7 +96,11 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
     overflow: 'hidden',
-    minHeight: 180,
+    // Must fit the absolutely-positioned CTA stack (badge 44 + title +
+    // 2-line subtitle + button 49 + padding ≈ 240pt): with 180, short
+    // children let overflow:hidden shear the badge and clip the Unlock
+    // button (ui-audit D10, You-tab widgets card).
+    minHeight: 248,
   },
   inlineRadius: {
     borderRadius: 22,

@@ -1,5 +1,5 @@
 import { View, type ViewProps } from 'react-native';
-import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { clean } from '@/theme/clean';
 
@@ -14,12 +14,24 @@ export function Screen({
   children,
   edges = ['top'],
   className = '',
+  style,
   ...props
 }: ViewProps & { children: React.ReactNode; edges?: Edge[]; className?: string }) {
+  // Explicit insets instead of SafeAreaView: inside fullScreenModal/native-Modal
+  // presentations SafeAreaView measures its own window and can race to zero,
+  // putting headers under the status bar (ui-audit D4). useSafeAreaInsets reads
+  // the root provider's window values — identical numbers, race-proof.
+  const insets = useSafeAreaInsets();
+  const pad = {
+    paddingTop: edges.includes('top') ? insets.top : 0,
+    paddingBottom: edges.includes('bottom') ? insets.bottom : 0,
+    paddingLeft: edges.includes('left') ? insets.left : 0,
+    paddingRight: edges.includes('right') ? insets.right : 0,
+  };
   return (
-    <SafeAreaView edges={edges} className={`flex-1 bg-bg ${className}`} {...props}>
+    <View className={`flex-1 bg-bg ${className}`} style={[pad, style]} {...props}>
       {children}
-    </SafeAreaView>
+    </View>
   );
 }
 

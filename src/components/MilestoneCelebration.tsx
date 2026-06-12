@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Dimensions, Modal, Pressable, View } from 'react-native';
 import type { View as RNView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -101,6 +101,8 @@ export default function MilestoneCelebration({
     void shareCard(cardRef, { day, source: 'milestone' });
   };
 
+  const insets = useSafeAreaInsets();
+
   if (!visible) return null;
 
   return (
@@ -112,7 +114,11 @@ export default function MilestoneCelebration({
       onRequestClose={onClose}
     >
       <View className="flex-1 bg-bg" style={{ backgroundColor: clean.bg }}>
-        <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
+        {/* Explicit window insets: SafeAreaView inside a native Modal measures
+            its own (un-inset) window and can race to zero — the X then lands
+            under the status bar and "Keep going" in the home-indicator band
+            (ui-audit D1). useSafeAreaInsets reads the provider's window values. */}
+        <View className="flex-1" style={{ paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 12) }}>
           <View className="flex-1 px-6 pb-6">
             {/* Dismiss */}
             <View className="flex-row justify-end pt-2">
@@ -182,7 +188,7 @@ export default function MilestoneCelebration({
               </Pressable>
             </View>
           </View>
-        </SafeAreaView>
+        </View>
 
         {/* Custom Skia particle burst — lime + white flakes (rotated rects) and
             sparks (circles) erupt from behind the hero numeral, fan out with varied

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Check, X, Bot, LineChart, Users, LayoutGrid } from 'lucide-react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -185,12 +185,15 @@ function HalePlusUpsell({
   busy: boolean;
   notice: string | null;
 }) {
+  const insets = useSafeAreaInsets();
   const priceFor = (p: HalePlan, fallback: string) => {
     if (offers === 'loading' || offers === null) return fallback;
     return offers.find((o) => o.plan === p)?.price ?? fallback;
   };
+  // Explicit insets: SafeAreaView can race to zero inside fullScreenModal
+  // and put the header under the status bar (ui-audit D4).
   return (
-    <SafeAreaView className="flex-1 bg-bg" edges={['top', 'bottom']}>
+    <View className="flex-1 bg-bg" style={{ paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 8) }}>
       {/* Close — top right, hairline surface chip */}
       <View className="px-gutter pt-3">
         <View className="flex-row items-center justify-end">
@@ -296,7 +299,7 @@ function HalePlusUpsell({
           </Pressable>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -325,14 +328,14 @@ function PlanCard({
         selected ? 'border-[1.5px] border-accent bg-accent-soft' : 'border border-stroke bg-surface-2'
       }`}
     >
-      <View className="flex-row items-center justify-between">
-        <Caption className={selected ? 'text-accent' : 'text-fg-3'}>{title}</Caption>
-        {tag ? (
-          <View className="rounded-pill bg-accent px-1.5 py-0.5">
-            <Caption className="text-[9px] font-sora-bold text-accent-ink">{tag}</Caption>
-          </View>
-        ) : null}
-      </View>
+      {/* Tag below the title, never beside it: side-by-side, the pill collided
+          with "Annual" on 402pt widths (ui-audit D7). */}
+      <Caption className={selected ? 'text-accent' : 'text-fg-3'}>{title}</Caption>
+      {tag ? (
+        <View className="mt-1 self-start rounded-pill bg-accent px-1.5 py-0.5">
+          <Caption className="text-[9px] font-sora-bold text-accent-ink">{tag}</Caption>
+        </View>
+      ) : null}
       <Display className="mt-1 text-[22px] leading-7 text-fg">{price}</Display>
       <Caption className="text-[11px] text-fg-3">{per}</Caption>
     </Pressable>

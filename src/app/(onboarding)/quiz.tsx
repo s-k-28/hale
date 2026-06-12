@@ -49,6 +49,7 @@ import {
 } from '@/ui';
 import { RNText } from '@/ui/internal';
 import { RiseIn } from '@/components/motion';
+import { LinearGradient } from 'expo-linear-gradient';
 import { clean } from '@/theme/clean';
 import { track, Ev } from '@/lib/analytics';
 import { requestPushPermission } from '@/lib/onesignal';
@@ -232,6 +233,17 @@ export default function Quiz() {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
+  // Offline/slow networks: the commit can sit in a silent spinner for ~12s
+  // before erroring (ui-audit D9) — surface an honest hint after 5s.
+  const [slowHint, setSlowHint] = useState(false);
+  useEffect(() => {
+    if (!submitting) {
+      setSlowHint(false);
+      return;
+    }
+    const t = setTimeout(() => setSlowHint(true), 5000);
+    return () => clearTimeout(t);
+  }, [submitting]);
   const [error, setError] = useState<string | null>(null);
   // Whether the deep-link redemption already paired this user at commit —
   // decides where the push step exits to (design tail: commit → push → invite).
@@ -452,6 +464,7 @@ export default function Quiz() {
         name={answers.name.trim()}
         annual={annual}
         submitting={submitting}
+        slowHint={slowHint}
         error={error}
         onCommit={commit}
       />
@@ -736,7 +749,15 @@ export default function Quiz() {
           )}
         </ScrollView>
 
-        {/* in-flow CTA, pinned to the bottom (design ObChrome cta slot) */}
+        {/* in-flow CTA, pinned to the bottom (design ObChrome cta slot).
+            Fade cap above it (same treatment as CtaDock): without it, scroll
+            content slices mid-glyph against the dock's hard edge at the fold
+            (ui-audit D6). pointerEvents none — purely visual. */}
+        <LinearGradient
+          colors={['rgba(11,15,13,0)', clean.bg]}
+          style={{ height: 22, marginTop: -22 }}
+          pointerEvents="none"
+        />
         <View className="px-gutter pb-[30px] pt-4">
           <Button
             label={stepIndex === QUESTION_STEPS.length - 1 ? 'Build my plan' : 'Continue'}
@@ -917,12 +938,14 @@ function CommitScreen({
   name,
   annual,
   submitting,
+  slowHint,
   error,
   onCommit,
 }: {
   name: string;
   annual: number;
   submitting: boolean;
+  slowHint: boolean;
   error: string | null;
   onCommit: () => void;
 }) {
@@ -946,6 +969,11 @@ function CommitScreen({
           <Eyebrow className="mt-1">this year</Eyebrow>
         </CardHero>
 
+        {!error && submitting && slowHint ? (
+          <Body className="mt-5 text-center text-sm text-fg-2">
+            Still working. A weak connection can slow this down.
+          </Body>
+        ) : null}
         {error ? (
           <Body className="mt-5 text-center font-sora-semibold text-sm text-coral">{error}</Body>
         ) : null}
