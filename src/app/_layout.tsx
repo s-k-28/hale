@@ -21,6 +21,7 @@ import { PostHogProvider } from 'posthog-react-native';
 import { env } from '@/lib/config';
 import { initRevenueCat } from '@/lib/revenuecat';
 import { initOneSignal } from '@/lib/onesignal';
+import { initHaptics } from '@/lib/haptics';
 import { initSentry } from '@/lib/sentry';
 import { posthog } from '@/lib/analytics';
 import { Toaster } from 'sonner-native';
@@ -52,6 +53,9 @@ export default function RootLayout() {
   useEffect(() => {
     initRevenueCat();
     initOneSignal();
+    // Hydrate the haptics preference here (not PushSync) so haptics respect the
+    // saved setting from the first touch — including pre-auth onboarding.
+    void initHaptics();
   }, []);
 
   useEffect(() => {

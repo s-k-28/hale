@@ -1,5 +1,6 @@
-import { Pressable, View, type PressableProps } from 'react-native';
+import { Pressable, View, type PressableProps, type GestureResponderEvent } from 'react-native';
 import { clean } from '@/theme/clean';
+import { haptics } from '@/lib/haptics';
 import { RNText } from './internal';
 
 /**
@@ -14,6 +15,7 @@ export function OptRow({
   on = false,
   icon,
   className = '',
+  onPressIn,
   ...props
 }: PressableProps & {
   label: string;
@@ -21,6 +23,11 @@ export function OptRow({
   icon?: React.ReactNode;
   className?: string;
 }) {
+  // A quiz/single-select row is a selection → the selection tick. Chained.
+  const handlePressIn = (e: GestureResponderEvent) => {
+    haptics.select();
+    onPressIn?.(e);
+  };
   return (
     <Pressable
       accessibilityRole="radio"
@@ -28,6 +35,7 @@ export function OptRow({
       className={`w-full flex-row items-center gap-4 rounded-tile px-[18px] py-[17px] active:scale-[0.99] ${
         on ? 'border-[1.5px] border-accent-edge bg-accent-soft' : 'border border-stroke bg-surface'
       } ${className}`}
+      onPressIn={handlePressIn}
       {...props}
     >
       {icon ? (

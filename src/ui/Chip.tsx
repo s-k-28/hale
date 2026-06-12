@@ -1,4 +1,5 @@
-import { Pressable, type PressableProps } from 'react-native';
+import { Pressable, type PressableProps, type GestureResponderEvent } from 'react-native';
+import { haptics } from '@/lib/haptics';
 import { RNText } from './internal';
 
 /**
@@ -10,8 +11,14 @@ export function Chip({
   label,
   on = false,
   className = '',
+  onPressIn,
   ...props
 }: PressableProps & { label: string; on?: boolean; className?: string }) {
+  // A chip is a selection → the selection tick. Chained with any caller's.
+  const handlePressIn = (e: GestureResponderEvent) => {
+    haptics.select();
+    onPressIn?.(e);
+  };
   return (
     <Pressable
       accessibilityRole="button"
@@ -19,6 +26,7 @@ export function Chip({
       className={`h-11 items-center justify-center rounded-pill px-[18px] active:scale-[0.96] ${
         on ? 'bg-accent' : 'border border-stroke bg-surface-2'
       } ${className}`}
+      onPressIn={handlePressIn}
       {...props}
     >
       <RNText

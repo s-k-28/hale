@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
 import { Pressable, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { Lock } from 'lucide-react-native';
 import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { usePremium } from '@/hooks/usePremium';
 import { presentPaywall } from '@/lib/paywall';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import { clean } from '@/theme/clean';
 import { H2, Body } from './Text';
 import { Button } from './Button';
@@ -40,7 +40,6 @@ export function LockedFeature({
   const { hasHALEPlus, loading } = usePremium();
 
   const open = useCallback(async () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     track(Ev.PAYWALL_FEATURE_TAPPED, { feature });
     // presentPaywall already fires PAYWALL_VIEWED (tagged with the surface).
     const result = await presentPaywall(feature);
@@ -58,6 +57,11 @@ export function LockedFeature({
   return (
     <Pressable
       onPress={open}
+      // Interaction haptic on the whole locked surface (press-in, the variant
+      // default a primary Button would give). open() stays haptic-free, and the
+      // inner "Unlock HALE+" Button auto-fires its own — so the two paths never
+      // double-fire.
+      onPressIn={() => haptics.press()}
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${subtitle ?? ''}`.trim()}
       className={variant === 'overlay' ? 'flex-1' : ''}

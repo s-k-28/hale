@@ -1,6 +1,7 @@
-import { Pressable, ActivityIndicator, View, type PressableProps } from 'react-native';
+import { Pressable, ActivityIndicator, View, type PressableProps, type GestureResponderEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { clean } from '@/theme/clean';
+import { haptics } from '@/lib/haptics';
 import { RNText } from './internal';
 
 /**
@@ -13,6 +14,20 @@ import { RNText } from './internal';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'coral' | 'warm';
+
+/** Press-in haptic. Defaults by variant (see HAPTIC); 'none' opts out. */
+export type ButtonHaptic = 'press' | 'tap' | 'select' | 'none';
+
+// Interactions are owned by the primitive (see lib/haptics ownership rules):
+// the loud emerald/danger/buddy actions get a Medium press; quieter
+// secondary/ghost actions get a Light tap.
+const HAPTIC: Record<ButtonVariant, ButtonHaptic> = {
+  primary: 'press',
+  coral: 'press',
+  warm: 'press',
+  secondary: 'tap',
+  ghost: 'tap',
+};
 
 const SURFACE: Record<ButtonVariant, string> = {
   primary: 'bg-accent',
@@ -43,7 +58,9 @@ export function Button({
   loading = false,
   disabled,
   icon,
+  haptic,
   className = '',
+  onPressIn,
   ...props
 }: PressableProps & {
   label: string;
@@ -51,18 +68,33 @@ export function Button({
   sm?: boolean;
   loading?: boolean;
   icon?: React.ReactNode;
+  haptic?: ButtonHaptic;
   className?: string;
 }) {
   const scale = useSharedValue(1);
   const aStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const off = disabled || loading;
+  const fb = haptic ?? HAPTIC[variant];
+
+  // The scale spring, the variant haptic, and any caller-passed onPressIn all
+  // run from this one handler. It MUST be destructured out of props above and
+  // wired explicitly — the {...props} spread sits below and would otherwise
+  // overwrite it (the caller's onPressIn would replace ours, killing the
+  // spring + haptic). Off (disabled/loading) → no spring, no haptic.
+  const handlePressIn = (e: GestureResponderEvent) => {
+    if (!off) {
+      scale.value = withSpring(0.98, { damping: 20, stiffness: 400 });
+      if (fb !== 'none') haptics[fb]();
+    }
+    onPressIn?.(e);
+  };
 
   return (
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       disabled={off}
-      onPressIn={() => (scale.value = withSpring(0.98, { damping: 20, stiffness: 400 }))}
+      onPressIn={handlePressIn}
       onPressOut={() => (scale.value = withSpring(1, { damping: 20, stiffness: 400 }))}
       style={[
         aStyle,
