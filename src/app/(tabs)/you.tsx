@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Switch, View } from 'react-native';
 import type { View as RNView } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { BarChart3, BookOpenCheck, Check, ChevronRight, Crown, Flame, Gift, Share2, ShieldCheck, Trash2 } from 'lucide-react-native';
+import { BarChart3, BookOpenCheck, Check, ChevronRight, Crown, Flame, Gift, Share2, ShieldCheck, Trash2, Vibrate } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { api } from '@convex/_generated/api';
 import {
@@ -11,6 +11,7 @@ import {
   reachedHealthMilestones,
 } from '@convex/model/plan';
 import { track, Ev } from '@/lib/analytics';
+import { haptics, getHapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
 import { PRIVACY_POLICY_URL } from '@/lib/links';
 import TransformationCard, { shareCard } from '@/components/TransformationCard';
 import {
@@ -114,6 +115,15 @@ function YouContent({
         : Math.round((reached.length / HEALTH_MILESTONES.length) * 100),
     [reached.length],
   );
+
+  const [hapticsOn, setHapticsOn] = useState(() => getHapticsEnabled());
+
+  const onToggleHaptics = (value: boolean) => {
+    setHapticsEnabled(value);
+    setHapticsOn(value);
+    // Fire a confirmation beat AFTER enabling so the user feels what they turned on.
+    if (value) haptics.select();
+  };
 
   const onShare = () => {
     void shareCard(cardRef, { day: wholeDays, source: 'profile' });
@@ -333,6 +343,21 @@ function YouContent({
               });
             }}
           />
+          {/* Haptic feedback toggle — Switch inline with the YouLink row pattern. */}
+          <View className="flex-row items-center rounded-2xl border border-stroke bg-surface px-5 py-4">
+            <Vibrate color={clean.accent} size={20} strokeWidth={2.2} />
+            <View className="ml-3 flex-1">
+              <Body className="font-sora-semibold text-base text-fg">Haptic feedback</Body>
+              <Body className="mt-0.5 text-sm text-fg-2">Feel taps and milestones</Body>
+            </View>
+            <Switch
+              value={hapticsOn}
+              onValueChange={onToggleHaptics}
+              trackColor={{ false: clean.stroke, true: clean.accent }}
+              thumbColor={clean.fg}
+              ios_backgroundColor={clean.stroke}
+            />
+          </View>
           {/* Destructive lane (coral) — Guideline 5.1.1(v): in-app account deletion,
               visible in Settings, not buried. */}
           <YouLink

@@ -6,6 +6,7 @@ import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { Check, X, Bot, LineChart, Users, LayoutGrid } from 'lucide-react-native';
 import { presentPaywall } from '@/lib/paywall';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import {
   Button,
   Display,
@@ -129,6 +130,8 @@ export default function Paywall() {
     if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
       dismiss();
     } else if (result === PAYWALL_RESULT.NOT_PRESENTED) {
+      // Subscriptions unavailable — the system can't serve the user right now.
+      haptics.warn();
       setUnavailable(true);
     }
     // CANCELLED → user closed the native sheet; stay here quietly.

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { useConvex } from 'convex/react';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '@/lib/haptics';
 import { api } from '@convex/_generated/api';
 import { setPendingBuddy } from '@/lib/pendingBuddy';
 import { track, Ev } from '@/lib/analytics';
@@ -36,7 +36,7 @@ export function InviteCodeEntry() {
       if (resolved?.userId) {
         await setPendingBuddy(resolved.userId);
         track(Ev.REFERRAL_CODE_ENTERED, { found: true });
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptics.success();
         setState('applied');
       } else {
         track(Ev.REFERRAL_CODE_ENTERED, { found: false });
@@ -44,6 +44,7 @@ export function InviteCodeEntry() {
       }
     } catch {
       // Network failure ≠ wrong code — say so, or users abandon a valid code.
+      haptics.error();
       setState('error');
     }
   }, [code, state, convex]);

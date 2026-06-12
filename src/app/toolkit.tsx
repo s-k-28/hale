@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { useConvexAuth, useQuery } from 'convex/react';
-import * as Haptics from 'expo-haptics';
 import { ChevronLeft, Crown, Sparkles, Waves, Clock, Activity } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import {
   Screen,
   Button,
@@ -113,16 +113,18 @@ function UrgeSurf() {
   const [step, setStep] = useState(0);
 
   const start = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Press-in beat is owned by the Start Button (primary → press); not here.
     track(Ev.CRAVING_SOS_OPENED, { tool: 'urge_surf' });
     setStep(0);
     setActive(true);
   }, []);
 
   const next = useCallback(() => {
-    void Haptics.selectionAsync();
+    // The step-advance tick is owned by the Next Button (haptic="select"). The
+    // final step is an OUTCOME (they rode it out), so it fires success() here.
     setStep((s) => {
       if (s + 1 >= SURF_STEPS.length) {
+        haptics.success();
         track(Ev.CRAVING_SURVIVED, { resolved_by: 'urge_surf' });
         setActive(false);
         return 0;
@@ -165,6 +167,9 @@ function UrgeSurf() {
             <Button
               variant="primary"
               label={step + 1 >= SURF_STEPS.length ? 'I rode it out' : 'Next'}
+              // Light select on each advance, not the primary Medium press; the
+              // final step adds a success() OUTCOME in the handler (rode it out).
+              haptic="select"
               onPress={next}
               className="mt-7"
             />

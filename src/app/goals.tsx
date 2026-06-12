@@ -12,6 +12,7 @@ import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { Check, ChevronLeft, Gift, Plus, Trash2, X } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import {
   Screen,
   Button,
@@ -98,6 +99,8 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
     try {
       await setGoal({ label: label.trim(), targetAmount: targetNum });
       track(Ev.SAVINGS_GOAL_SET, { target_amount: targetNum });
+      // Goal saved — the outcome landed.
+      haptics.success();
       setLabel('');
       setAmount('');
     } catch (e) {
@@ -111,6 +114,8 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
     try {
       await deleteGoal({ goalId: id });
       track(Ev.GOAL_DELETED);
+      // Neutral dismissal beat.
+      haptics.tap();
     } catch {
       // best-effort; reactivity keeps the list honest
     }
@@ -193,6 +198,8 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
                 <Pressable
                   key={t}
                   onPress={() => {
+                    // Custom Pressable — fire selection haptic (Chip equivalent).
+                    haptics.select();
                     setAmount(String(t));
                     if (error) setError(null);
                   }}

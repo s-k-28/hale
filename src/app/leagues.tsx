@@ -4,6 +4,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { Crown, Layers, Trophy } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import {
   Screen,
   Button,
@@ -57,6 +58,8 @@ export default function Leagues() {
     track(Ev.LEAGUE_OPTIN, { action: 'join', bucket: bucket ?? 'unknown' });
     try {
       await optIn();
+      // Joined the league — positive outcome.
+      haptics.success();
     } catch {
       // No active quit or transient failure — allow a retry.
     } finally {
@@ -70,6 +73,8 @@ export default function Leagues() {
     track(Ev.LEAGUE_OPTIN, { action: 'leave', bucket: bucket ?? 'unknown' });
     try {
       await leave();
+      // Neutral dismissal — a deliberate step down, not a failure.
+      haptics.tap();
     } catch {
       // ignore — reactive query will reconcile
     } finally {

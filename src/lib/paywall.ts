@@ -3,6 +3,7 @@ import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { env, has } from './config';
 import { isPremium } from './revenuecat';
 import { track, Ev } from './analytics';
+import { haptics } from './haptics';
 
 /**
  * RevenueCat paywall presentation (Phase-1 step 8).
@@ -72,6 +73,11 @@ export async function presentPaywall(surface?: string): Promise<PAYWALL_RESULT> 
     // so referral-vs-pay can be split against the referral_completed cohort.
     if (result === PAYWALL_RESULT.PURCHASED) {
       track(Ev.SUBSCRIPTION_STARTED, { surface: surface ?? 'paywall' });
+      // The milestone/reward burst — user just unlocked HALE+.
+      haptics.celebrate();
+    } else if (result === PAYWALL_RESULT.RESTORED) {
+      // Familiar win — welcome back.
+      haptics.success();
     }
     // CANCELLED / ERROR / NOT_PRESENTED need no extra signal here; the
     // premium mirror (Convex todayState + RC isPremium) reflects the truth.

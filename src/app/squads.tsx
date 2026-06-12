@@ -5,6 +5,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { ChevronLeft, Flame, Plus, Trophy, Users } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import {
   Screen,
   Button,
@@ -315,6 +316,8 @@ function CreateSquad() {
         challengeWeeks: startChallenge ? CHALLENGE_WEEKS : undefined,
       })) as { squadId: string; inviteCode: string };
       track(Ev.SQUAD_CREATED, { isPublic, startChallenge });
+      // Squad created successfully — outcome haptic before showing the code.
+      haptics.success();
       setCreatedCode(res.inviteCode);
       setName('');
     } catch {
@@ -398,7 +401,7 @@ function CreateSquad() {
             </View>
             <Switch
               value={isPublic}
-              onValueChange={setIsPublic}
+              onValueChange={(v) => { haptics.select(); setIsPublic(v); }}
               trackColor={{ false: clean.stroke, true: clean.accent }}
               thumbColor={clean.fg}
               ios_backgroundColor={clean.stroke}
@@ -420,7 +423,7 @@ function CreateSquad() {
             </View>
             <Switch
               value={startChallenge}
-              onValueChange={setStartChallenge}
+              onValueChange={(v) => { haptics.select(); setStartChallenge(v); }}
               trackColor={{ false: clean.stroke, true: clean.accent }}
               thumbColor={clean.fg}
               ios_backgroundColor={clean.stroke}
@@ -459,8 +462,11 @@ function JoinByCode() {
     try {
       await joinByCode({ code: code.trim().toUpperCase() });
       track(Ev.SQUAD_JOINED, { method: 'code' });
+      haptics.success();
       setCode('');
     } catch {
+      // Bad/unknown code — the system rejected it.
+      haptics.error();
       setError('That code didn’t work. Double-check it and try again.');
     } finally {
       setBusy(false);
@@ -567,6 +573,7 @@ function DiscoverRow({
     try {
       await joinByCode({ code: squad.inviteCode });
       track(Ev.SQUAD_JOINED, { method: 'discover', squadId: squad._id });
+      haptics.success();
       setDone(true);
     } catch {
       // Allow retry (e.g. already a member from another device).
@@ -594,7 +601,7 @@ function DiscoverRow({
         <Badge label="Joined" tone="soft" />
       ) : (
         <Pressable
-          onPress={onJoin}
+          onPress={() => { haptics.tap(); onJoin(); }}
           disabled={busy}
           accessibilityRole="button"
           accessibilityLabel={`Join ${squad.name}`}

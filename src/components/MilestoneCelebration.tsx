@@ -15,6 +15,7 @@ import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
 import { X } from 'lucide-react-native';
 import { LANDMARK_DAYS } from '@convex/model/plan';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import { Button, Eyebrow, Body, Muted } from '@/ui';
 import { clean } from '@/theme/clean';
 import TransformationCard, { shareCard } from './TransformationCard';
@@ -93,6 +94,9 @@ export default function MilestoneCelebration({
     if (visible && firedForRef.current !== day) {
       firedForRef.current = day;
       track(Ev.MILESTONE_REACHED, { day });
+      // The reward burst, in lockstep with the confetti — Success → Soft → Medium
+      // crescendo. Same once-per-open guard so it never double-fires.
+      haptics.celebrate();
     }
     if (!visible) firedForRef.current = null;
   }, [visible, day]);

@@ -3,6 +3,7 @@ import { View } from 'react-native'
 import { router } from 'expo-router'
 import { Screen, Button, H1, Lead, Muted } from '@/ui'
 import { setAgeConfirmed } from '@/lib/ageGate'
+import { haptics } from '@/lib/haptics'
 
 /**
  * 21+ age gate (Guideline 2.18) — the first screen of onboarding, before any
@@ -56,7 +57,15 @@ export default function AgeGate() {
       </View>
       <View className="gap-2 px-gutter pb-[30px] pt-4">
         <Button variant="primary" label="I am 21 or older" onPress={confirm} />
-        <Button variant="ghost" label="I am under 21" onPress={() => setBlocked(true)} />
+        <Button
+          variant="ghost"
+          label="I am under 21"
+          onPress={() => {
+            // Warn: the system (age gate) is blocking them — not punishing a failure.
+            haptics.warn()
+            setBlocked(true)
+          }}
+        />
         <Muted className="mt-2 text-center text-[12px]">
           Asked once. Your answer stays on this device.
         </Muted>

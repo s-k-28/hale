@@ -17,6 +17,7 @@ import { router } from 'expo-router';
 import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import { presentPaywall } from '@/lib/paywall';
 import { Body, Display, Muted, H2 as Heading, Eyebrow as Label } from '@/ui';
 import { clean } from '@/theme/clean';
@@ -54,6 +55,9 @@ export default function Coach() {
   // a dead-end (unlimited Sage is HALE+). Cleared on the next accepted message.
   const [capHit, setCapHit] = useState(false);
   const listRef = useRef<FlatList<SageMessage>>(null);
+  // Tracks the last-seen message id+role so we can detect a new sage reply arriving
+  // without firing on the initial transcript load.
+  const prevLastRef = useRef<{ id: string; role: string } | null | undefined>(undefined);
 
   const onUpgradeSage = useCallback(async () => {
     track(Ev.PAYWALL_FEATURE_TAPPED, { feature: 'unlimited_sage' });
@@ -76,9 +80,29 @@ export default function Coach() {
     }
   }, [messageCount]);
 
+  // Gentle reply-arrival beat: fires haptics.soft() when a new sage-role message
+  // becomes the last row. Initialize the ref on first non-undefined load without
+  // firing (prevLastRef === undefined = "not yet seen any messages").
+  useEffect(() => {
+    if (messages === undefined) return;
+    const last = messages.length > 0 ? messages[messages.length - 1] : null;
+    if (prevLastRef.current === undefined) {
+      // First load — stash without firing.
+      prevLastRef.current = last ? { id: last._id, role: last.role } : null;
+      return;
+    }
+    const prevId = prevLastRef.current?.id ?? null;
+    if (last && last.role === 'sage' && last._id !== prevId) {
+      haptics.soft();
+    }
+    prevLastRef.current = last ? { id: last._id, role: last.role } : null;
+  }, [messages]);
+
   const onSend = useCallback(async () => {
     const content = draft.trim();
     if (!content || sending) return;
+    // Send tap — the custom Pressable doesn't auto-fire interaction haptics.
+    haptics.tap();
     setSending(true);
     setDraft('');
     try {
@@ -100,6 +124,7 @@ export default function Coach() {
         setDraft((prev) => (prev.length > 0 ? prev : content));
         if (res.tier === 'free') {
           // Free cap → convert the limit into an upgrade moment (HALE+ = unlimited).
+          haptics.warn();
           setCapHit(true);
           toast.error('Daily Sage limit reached. Unlock unlimited with HALE+.');
         } else {
@@ -116,7 +141,8 @@ export default function Coach() {
         });
       }
     } catch {
-      // Restore the draft so a transient failure never loses what they typed.
+      // System failed — restore the draft so a transient failure never loses what they typed.
+      haptics.error();
       setDraft((prev) => (prev.length > 0 ? prev : content));
     } finally {
       setSending(false);

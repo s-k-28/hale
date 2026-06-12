@@ -51,6 +51,7 @@ import { RNText } from '@/ui/internal';
 import { RiseIn } from '@/components/motion';
 import { clean } from '@/theme/clean';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import { requestPushPermission } from '@/lib/onesignal';
 import { identifyPurchaser } from '@/lib/revenuecat';
 import { presentPaywall } from '@/lib/paywall';
@@ -301,6 +302,9 @@ export default function Quiz() {
     if (phase !== 'building') return;
     const t = setTimeout(() => {
       setPhase('reveal');
+      // "Your plan is ready" — the moment the plan materialises after the
+      // building beat. A success pulse punctuates the transition.
+      haptics.success();
       track(Ev.PLAN_VIEWED);
     }, 2400);
     return () => clearTimeout(t);
@@ -352,6 +356,9 @@ export default function Quiz() {
         baseline_per_day: profile.baselinePerDay,
         projected_annual: annual,
       });
+      // The single most meaningful moment in the app: they committed to quitting.
+      // Heavy impact — weighty and deliberate, nothing else in onboarding uses it.
+      haptics.heavy();
       // Peak-intent paywall — monetize right after the personalized plan reveal,
       // at maximum motivation (the data-backed conversion moment). Onboarding runs
       // BEFORE the tabs layer that normally identifies the purchaser, so we log the
@@ -389,6 +396,8 @@ export default function Quiz() {
         try {
           const pair = await pairWith({ inviterId: referrerId, pairingMethod: 'invite_onboard' });
           track(Ev.BUDDY_PAIRED, { via: 'invite_onboard', pairing_method: 'invite_onboard' });
+          // Pending-buddy redemption succeeded — the pairing landed.
+          haptics.success();
           paired = true;
           // Funnel events keyed on the referrer (fired from the invitee's device).
           // pair.referrerId is the server's authoritative attribution — it can
@@ -418,6 +427,8 @@ export default function Quiz() {
       setPairedInOnboarding(paired);
       setPhase('push');
     } catch (e) {
+      // System failure — the backend couldn't start the plan.
+      haptics.error();
       setError('Something went wrong starting your plan. Please try again.');
       setSubmitting(false);
     }
@@ -590,14 +601,17 @@ export default function Quiz() {
                     return (
                       <Pressable
                         key={t}
-                        onPress={() =>
+                        onPress={() => {
+                          // Custom checkbox tile — not an OptRow, so we own the
+                          // interaction haptic here (selection tick on toggle).
+                          haptics.select();
                           set(
                             'triggers',
                             selected
                               ? answers.triggers.filter((x) => x !== t)
                               : [...answers.triggers, t],
-                          )
-                        }
+                          );
+                        }}
                         accessibilityRole="checkbox"
                         accessibilityState={{ checked: selected }}
                         className={`h-[62px] flex-row items-center gap-3 rounded-tile px-4 active:scale-[0.98] ${
@@ -1035,6 +1049,8 @@ function InviteBuddyStep({ onDone }: { onDone: () => void }) {
       if (res?.matched) {
         track(Ev.MATCHMAKING_MATCHED, { pairing_method: 'matchmaking', pool_size: res.poolSize ?? 0 });
         track(Ev.BUDDY_PAIRED, { via: 'matchmaking', pairing_method: 'matchmaking' });
+        // Buddy found — a positive outcome worth celebrating.
+        haptics.success();
         // A matchmade pair can complete this user's pending referral (any-pair
         // rule) — mirror the same funnel events the deep-link path fires.
         if (!res.alreadyPaired) {

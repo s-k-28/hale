@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Share, View } from 'react-native';
 import { useMutation, useQuery } from 'convex/react';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '@/lib/haptics';
 import { toast } from 'sonner-native';
 import { Gift, Check, Clock } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
@@ -56,7 +56,8 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
   useEffect(() => {
     if (!progress) return;
     if (prevReward.current === false && progress.rewardActive) {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // The 3-referrals reward unlock — the biggest social win.
+      haptics.celebrate();
       toast.success('You unlocked 7 days of HALE+');
     }
     prevReward.current = progress.rewardActive;

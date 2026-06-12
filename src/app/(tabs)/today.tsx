@@ -15,7 +15,7 @@ import MilestoneCelebration from '@/components/MilestoneCelebration';
 import RingBurst from '@/components/RingBurst';
 import { RiseIn } from '@/components/motion';
 import { clean } from '@/theme/clean';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '@/lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
@@ -179,8 +179,7 @@ export default function Today() {
   const onCheckIn = useCallback(async () => {
     if (checking || alreadyCheckedIn) return;
     setChecking(true);
-    // Tactile "press received" beat the instant the tap lands.
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    // Press-in beat is owned by the check-in Button (primary → press); not here.
     try {
       const res = await checkIn({});
       if (!res.alreadyCheckedIn) {
@@ -197,7 +196,7 @@ export default function Today() {
             hours_pair_to_checkin: res.hoursPairToCheckin ?? undefined,
           });
         // Reward beat: success haptic + particle burst from the ring.
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        haptics.success();
         setRingSurge((n) => n + 1);
         // No success toast here: the burst + the inline "Locked in for today"
         // confirmation already say it. (Error path keeps its toast — see catch.)
@@ -373,7 +372,10 @@ export default function Today() {
         <RiseIn index={3}>
         <Pressable
           onPress={() => {
-            // craving_sos_opened fires once, on the SOS screen mount (avoids a double-count).
+            // The grounding "I've got you" thump — heavy, for the app's most
+            // emotionally critical entry. (craving_sos_opened fires once, on the
+            // SOS screen mount, to avoid a double-count.)
+            haptics.heavy();
             router.push('/sos');
           }}
           className="mb-6 flex-row items-center gap-4 rounded-tile bg-coral px-6 py-5 active:opacity-90"
@@ -428,6 +430,8 @@ function NudgeInbox() {
   if (!nudges || nudges.length === 0) return null;
   const n = nudges[0];
   const onOpen = () => {
+    // Light tap on this custom row (not a UI primitive, so it fires its own).
+    haptics.tap();
     track(Ev.NUDGE_OPENED, { type: n.type });
     markRead({ nudgeId: n._id }).catch(() => {
       // Reactive query reflects truth; swallow transient mutation errors.
@@ -559,7 +563,11 @@ function BuddyRow({
           </Eyebrow>
         </View>
         <Pressable
-          onPress={() => router.push('/(tabs)/squad')}
+          onPress={() => {
+            // Custom row → fire its own light tap.
+            haptics.tap();
+            router.push('/(tabs)/squad');
+          }}
           className="flex-row items-center justify-between rounded-tile border border-dashed border-warm-edge bg-surface px-5 py-4 active:opacity-80"
         >
           <View className="flex-1 pr-3">
@@ -586,7 +594,11 @@ function BuddyRow({
         </Eyebrow>
       </View>
       <Pressable
-        onPress={() => router.push('/(tabs)/squad')}
+        onPress={() => {
+          // Custom row → fire its own light tap.
+          haptics.tap();
+          router.push('/(tabs)/squad');
+        }}
         className="flex-row items-center rounded-tile border border-stroke bg-surface px-4 py-4 active:opacity-80"
       >
         <View className="mr-3 h-11 w-11 items-center justify-center rounded-pill bg-warm">

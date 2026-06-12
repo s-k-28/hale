@@ -6,6 +6,7 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { ChevronLeft, TriangleAlert } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import { logOutPurchaser } from '@/lib/revenuecat';
 import { Screen, IconBtn, H1, Lead, Body, Muted, Button, Card2 } from '@/ui';
 import { clean } from '@/theme/clean';
@@ -106,7 +107,11 @@ export default function DeleteAccount() {
             <Button
               variant="coral"
               label="Delete my account"
-              onPress={() => setArmed(true)}
+              onPress={() => {
+                // Gravity: the user is about to arm a permanent destructive action.
+                haptics.warn();
+                setArmed(true);
+              }}
             />
             <Button variant="ghost" label="Keep my account" onPress={() => router.back()} />
           </>
