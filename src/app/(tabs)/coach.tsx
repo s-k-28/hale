@@ -14,10 +14,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toast } from 'sonner-native';
 import { ArrowUp, Wind, MessageCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
-import { presentPaywall } from '@/lib/paywall';
 import { Body, Display, Muted, H2 as Heading, Eyebrow as Label } from '@/ui';
 import { clean } from '@/theme/clean';
 import Animated, {
@@ -55,10 +53,11 @@ export default function Coach() {
   const [capHit, setCapHit] = useState(false);
   const listRef = useRef<FlatList<SageMessage>>(null);
 
-  const onUpgradeSage = useCallback(async () => {
+  // Hard paywall: every upsell routes to OUR paywall screen — never the RC
+  // native sheet (same rule as LockedFeature).
+  const onUpgradeSage = useCallback(() => {
     track(Ev.PAYWALL_FEATURE_TAPPED, { feature: 'unlimited_sage' });
-    const result = await presentPaywall('unlimited_sage');
-    if (result === PAYWALL_RESULT.NOT_PRESENTED) router.push('/paywall');
+    router.push('/paywall');
   }, []);
 
   // Coach efficacy north-star: one session event per screen mount.

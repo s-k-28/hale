@@ -53,8 +53,6 @@ import { clean } from '@/theme/clean';
 import { track, Ev } from '@/lib/analytics';
 import { requestPushPermission } from '@/lib/onesignal';
 import { identifyPurchaser } from '@/lib/revenuecat';
-import { presentPaywall } from '@/lib/paywall';
-import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import {
   projectedAnnualSavings,
   moneySaved,
@@ -352,18 +350,10 @@ export default function Quiz() {
         baseline_per_day: profile.baselinePerDay,
         projected_annual: annual,
       });
-      // Peak-intent paywall — monetize right after the personalized plan reveal,
-      // at maximum motivation (the data-backed conversion moment). Onboarding runs
-      // BEFORE the tabs layer that normally identifies the purchaser, so we log the
-      // RC user in here first — otherwise a purchase would attribute to an
-      // anonymous RC id. Dismissible: whatever the result, we fall through to the
-      // buddy step so the invite loop (HALE's #1 asset) is never blocked.
+      // Identify the purchaser BEFORE the paywall (onboarding runs before the
+      // tabs layer that normally does this) — otherwise a purchase would
+      // attribute to an anonymous RC id.
       await identifyPurchaser(userId);
-      const pwResult = await presentPaywall('onboarding_peak');
-      if (pwResult === PAYWALL_RESULT.PURCHASED || pwResult === PAYWALL_RESULT.RESTORED) {
-        // StoreKit 14-day (2-week) intro trial (or direct purchase) started via the paywall.
-        track(Ev.TRIAL_STARTED, { trial_days: 14, trial_type: 'storekit' });
-      }
 
       // Redeem a pending buddy invite (S1: auto-pair on first open via deep link).
       // This is ALSO the referral trigger: attribution (install via link) then
@@ -417,6 +407,11 @@ export default function Quiz() {
       // already arrived paired via a deep link.
       setPairedInOnboarding(paired);
       setPhase('push');
+      // HARD paywall at peak intent: presented as a modal OVER the push step
+      // (our Clean Dark screen, real StoreKit purchase inside). Its dismiss
+      // ('Continue with the free version' / close) pops back here, so the
+      // invite loop is never blocked.
+      router.push({ pathname: '/paywall', params: { from: 'onboarding' } });
     } catch (e) {
       setError('Something went wrong starting your plan. Please try again.');
       setSubmitting(false);
