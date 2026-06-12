@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toast } from 'sonner-native';
 import {
   BarChart3,
+  Bot,
   Check,
   ChevronRight,
   Crown,
@@ -49,7 +50,6 @@ import { Display, Heading, Body, Label } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { StatTile } from '@/components/ui/StatTile';
 import { Pill } from '@/components/ui/Pill';
-import { LockedFeature } from '@/components/ui/LockedFeature';
 import { colors } from '@/theme/colors';
 import { UNMUTE_CONFIRMATION } from '@/constants/communityCopy';
 import {
@@ -316,30 +316,10 @@ function YouContent({
           </View>
         )}
 
-        {/* Home-screen widgets — blurred preview now; the real WidgetKit
-            extension is a fast-follow. Free users see what HALE+ unlocks. */}
-        <View className="mt-4">
-          <Label className="mb-3 ml-1">Home-screen widgets</Label>
-          <LockedFeature
-            feature="widgets"
-            variant="inline"
-            title="Glanceable widgets"
-            subtitle="Your clean-time and money saved on your home screen — unlock with HALE+."
-          >
-            <View className="flex-row gap-3 p-1">
-              <View className="flex-1 rounded-3xl bg-raised px-4 py-5">
-                <Label className="text-volt">Days free</Label>
-                <Display className="mt-1 text-4xl text-chalk">{Math.floor(days)}</Display>
-                <Body className="mt-1 text-xs text-ash">HALE</Body>
-              </View>
-              <View className="flex-1 rounded-3xl bg-raised px-4 py-5">
-                <Label className="text-volt">Saved</Label>
-                <Display className="mt-1 text-4xl text-chalk">{money(state.currentMoneySaved)}</Display>
-                <Body className="mt-1 text-xs text-ash">HALE</Body>
-              </View>
-            </View>
-          </LockedFeature>
-        </View>
+        {/* NOTE: the "Home-screen widgets" HALE+ preview was removed — no
+            WidgetKit extension exists in the binary yet, and selling an
+            unshipped feature is a Guideline 2.1/3.1.2 rejection. Re-add the
+            block (and the paywall benefit row) when the extension ships. */}
 
         {/* Phase-2 entry points */}
         <View className="mt-4 gap-3">
@@ -445,7 +425,11 @@ function SettingsSection({ premium }: { premium: boolean }) {
           icon={<LifeBuoy color={colors.volt} size={20} strokeWidth={2.5} />}
           title="Contact support"
           sub={SUPPORT_EMAIL}
-          onPress={() => Linking.openURL(SUPPORT_MAILTO).catch(() => {})}
+          onPress={() =>
+            // No mail client configured (common on fresh devices/simulators):
+            // still surface the address instead of failing silently.
+            Linking.openURL(SUPPORT_MAILTO).catch(() => toast(`Email us: ${SUPPORT_EMAIL}`))
+          }
         />
         <YouLink
           icon={<Lock color={colors.volt} size={20} strokeWidth={2.5} />}
@@ -503,22 +487,30 @@ function SettingsSection({ premium }: { premium: boolean }) {
             ))}
         </View>
 
-        {/* Analytics consent withdrawal (5.1.1(ii)) — applies immediately. */}
+        {/* Analytics consent withdrawal (5.1.1(ii)) — applies immediately.
+            Copy says "linked to your account", never "anonymous": events are
+            identified via posthog.identify(userId) (2.3.1 accuracy). */}
         <View className="flex-row items-center rounded-2xl border border-line bg-coal px-5 py-4">
           <BarChart3 color={colors.volt} size={20} strokeWidth={2.5} />
           <View className="ml-3 flex-1 pr-3">
-            <Body className="font-body-semibold text-base text-chalk">Share anonymous analytics</Body>
+            <Body className="font-body-semibold text-base text-chalk">Share usage analytics</Body>
             <Body className="mt-0.5 text-sm text-ash">
-              Usage data that helps us improve HALE. Never sold, never for ads.
+              Usage data linked to your account ID that helps us improve HALE.
+              Never sold, never for ads.
             </Body>
           </View>
           <Switch
             value={analyticsOn}
             onValueChange={onToggleAnalytics}
             trackColor={{ true: colors.volt, false: colors.line }}
-            accessibilityLabel="Share anonymous analytics"
+            accessibilityLabel="Share usage analytics"
           />
         </View>
+
+        {/* AI-consent withdrawal (5.1.1(ii)): consent to share chat data with
+            third-party AI must be revocable, not one-way. Turning it off
+            re-locks the Sage composer (server re-gates in sage.send). */}
+        <AiConsentRow />
 
         {/* Account deletion (5.1.1(v)) — in-app, full erasure. */}
         <Pressable
@@ -543,6 +535,41 @@ function SettingsSection({ premium }: { premium: boolean }) {
           </View>
         </Pressable>
       </View>
+    </View>
+  );
+}
+
+/**
+ * "AI coach data sharing" toggle — the withdrawal half of the 5.1.2(i)
+ * consent. Off = Sage's composer re-locks (users.revokeAiConsent unsets the
+ * flag; convex/sage.ts refuses sends until re-consented).
+ */
+function AiConsentRow() {
+  const status = useQuery(api.users.aiConsentStatus, {});
+  const setAiConsent = useMutation(api.users.setAiConsent);
+  const revokeAiConsent = useMutation(api.users.revokeAiConsent);
+
+  const onToggle = (enabled: boolean) => {
+    void (enabled ? setAiConsent({}) : revokeAiConsent({})).catch(() => {});
+  };
+
+  return (
+    <View className="flex-row items-center rounded-2xl border border-line bg-coal px-5 py-4">
+      <Bot color={colors.volt} size={20} strokeWidth={2.5} />
+      <View className="ml-3 flex-1 pr-3">
+        <Body className="font-body-semibold text-base text-chalk">AI coach data sharing</Body>
+        <Body className="mt-0.5 text-sm text-ash">
+          Lets Sage work by sharing your chats and quit stats with our AI
+          providers. Off pauses the coach.
+        </Body>
+      </View>
+      <Switch
+        value={status?.consented === true}
+        disabled={status === undefined}
+        onValueChange={onToggle}
+        trackColor={{ true: colors.volt, false: colors.line }}
+        accessibilityLabel="AI coach data sharing"
+      />
     </View>
   );
 }

@@ -399,8 +399,8 @@ export default defineSchema({
   // `npx convex run`; the report-sla cron pages when anything is >12h open.
   communityReports: defineTable({
     reporterUserId: v.id('users'), // SERVER-ONLY
-    targetType: v.union(v.literal('post'), v.literal('comment')),
-    targetId: v.string(), // Id<'communityPosts'> | Id<'communityComments'> as string
+    targetType: v.union(v.literal('post'), v.literal('comment'), v.literal('squad')),
+    targetId: v.string(), // Id<'communityPosts'|'communityComments'|'squads'> as string
     reason: v.optional(v.string()),
     ts: v.number(),
     resolvedAt: v.optional(v.number()), // set by admin triage

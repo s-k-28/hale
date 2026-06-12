@@ -21,7 +21,7 @@ const GROUP_SEEDS = [
   { slug: 'day-one-club',       name: 'Day One Club',       isGlobal: false, sortOrder: 1 },
   { slug: 'cravings-right-now', name: 'Cravings Right Now', isGlobal: false, sortOrder: 2 },
   { slug: 'milestones',         name: 'Milestones',         isGlobal: false, sortOrder: 3 },
-  { slug: 'vaping-zyn',         name: 'Vaping & Zyn',       isGlobal: false, sortOrder: 4 },
+  { slug: 'vaping-zyn',         name: 'Vaping & Pouches',   isGlobal: false, sortOrder: 4 }, // renamed from 'Vaping & Zyn' — no third-party trademarks (5.2.1); slug unchanged for stability
   { slug: 'relapse-restart',    name: 'Relapse & Restart',  isGlobal: false, sortOrder: 5 },
 ] as const;
 

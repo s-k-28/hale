@@ -23,7 +23,7 @@ import { track, Ev } from './analytics';
  */
 
 /** True only when RevenueCat is actually configured on this platform. */
-function revenueCatConfigured(): boolean {
+export function revenueCatConfigured(): boolean {
   return has('revenueCatIosKey') || has('revenueCatAndroidKey');
 }
 

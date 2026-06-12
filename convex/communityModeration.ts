@@ -239,7 +239,7 @@ export const requeueStalePending = internalMutation({
  */
 export const reportContent = mutation({
   args: {
-    targetType: v.union(v.literal('post'), v.literal('comment')),
+    targetType: v.union(v.literal('post'), v.literal('comment'), v.literal('squad')),
     targetId: v.string(),
     reason: v.optional(v.string()),
   },
@@ -284,6 +284,23 @@ export const openReports = internalQuery({
     const open = reports.filter((r) => r.resolvedAt === undefined);
     return await Promise.all(
       open.map(async (r) => {
+        // Squad reports target the NAME (the only stranger-visible text).
+        if (r.targetType === 'squad') {
+          const squad = await ctx.db.get(r.targetId as Id<'squads'>);
+          const owner = squad ? await ctx.db.get(squad.ownerId) : null;
+          return {
+            reportId: r._id,
+            reportedAt: r.ts,
+            ageHours: Math.round((Date.now() - r.ts) / 3_600_000),
+            reason: r.reason ?? null,
+            targetType: r.targetType,
+            targetId: r.targetId,
+            body: squad?.name ?? '(deleted)',
+            status: squad ? ('published' as const) : null,
+            authorUserId: squad?.ownerId ?? null,
+            authorBanned: owner?.bannedAt !== undefined,
+          };
+        }
         const doc =
           r.targetType === 'post'
             ? await ctx.db.get(r.targetId as Id<'communityPosts'>)
@@ -306,13 +323,23 @@ export const openReports = internalQuery({
   },
 });
 
-/** Take down a post/comment — hidden from everyone, author included. */
+/**
+ * Take down reported content. Posts/comments flip to 'removed' (hidden from
+ * everyone, author included); a squad's offending NAME is neutralized in
+ * place so the group itself survives for its members.
+ */
 export const removeContent = internalMutation({
   args: {
-    targetType: v.union(v.literal('post'), v.literal('comment')),
+    targetType: v.union(v.literal('post'), v.literal('comment'), v.literal('squad')),
     targetId: v.string(),
   },
   handler: async (ctx, { targetType, targetId }) => {
+    if (targetType === 'squad') {
+      const squad = await ctx.db.get(targetId as Id<'squads'>);
+      if (!squad) return { ok: false as const, reason: 'not_found' as const };
+      await ctx.db.patch(squad._id, { name: 'Quit squad' });
+      return { ok: true as const };
+    }
     const doc =
       targetType === 'post'
         ? await ctx.db.get(targetId as Id<'communityPosts'>)

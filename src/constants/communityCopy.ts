@@ -42,7 +42,7 @@ export const COMMUNITY_GROUPS: Record<
     emptyBody: 'Big or small, your milestone gives someone else a map.',
   },
   'vaping-zyn': {
-    name: 'Vaping & Zyn',
+    name: 'Vaping & Pouches',
     description: 'Pods and pouches have their own battles. Fight them together.',
     emptyTitle: 'Nothing here yet',
     emptyBody: 'Quitting vapes and pouches is its own fight. Start the conversation.',
@@ -55,7 +55,7 @@ export const COMMUNITY_GROUPS: Record<
   },
 };
 
-export const COMPOSER_PLACEHOLDER = "What's on your mind? You're anonymous here.";
+export const COMPOSER_PLACEHOLDER = "What's on your mind? You post under a pseudonym here.";
 export const COMPOSER_COMMENT_PLACEHOLDER = 'Say something supportive…';
 export const COMPOSER_PENDING_LINE = 'On its way. Your post will appear for everyone shortly.';
 export const POST_FAILED = "Couldn't send that. Please try again";
@@ -90,7 +90,7 @@ export const CRISIS_CARD = {
 export const REPORT_CONFIRMATION =
   "Thanks for looking out. We review every report and act within 24 hours.";
 export const MUTE_CONFIRMATION = (handle: string) =>
-  `You won't see anything from ${handle} anymore — in any group, under any name.`;
+  `You won't see anything from ${handle} anymore, in any group, under any name.`;
 export const UNMUTE_CONFIRMATION = (handle: string) => `${handle} is back in your feed.`;
 export const REPORT_ACTION_LABEL = 'Report this post';
 export const REPORT_COMMENT_ACTION_LABEL = 'Report this comment';
@@ -117,12 +117,12 @@ export const REPORT_REASONS: { key: string; label: string }[] = [
 export const COMMUNITY_RULES = {
   title: 'Our ground rules',
   intro:
-    'This space works because it is safe. By continuing you agree to these rules. We have zero tolerance for objectionable content or abusive behavior — break the rules and your content comes down and your access can be removed.',
+    'This space works because it is safe. By continuing you agree to these rules. We have zero tolerance for objectionable content or abusive behavior. Break the rules and your content comes down and your access can be removed.',
   rules: [
-    'Be kind. No harassment, bullying, hate, or attacks on anyone — ever.',
+    'Be kind. No harassment, bullying, hate, or attacks on anyone, ever.',
     'Never encourage nicotine use or pressure anyone toward a relapse.',
-    "No personal info — yours or anyone else's. You're anonymous here; keep it that way.",
-    'No spam, advertising, or selling — especially nicotine products.',
+    "No personal info, yours or anyone else's. You post under a pseudonym; keep it that way.",
+    'No spam, advertising, or selling, especially nicotine products.',
   ],
   enforcement:
     'Every post and comment is reviewed by an automated safety system (run by Anthropic) before others can see it. You can report anything and block any member; reports are reviewed and acted on within 24 hours.',

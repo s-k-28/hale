@@ -8,6 +8,23 @@ import { moneySaved, nextHealthMilestone } from './model/plan';
 import { trialEndsFrom, trialStatus } from './model/trial';
 import { resolveEntitlement } from './model/entitlement';
 
+/**
+ * Display-name floor (Guideline 1.2): `name` is free text shown to STRANGERS
+ * (league leaderboards, matched buddies, squad rosters, buddy push copy), so
+ * it gets the same PII discipline as community content — strip anything that
+ * looks like contact info or a link, cap the length, and fall back to unset
+ * (UI renders its own fallback) rather than storing junk.
+ */
+export function sanitizeDisplayName(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const name = raw.trim().slice(0, 30);
+  if (name.length < 2) return undefined;
+  const contactLike =
+    /(https?:\/\/|www\.|\.com|\.net|\.org|@|\b\d{7,}\b|\+\d|snap|insta|telegram|whatsapp|onlyfans)/i;
+  if (contactLike.test(name)) return undefined;
+  return name;
+}
+
 /** Called right after anonymous sign-in at the commitment step (Decision 2). */
 export const completeOnboarding = mutation({
   args: {
@@ -32,6 +49,7 @@ export const completeOnboarding = mutation({
     const attemptId = await ctx.db.insert('quitAttempts', { userId, startDate: now, active: true });
     await ctx.db.patch(userId, {
       ...args,
+      name: sanitizeDisplayName(args.name),
       currentAttemptId: attemptId,
       currentStreak: 0,
       longestStreak: 0,
@@ -157,6 +175,22 @@ export const setAiConsent = mutation({
   },
 });
 
+/**
+ * Withdraw AI-consent (5.1.1(ii): consent must be revocable). Unsetting the
+ * flag re-locks sage.send server-side; the coach UI re-shows the consent card.
+ */
+export const revokeAiConsent = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+    const user = await ctx.db.get(userId);
+    if (user && user.aiConsentAt !== undefined)
+      await ctx.db.patch(userId, { aiConsentAt: undefined });
+    return { ok: true as const };
+  },
+});
+
 /** Whether the caller has consented to AI data sharing (gates the coach UI). */
 export const aiConsentStatus = query({
   args: {},
@@ -235,8 +269,41 @@ export const deleteAccount = mutation({
     await purgeByIndex(ctx, 'sageMessages', 'by_user_ts', 'userId', userId);
     await purgeByIndex(ctx, 'savingsGoals', 'by_user', 'userId', userId);
     await purgeByIndex(ctx, 'matchRequests', 'by_user', 'userId', userId);
-    await purgeByIndex(ctx, 'squadMembers', 'by_user', 'userId', userId);
     await purgeByIndex(ctx, 'leagueMemberships', 'by_user_week', 'userId', userId);
+
+    // Squads: owned squads are deleted whole (their name is this user's
+    // authored content — 5.1.1(v) erasure) along with every membership row;
+    // squads merely joined lose this member and decrement memberCount.
+    const memberships = await ctx.db
+      .query('squadMembers')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .collect();
+    for (const membership of memberships) {
+      const squad = await ctx.db.get(membership.squadId);
+      if (squad && squad.ownerId === userId) {
+        const rows = await ctx.db
+          .query('squadMembers')
+          .withIndex('by_squad', (q) => q.eq('squadId', squad._id))
+          .collect();
+        for (const row of rows) await ctx.db.delete(row._id);
+        await ctx.db.delete(squad._id);
+      } else {
+        if (squad)
+          await ctx.db.patch(squad._id, { memberCount: Math.max(0, squad.memberCount - 1) });
+        await ctx.db.delete(membership._id);
+      }
+    }
+    // Safety net: owned squads with no membership row (shouldn't exist, but
+    // an orphaned authored name must not survive deletion).
+    for (const squad of await ctx.db.query('squads').collect()) {
+      if (squad.ownerId !== userId) continue;
+      const rows = await ctx.db
+        .query('squadMembers')
+        .withIndex('by_squad', (q) => q.eq('squadId', squad._id))
+        .collect();
+      for (const row of rows) await ctx.db.delete(row._id);
+      await ctx.db.delete(squad._id);
+    }
 
     // ── Social edges (both directions) ──
     await purgeByIndex(ctx, 'buddyLinks', 'by_userA', 'userA', userId);

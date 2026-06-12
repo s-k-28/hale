@@ -1,9 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Share, Switch, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Share, Switch, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery } from 'convex/react';
 import { ChevronLeft, Flame, Plus, Trophy, Users } from 'lucide-react-native';
+import { toast } from 'sonner-native';
 import { api } from '@convex/_generated/api';
+import { REPORT_CONFIRMATION, REPORT_REASONS } from '@/constants/communityCopy';
 import { track, Ev } from '@/lib/analytics';
 import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
@@ -574,8 +576,31 @@ function DiscoverRow({
 
   const joined = alreadyIn || done;
 
+  // Squad names are stranger-visible UGC, so the Discover row is reportable
+  // (Guideline 1.2): long-press → reason picker → communityReports queue.
+  const reportContent = useMutation(api.communityModeration.reportContent);
+  const onReport = useCallback(() => {
+    Alert.alert('Report this squad name?', 'Your report is anonymous.', [
+      ...REPORT_REASONS.map((r) => ({
+        text: r.label,
+        onPress: async () => {
+          try {
+            await reportContent({ targetType: 'squad', targetId: squad._id, reason: r.key });
+            toast(REPORT_CONFIRMATION);
+          } catch {
+            // Best-effort; never trap the user in an error for looking out.
+          }
+        },
+      })),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  }, [reportContent, squad._id]);
+
   return (
-    <View className={`flex-row items-center px-5 py-4 ${first ? '' : 'border-t border-line'}`}>
+    <Pressable
+      onLongPress={onReport}
+      accessibilityHint="Long-press to report this squad name"
+      className={`flex-row items-center px-5 py-4 ${first ? '' : 'border-t border-line'}`}>
       <View className="h-10 w-10 items-center justify-center rounded-2xl bg-volt/15">
         <Users color={colors.volt} size={20} strokeWidth={2.5} />
       </View>
@@ -611,6 +636,6 @@ function DiscoverRow({
           )}
         </Pressable>
       )}
-    </View>
+    </Pressable>
   );
 }

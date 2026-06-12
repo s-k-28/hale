@@ -678,7 +678,7 @@ export const CORPUS: CorpusEntry[] = [
     "sourceName": "NIH / NIDA",
     "domain": "nida.nih.gov",
     "topic": "vaping",
-    "referenceOnly": false,
+    "referenceOnly": true,
     "retrievalDate": "2026-06-10",
     "chunks": [
       "In a September 2025 blog post, NIDA Director Dr. Nora Volkow discusses the potential for developing FDA-approved e-cigarettes as therapeutic smoking cessation aids. She acknowledges a public health paradox around vaping: commercial devices are optimized for nicotine delivery and appeal to youth, and initiation with vape products in adolescence can be a steppingstone to taking up cigarette smoking, yet vaping does not present the worst health risks associated with combustible tobacco and can facilitate smoking cessation in adults.",
@@ -1607,7 +1607,7 @@ export const CORPUS: CorpusEntry[] = [
     "sourceName": "NHS",
     "domain": "nhs.uk",
     "topic": "teen",
-    "referenceOnly": false,
+    "referenceOnly": true,
     "retrievalDate": "2026-06-10",
     "chunks": [
       "Vaping is not for children and young people. Their developing lungs and brains mean they are more sensitive to its effects. Nicotine vaping is less harmful than smoking, but it is not risk-free.",
@@ -1964,7 +1964,7 @@ export const CORPUS: CorpusEntry[] = [
     "sourceName": "Johns Hopkins Medicine",
     "domain": "hopkinsmedicine.org",
     "topic": "vaping",
-    "referenceOnly": false,
+    "referenceOnly": true,
     "retrievalDate": "2026-06-10",
     "chunks": [
       "If you have thought about quitting smoking, you are not alone: nearly 7 of 10 smokers say they want to stop. Quitting smoking is one of the best things you can do for your health, because smoking harms nearly every organ in your body, including your heart. Nearly one-third of deaths from heart disease are the result of smoking and secondhand smoke.",

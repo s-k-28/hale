@@ -35,6 +35,15 @@ import { Toaster } from 'sonner-native';
 initSentry();
 SplashScreen.preventAutoHideAsync();
 
+// Fail FAST in release builds (Guideline 2.1): a binary missing its Convex
+// URL would boot into a dead app for the reviewer. The placeholder fallback
+// exists only so dev/scaffold sessions can render without a backend.
+if (!env.convexUrl && !__DEV__) {
+  throw new Error(
+    'EXPO_PUBLIC_CONVEX_URL is not set in this build — refusing to ship a dead binary. Set it in the EAS production env.',
+  );
+}
+
 const convex = new ConvexReactClient(env.convexUrl || 'https://placeholder.convex.cloud', {
   unsavedChangesWarning: false,
 });

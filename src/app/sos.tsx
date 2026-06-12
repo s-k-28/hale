@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Linking, Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import Animated, {
   Easing,
@@ -980,9 +980,23 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
 function Disclaimer({ full = false }: { full?: boolean }) {
   return (
     <Body className="mt-7 text-center text-xs leading-relaxed text-ash/70">
-      {full
-        ? "HALE is supportive, not medical advice. If you're in crisis or thinking about harming yourself, please contact your local emergency services."
-        : 'Supportive, not medical advice.'}
+      {full ? (
+        <>
+          HALE is supportive, not medical advice. If you&apos;re in crisis or
+          thinking about harming yourself, call or text{' '}
+          <Body
+            className="text-xs text-volt underline"
+            onPress={() => Linking.openURL('tel:988').catch(() => {})}
+            accessibilityRole="link"
+            accessibilityLabel="Call 988, the Suicide and Crisis Lifeline"
+          >
+            988
+          </Body>{' '}
+          (US) or contact your local emergency services.
+        </>
+      ) : (
+        'Supportive, not medical advice.'
+      )}
     </Body>
   );
 }

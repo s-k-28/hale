@@ -110,7 +110,9 @@ export type EventName = (typeof Ev)[keyof typeof Ev];
  * (initAnalytics had no callers), so every capture() silently dropped. This is the fix.
  */
 export const posthog: PostHog | null = has('posthogKey')
-  ? new PostHog(env.posthogKey, { host: env.posthogHost })
+  ? // disableGeoip: IP-derived location would be silently collected and is
+    // neither needed nor declared in the privacy labels (Guideline 5.1.5).
+    new PostHog(env.posthogKey, { host: env.posthogHost, disableGeoip: true })
   : null;
 
 /** Back-compat: the client is now an eager singleton (see `posthog` above). */

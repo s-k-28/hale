@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import Purchases from 'react-native-purchases';
+import Purchases, { type PurchasesPackage } from 'react-native-purchases';
 import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { toast } from 'sonner-native';
-import { Check, X, Bot, LineChart, Users, LayoutGrid } from 'lucide-react-native';
-import { presentPaywall } from '@/lib/paywall';
+import { Check, X, Bot, LineChart, Users } from 'lucide-react-native';
+import { presentPaywall, revenueCatConfigured } from '@/lib/paywall';
 import { APPLE_EULA_URL, PRIVACY_POLICY_URL } from '@/constants/legal';
 import { track, Ev } from '@/lib/analytics';
 import { Display, Heading, Body, Caption } from '@/components/ui/Text';
@@ -67,11 +67,8 @@ const BENEFITS: { title: string; detail: string; Icon: IconCmp }[] = [
     detail: 'Quit alongside more than one buddy and keep every group accountable.',
     Icon: Users,
   },
-  {
-    title: 'Home-screen widgets',
-    detail: 'Your clean-time counter and money saved, glanceable without opening the app.',
-    Icon: LayoutGrid,
-  },
+  // NOTE: do NOT list features that aren't in the binary (Guideline 2.1/3.1.2)
+  // — home-screen widgets were removed here until the WidgetKit extension ships.
 ];
 
 export default function Paywall() {
@@ -128,6 +125,44 @@ export default function Paywall() {
 /* ------------------------------------------------------------------ */
 
 function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
+  // Real purchase path (Guideline 3.1.1/2.1): this fallback is reachable in
+  // production whenever the native RC sheet errors, so its CTA must actually
+  // sell — and at the STORE's localized price, never a hardcoded USD string.
+  const [pkg, setPkg] = useState<PurchasesPackage | null>(null);
+  const [buying, setBuying] = useState(false);
+
+  useEffect(() => {
+    if (!revenueCatConfigured()) return; // scaffold — CTA degrades to dismiss
+    Purchases.getOfferings()
+      .then((offerings) => {
+        const current = offerings.current;
+        setPkg(current?.annual ?? current?.availablePackages[0] ?? null);
+      })
+      .catch(() => {});
+  }, []);
+
+  const priceString = pkg?.product.priceString ?? null;
+
+  const onStart = async () => {
+    if (buying) return;
+    if (!pkg) {
+      // Nothing purchasable (RC unconfigured/offering empty) — honest dismiss.
+      onMaybeLater();
+      return;
+    }
+    setBuying(true);
+    try {
+      await Purchases.purchasePackage(pkg);
+      track(Ev.PURCHASE_COMPLETED, { surface: 'fallback' });
+      onMaybeLater(); // entitlement mirror updates the rest of the app
+    } catch (e) {
+      const cancelled = (e as { userCancelled?: boolean })?.userCancelled === true;
+      if (!cancelled) toast.error("Purchase didn't go through. Please try again.");
+    } finally {
+      setBuying(false);
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-void" edges={['top', 'bottom']}>
       {/* Close — top right, hairline coal chip */}
@@ -176,10 +211,14 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
         </View>
 
         {/* Reassurance — full auto-renewal disclosure (3.1.2): price, period,
-            and renewal mechanics stated on the purchase surface itself. */}
+            and renewal mechanics stated on the purchase surface itself, at the
+            store's localized price. */}
         <Caption className="mt-5 text-center leading-relaxed">
-          14-day free trial, then $79.99/year. Auto-renews until cancelled —
-          cancel anytime in your App Store settings, at least 24h before renewal.
+          {priceString
+            ? `14-day free trial, then ${priceString}/year. `
+            : '14-day free trial, then billed yearly. '}
+          Auto-renews until cancelled — cancel anytime in your App Store
+          settings, at least 24h before renewal.
         </Caption>
       </ScrollView>
 
@@ -192,12 +231,16 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
         {/* Price promoted to the ANTON value-hero so the conversion moment finally
             lands a massive numeral; the footer is a raised coal plane so the cards
             recede UNDER it (no more sliced 4th card). Price value unchanged. */}
+        {/* Localized store price only (3.1.2) — no hardcoded USD on non-US
+            storefronts. Until the offering loads, lead with the trial. */}
         <View className="mb-3 flex-row items-baseline justify-center">
-          <Display className="text-chalk text-5xl leading-tight tracking-tight">$79.99</Display>
-          <Body className="ml-2 text-ash text-sm">/yr · $6.67/mo</Body>
+          <Display className="text-chalk text-5xl leading-tight tracking-tight">
+            {priceString ?? '14 days free'}
+          </Display>
+          {priceString ? <Body className="ml-2 text-ash text-sm">/yr</Body> : null}
         </View>
 
-        <SheenButton onPress={onMaybeLater} />
+        <SheenButton onPress={onStart} disabled={buying} />
 
         <Pressable
           onPress={onMaybeLater}
@@ -214,8 +257,9 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
             accessibilityRole="button"
             onPress={async () => {
               try {
-                await Purchases.restorePurchases();
-                toast('Purchases restored.');
+                const info = await Purchases.restorePurchases();
+                const active = Object.keys(info.entitlements.active).length > 0;
+                toast(active ? 'Purchases restored.' : 'No previous purchases found.');
               } catch {
                 toast.error("Couldn't restore. Check your App Store account.");
               }
@@ -253,7 +297,7 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
  * without nagging. The sheen is clipped to the button's rounded rect; the Button's
  * own press physics + lift shadow are untouched (the clip only wraps the highlight).
  */
-function SheenButton({ onPress }: { onPress: () => void }) {
+function SheenButton({ onPress, disabled = false }: { onPress: () => void; disabled?: boolean }) {
   const [w, setW] = useState(0);
   const x = useSharedValue(0);
   const BAND = 110;
@@ -281,7 +325,7 @@ function SheenButton({ onPress }: { onPress: () => void }) {
 
   return (
     <View className="relative" onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-      <Button label="START HALE+" variant="primary" onPress={onPress} />
+      <Button label={disabled ? 'STARTING…' : 'START HALE+'} variant="primary" onPress={onPress} disabled={disabled} />
       {/* Clip the sheen to the button's rounded rect; pointerEvents none so the
           highlight never eats a tap. Inset clip only — the Button's lift shadow,
           which lives on the Button itself, is not clipped. */}
