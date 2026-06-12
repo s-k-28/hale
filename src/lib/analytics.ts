@@ -36,6 +36,8 @@ export const Ev = {
   RELAPSE_RECOVERED: 'relapse_recovered',
   // Notifications (#9)
   PUSH_OPENED: 'push_opened',
+  // Account lifecycle (Guideline 5.1.1(v)) — fired right before server deletion.
+  ACCOUNT_DELETED: 'account_deleted',
   // Monetization
   TRIAL_STARTED: 'trial_started',
   PAYWALL_VIEWED: 'paywall_viewed',

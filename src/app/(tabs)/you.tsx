@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import type { View as RNView } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { BarChart3, BookOpenCheck, Check, ChevronRight, Crown, Flame, Gift, Share2, ShieldCheck } from 'lucide-react-native';
+import { BarChart3, BookOpenCheck, Check, ChevronRight, Crown, Flame, Gift, Share2, ShieldCheck, Trash2 } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { api } from '@convex/_generated/api';
 import {
@@ -332,6 +332,14 @@ function YouContent({
                 // No browser available — nothing sensible to do silently here.
               });
             }}
+          />
+          {/* Destructive lane (coral) — Guideline 5.1.1(v): in-app account deletion,
+              visible in Settings, not buried. */}
+          <YouLink
+            icon={<Trash2 color={clean.coral} size={20} strokeWidth={2.2} />}
+            title="Delete account"
+            sub="Permanently erase your account and data."
+            onPress={() => router.push('/delete-account')}
           />
         </View>
       </ScrollView>

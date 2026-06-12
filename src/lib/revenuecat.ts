@@ -19,6 +19,20 @@ export async function identifyPurchaser(userId: string) {
   }
 }
 
+/**
+ * Detach the RC identity on account deletion so the entitlement isn't orphaned
+ * onto the next account created on this device. RC switches back to an
+ * anonymous app_user_id; this never cancels the App Store subscription itself.
+ */
+export async function logOutPurchaser() {
+  if (!has('revenueCatIosKey') && !has('revenueCatAndroidKey')) return;
+  try {
+    await Purchases.logOut();
+  } catch {
+    // Already anonymous (logOut throws then) or scaffold mode — nothing to detach.
+  }
+}
+
 export async function isPremium(): Promise<boolean> {
   try {
     const info = await Purchases.getCustomerInfo();
