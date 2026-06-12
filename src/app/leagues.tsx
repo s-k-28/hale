@@ -151,7 +151,7 @@ function OptInState({
 
         <Button
           variant="primary"
-          label="JOIN THE LEAGUE"
+          label="Join the league"
           loading={pending}
           onPress={onJoin}
           accessibilityLabel="Join this week's league"
@@ -226,7 +226,7 @@ function JoinedState({
 
       <Button
         variant="ghost"
-        label="LEAVE THIS WEEK"
+        label="Leave this week"
         loading={pending}
         onPress={onLeave}
         accessibilityLabel="Leave this week's league"

@@ -274,7 +274,7 @@ function PairedState({
         <View className="relative mt-5">
           <Button
             variant={cheered ? 'secondary' : 'primary'}
-            label={cheered ? 'SUPPORT SENT' : 'SEND SUPPORT'}
+            label={cheered ? 'Support sent' : 'Send support'}
             disabled={cheered}
             onPress={onCheer}
             accessibilityLabel={cheered ? 'Support sent' : 'Send support to your buddy'}

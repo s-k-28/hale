@@ -145,7 +145,7 @@ function UrgeSurf() {
               A 4-step guided practice for riding a craving out instead of fighting it. Takes about
               a minute.
             </Body>
-            <Button variant="primary" label="START URGE SURFING" onPress={start} className="mt-6" />
+            <Button variant="primary" label="Start urge surfing" onPress={start} className="mt-6" />
           </>
         ) : (
           <>
@@ -164,7 +164,7 @@ function UrgeSurf() {
             <Body className="mt-3 text-base leading-7 text-fg">{SURF_STEPS[step].body}</Body>
             <Button
               variant="primary"
-              label={step + 1 >= SURF_STEPS.length ? 'I RODE IT OUT' : 'NEXT'}
+              label={step + 1 >= SURF_STEPS.length ? 'I rode it out' : 'Next'}
               onPress={next}
               className="mt-7"
             />
