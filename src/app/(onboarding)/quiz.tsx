@@ -49,13 +49,12 @@ import {
 } from '@/ui';
 import { RNText } from '@/ui/internal';
 import { RiseIn } from '@/components/motion';
+import { LinearGradient } from 'expo-linear-gradient';
 import { clean } from '@/theme/clean';
 import { track, Ev } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
 import { requestPushPermission } from '@/lib/onesignal';
 import { identifyPurchaser } from '@/lib/revenuecat';
-import { presentPaywall } from '@/lib/paywall';
-import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import {
   projectedAnnualSavings,
   moneySaved,
@@ -235,6 +234,17 @@ export default function Quiz() {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
+  // Offline/slow networks: the commit can sit in a silent spinner for ~12s
+  // before erroring (ui-audit D9) — surface an honest hint after 5s.
+  const [slowHint, setSlowHint] = useState(false);
+  useEffect(() => {
+    if (!submitting) {
+      setSlowHint(false);
+      return;
+    }
+    const t = setTimeout(() => setSlowHint(true), 5000);
+    return () => clearTimeout(t);
+  }, [submitting]);
   const [error, setError] = useState<string | null>(null);
   // Whether the deep-link redemption already paired this user at commit —
   // decides where the push step exits to (design tail: commit → push → invite).
@@ -359,18 +369,10 @@ export default function Quiz() {
       // The single most meaningful moment in the app: they committed to quitting.
       // Heavy impact — weighty and deliberate, nothing else in onboarding uses it.
       haptics.heavy();
-      // Peak-intent paywall — monetize right after the personalized plan reveal,
-      // at maximum motivation (the data-backed conversion moment). Onboarding runs
-      // BEFORE the tabs layer that normally identifies the purchaser, so we log the
-      // RC user in here first — otherwise a purchase would attribute to an
-      // anonymous RC id. Dismissible: whatever the result, we fall through to the
-      // buddy step so the invite loop (HALE's #1 asset) is never blocked.
+      // Identify the purchaser BEFORE the paywall (onboarding runs before the
+      // tabs layer that normally does this) — otherwise a purchase would
+      // attribute to an anonymous RC id.
       await identifyPurchaser(userId);
-      const pwResult = await presentPaywall('onboarding_peak');
-      if (pwResult === PAYWALL_RESULT.PURCHASED || pwResult === PAYWALL_RESULT.RESTORED) {
-        // StoreKit 14-day (2-week) intro trial (or direct purchase) started via the paywall.
-        track(Ev.TRIAL_STARTED, { trial_days: 14, trial_type: 'storekit' });
-      }
 
       // Redeem a pending buddy invite (S1: auto-pair on first open via deep link).
       // This is ALSO the referral trigger: attribution (install via link) then
@@ -426,6 +428,11 @@ export default function Quiz() {
       // already arrived paired via a deep link.
       setPairedInOnboarding(paired);
       setPhase('push');
+      // HARD paywall at peak intent: presented as a modal OVER the push step
+      // (our Clean Dark screen, real StoreKit purchase inside). Its dismiss
+      // ('Continue with the free version' / close) pops back here, so the
+      // invite loop is never blocked.
+      router.push({ pathname: '/paywall', params: { from: 'onboarding' } });
     } catch (e) {
       // System failure — the backend couldn't start the plan.
       haptics.error();
@@ -468,6 +475,7 @@ export default function Quiz() {
         name={answers.name.trim()}
         annual={annual}
         submitting={submitting}
+        slowHint={slowHint}
         error={error}
         onCommit={commit}
       />
@@ -755,7 +763,15 @@ export default function Quiz() {
           )}
         </ScrollView>
 
-        {/* in-flow CTA, pinned to the bottom (design ObChrome cta slot) */}
+        {/* in-flow CTA, pinned to the bottom (design ObChrome cta slot).
+            Fade cap above it (same treatment as CtaDock): without it, scroll
+            content slices mid-glyph against the dock's hard edge at the fold
+            (ui-audit D6). pointerEvents none — purely visual. */}
+        <LinearGradient
+          colors={['rgba(11,15,13,0)', clean.bg]}
+          style={{ height: 22, marginTop: -22 }}
+          pointerEvents="none"
+        />
         <View className="px-gutter pb-[30px] pt-4">
           <Button
             label={stepIndex === QUESTION_STEPS.length - 1 ? 'Build my plan' : 'Continue'}
@@ -936,12 +952,14 @@ function CommitScreen({
   name,
   annual,
   submitting,
+  slowHint,
   error,
   onCommit,
 }: {
   name: string;
   annual: number;
   submitting: boolean;
+  slowHint: boolean;
   error: string | null;
   onCommit: () => void;
 }) {
@@ -965,6 +983,11 @@ function CommitScreen({
           <Eyebrow className="mt-1">this year</Eyebrow>
         </CardHero>
 
+        {!error && submitting && slowHint ? (
+          <Body className="mt-5 text-center text-sm text-fg-2">
+            Still working. A weak connection can slow this down.
+          </Body>
+        ) : null}
         {error ? (
           <Body className="mt-5 text-center font-sora-semibold text-sm text-coral">{error}</Body>
         ) : null}

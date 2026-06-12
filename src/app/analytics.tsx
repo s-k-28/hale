@@ -199,7 +199,7 @@ function Unlocked({
       <RecoveryProgress recovery={recovery} />
 
       <Body className="mt-4 px-1 text-xs leading-relaxed text-fg-2">
-        Commonly reported recovery timeline, supportive, not medical advice.
+        Commonly reported recovery timelines. Supportive, not medical advice.
       </Body>
     </ScrollView>
   );

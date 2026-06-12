@@ -2,9 +2,7 @@ import { useCallback } from 'react';
 import { Pressable, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Lock } from 'lucide-react-native';
-import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { usePremium } from '@/hooks/usePremium';
-import { presentPaywall } from '@/lib/paywall';
 import { track, Ev } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
 import { clean } from '@/theme/clean';
@@ -43,14 +41,14 @@ export function LockedFeature({
 }) {
   const { hasHALEPlus, loading } = usePremium();
 
-  const open = useCallback(async () => {
+  const open = useCallback(() => {
+    // Interaction haptic is owned by the outer Pressable (haptics.press on
+    // press-in) — open() itself stays haptic-free so the inner Button doesn't
+    // double-fire.
     track(Ev.PAYWALL_FEATURE_TAPPED, { feature });
-    // presentPaywall already fires PAYWALL_VIEWED (tagged with the surface).
-    const result = await presentPaywall(feature);
-    // Scaffold / RC-unconfigured → fall back to the in-app paywall screen.
-    if (result === PAYWALL_RESULT.NOT_PRESENTED) {
-      router.push('/paywall');
-    }
+    // Hard paywall: always OUR Clean Dark screen (it owns PAYWALL_VIEWED and
+    // the StoreKit purchase flow) — never the RC-rendered sheet.
+    router.push('/paywall');
   }, [feature]);
 
   // Entitled (or still resolving — never flash a lock at a paying user): pass through.
@@ -184,10 +182,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
-  // 'inline' is self-sized; the floor keeps a small gate from collapsing, but
-  // the chrome (in normal flow) drives the real height so it can never clip.
+  // 'inline' is self-sized; the chrome (in normal flow) drives the real height
+  // so it can never clip. The floor covers degenerate short-children cases —
+  // sized to the full CTA stack (badge + title + 2-line subtitle + button).
   inlineFloor: {
-    minHeight: 180,
+    minHeight: 248,
   },
   // 'overlay' fills its flex parent; the chrome centers inside that space.
   overlayFloor: {

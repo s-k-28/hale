@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Redirect, router } from 'expo-router';
-import { useMutation, useQuery } from 'convex/react';
+import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { Check, ChevronRight, Flame, ShieldCheck, Siren } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { localDateOf } from '@convex/model/streak';
@@ -97,11 +97,24 @@ function reachedLandmark(wholeDays: number): number | null {
   return reached;
 }
 
+/** Module-level mirror of the last-celebrated landmark: AsyncStorage writes are
+ * fire-and-forget, so a remount could hydrate a stale value and re-fire the
+ * celebration mid-session (ui-audit D1). Module scope survives remounts. */
+let lastCelebratedMemory: number | null = null;
+
+const MS_PER_DAY_CELEBRATION = 86_400_000;
+
 /** AsyncStorage key — the last landmark we've already celebrated, so it fires once. */
 const LAST_CELEBRATED_LANDMARK_KEY = 'hale:lastCelebratedLandmark';
 
 export default function Today() {
-  const state = useQuery(api.users.todayState, {});
+  // Auth-gated query (white-screen fix, 2026-06-12): an ungated mount can
+  // receive the query's first result before auth attaches -> null -> the
+  // not-onboarded Redirect fires for an ONBOARDED user mid-navigation and
+  // strands an empty tab scene. 'skip' until auth is confirmed, and treat
+  // auth-loading as loading (same pattern as goals.tsx / usePremium).
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+  const state = useQuery(api.users.todayState, isAuthenticated ? {} : 'skip');
   const checkIn = useMutation(api.checkins.checkIn);
   const buddy = useQuery(api.buddies.myBuddy, {});
 
@@ -134,7 +147,9 @@ export default function Today() {
       .then((raw) => {
         if (!active) return;
         const parsed = raw != null ? Number(raw) : NaN;
-        lastCelebratedRef.current = Number.isFinite(parsed) ? parsed : null;
+        const stored = Number.isFinite(parsed) ? parsed : null;
+        // Whichever is newer wins: storage (cold launch) or the in-session memory.
+        lastCelebratedRef.current = Math.max(stored ?? 0, lastCelebratedMemory ?? 0) || null;
       })
       .catch(() => {
         // Storage read failures are non-fatal — treat as "nothing celebrated yet".
@@ -163,6 +178,7 @@ export default function Today() {
     setCelebrateDay(null);
     if (day == null) return;
     lastCelebratedRef.current = day;
+    lastCelebratedMemory = day;
     AsyncStorage.setItem(LAST_CELEBRATED_LANDMARK_KEY, String(day)).catch(() => {
       // Persisting failed; the in-memory ref still prevents a re-show this session.
     });
@@ -210,15 +226,17 @@ export default function Today() {
   }, [checking, alreadyCheckedIn, checkIn]);
 
   // Loading — query in flight.
-  if (state === undefined) {
+  if (authLoading || (isAuthenticated && state === undefined)) {
     return (
       <Screen className="items-center justify-center">
         <ActivityIndicator color={clean.accent} />
       </Screen>
     );
   }
-  // Not onboarded → start the quiz (Decision 2: deferred sign-up).
-  if (state === null) return <Redirect href="/(onboarding)/welcome" />;
+  // Signed out or not onboarded → start the quiz (Decision 2: deferred sign-up).
+  if (!isAuthenticated || state === null || state === undefined) {
+    return <Redirect href="/(onboarding)/welcome" />;
+  }
 
   const cleanMs = now - state.quitStart;
   const t = breakdown(cleanMs);
@@ -414,7 +432,14 @@ export default function Today() {
       <MilestoneCelebration
         visible={celebrateDay !== null}
         day={celebrateDay ?? 0}
-        moneySaved={state.currentMoneySaved}
+        // Money AT the landmark, not live money: a late-fired celebration
+        // (e.g. storage wiped) otherwise shows "3 days" beside 7 days of
+        // savings on one card (ui-audit D2). Same daily rate, scaled.
+        moneySaved={
+          now > state.quitStart
+            ? state.currentMoneySaved * Math.min(1, ((celebrateDay ?? 0) * MS_PER_DAY_CELEBRATION) / (now - state.quitStart))
+            : 0
+        }
         recoveryPct={recoveryPct}
         onClose={onCelebrationClose}
       />

@@ -1,4 +1,5 @@
 import { Text as RNText, type TextProps } from 'react-native';
+import { twMerge } from 'tailwind-merge';
 
 /**
  * Clean Dark type ramp (design-system v2) — ONE ramp, Sora everywhere.
@@ -12,7 +13,11 @@ type P = TextProps & { className?: string };
 const make =
   (base: string) =>
   ({ className = '', ...props }: P) => (
-    <RNText {...props} className={`${base} ${className}`} />
+    // twMerge: NativeWind resolves conflicting classes by compiled insertion
+    // order, NOT string position — a caller's text-accent-ink could silently
+    // lose to a base text-fg-2 (ui-audit D3: unreadable gray-on-emerald chat
+    // bubbles). Merging dedupes conflicts so the caller's override always wins.
+    <RNText {...props} className={twMerge(base, className)} />
   );
 
 /** 88pt display numeral / wordmark moments. */

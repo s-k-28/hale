@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
-import { useQuery } from 'convex/react';
+import { useConvexAuth, useQuery } from 'convex/react';
 import { House, Users, MessageCircle, User } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { usePushTags } from '@/hooks/usePushTags';
@@ -20,8 +20,11 @@ import { haptics } from '@/lib/haptics';
  *   - usePushTags → links the OneSignal device + mirrors behavior-targeting tags.
  */
 function PushSync() {
-  const today = useQuery(api.users.todayState, {});
-  const buddy = useQuery(api.buddies.myBuddy, {});
+  // Auth-gated (consistency with the tab screens): avoids anonymous-context
+  // snapshots while auth attaches on a fresh mount.
+  const { isAuthenticated } = useConvexAuth();
+  const today = useQuery(api.users.todayState, isAuthenticated ? {} : 'skip');
+  const buddy = useQuery(api.buddies.myBuddy, isAuthenticated ? {} : 'skip');
   const uid = today?.userId ?? null;
   const hasBuddy = !!buddy?.buddy;
   // Live cohort dims for the EVENT-level snapshot (immune to person-on-events drift).

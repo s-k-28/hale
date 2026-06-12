@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { Check, X, Bot, LineChart, Users, LayoutGrid } from 'lucide-react-native';
+import { useLocalSearchParams } from 'expo-router';
+import {
+  loadPlanOffers,
+  purchasePlan,
+  restorePurchases,
+  type HalePlan,
+  type PlanOffer,
+} from '@/lib/paywall';
 import * as WebBrowser from 'expo-web-browser';
-import { presentPaywall } from '@/lib/paywall';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/links';
 import { track, Ev } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
@@ -30,29 +36,23 @@ import Animated, {
 } from 'react-native-reanimated';
 
 /**
- * HALE+ paywall — modal screen (Phase-1 step 8).
+ * HALE+ HARD paywall — modal screen, presented at onboarding peak intent and
+ * from every LockedFeature gate. Always OUR Clean Dark screen, never the
+ * RC-rendered sheet: purchases go straight through StoreKit via
+ * Purchases.purchasePackage (lib/paywall.ts).
  *
  * MUST be registered in src/app/_layout.tsx as:
  *   <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
  *
- * Behavior:
- *   - On mount, ask RevenueCat to present its native paywall (gated on the HALE+
- *     entitlement). presentPaywall() fires PAYWALL_VIEWED + PURCHASE_COMPLETED.
- *   - When RC is configured, the native sheet covers this screen; once it
- *     resolves (purchased / cancelled / restored) we simply dismiss the modal —
- *     the premium mirror (usePremium / todayState) updates the rest of the app.
- *   - When RC is UNCONFIGURED (scaffold), presentPaywall() returns NOT_PRESENTED
- *     without firing any event; we then render a tasteful in-app HALE+ upsell and
- *     fire PAYWALL_VIEWED ourselves so the funnel stays wired even pre-keys.
+ * App Store safety (2.1 / 3.1.1): a visible Restore Purchases affordance and
+ * a discreet 'Continue with the free version' dismiss — the wall is firm,
+ * not un-dismissible, so a reviewer can always reach the app.
  *
- * Upsell copy is grounded in category-leader subscription paywalls (Smoke Free,
- * QuitNow, I Am Sober, Streaks, Calm): a tight value-prop list, an anchored
- * annual price reframed as a tiny weekly number, and a low-friction
- * "Maybe later" dismiss. (Mobbin is paid-gated/unavailable, so these are the
- * known patterns from those quit/wellness apps.)
+ * Plans: annual $79.99/yr (default, highlighted) and monthly $12.99/mo, with
+ * the 14-day StoreKit intro trial framed on the primary CTA. When offerings
+ * can't load, a plain unavailable notice + retry — never blank, never a
+ * browser link.
  */
-
-type Phase = 'presenting' | 'fallback' | 'dismissing';
 
 type IconCmp = typeof Bot;
 
@@ -80,13 +80,14 @@ const BENEFITS: { title: string; detail: string; Icon: IconCmp }[] = [
 ];
 
 export default function Paywall() {
-  const [phase, setPhase] = useState<Phase>('presenting');
-  // Retry state for the fallback (Guideline 3.1.1): when the native flow
-  // can't load offerings, the Start CTA retries and we say so plainly —
-  // never blank, never an infinite spinner, never a link out to a browser.
-  const [retrying, setRetrying] = useState(false);
-  const [unavailable, setUnavailable] = useState(false);
-  const ranRef = useRef(false);
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const surface = from === 'onboarding' ? 'onboarding_peak' : 'paywall_screen';
+
+  const [offers, setOffers] = useState<PlanOffer[] | null | 'loading'>('loading');
+  const [plan, setPlan] = useState<HalePlan>('annual');
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const viewedRef = useRef(false);
 
   const dismiss = () => {
     if (router.canGoBack()) router.back();
@@ -94,67 +95,82 @@ export default function Paywall() {
   };
 
   useEffect(() => {
-    // Guard against double-invoke (StrictMode / fast refresh).
-    if (ranRef.current) return;
-    ranRef.current = true;
-
+    if (!viewedRef.current) {
+      viewedRef.current = true;
+      track(Ev.PAYWALL_VIEWED, { surface });
+    }
     let active = true;
-    (async () => {
-      const result = await presentPaywall();
-      if (!active) return;
-
-      if (result === PAYWALL_RESULT.NOT_PRESENTED) {
-        // RC unconfigured (scaffold) OR already-premium. Show the in-app upsell
-        // and fire PAYWALL_VIEWED here (presentPaywall did not, since it bailed).
-        track(Ev.PAYWALL_VIEWED, { surface: 'fallback' });
-        setPhase('fallback');
-      } else {
-        // Native paywall handled everything (purchase/restore/cancel) → close.
-        setPhase('dismissing');
-        dismiss();
-      }
-    })();
-
+    loadPlanOffers().then((o) => {
+      if (active) setOffers(o);
+    });
     return () => {
       active = false;
     };
-  }, []);
+  }, [surface]);
 
-  // Tapping Start on the fallback retries the native purchase flow. If RC
-  // still can't serve offerings, show the unavailable notice and keep the
-  // retry available.
   const onStart = async () => {
-    if (retrying) return;
-    setRetrying(true);
-    setUnavailable(false);
-    const result = await presentPaywall('fallback_retry');
-    setRetrying(false);
-    if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
-      dismiss();
-    } else if (result === PAYWALL_RESULT.NOT_PRESENTED) {
-      // Subscriptions unavailable — the system can't serve the user right now.
-      haptics.warn();
-      setUnavailable(true);
+    if (busy) return;
+    setNotice(null);
+    // Offerings missing → retry the load (unavailable state), never a browser.
+    if (offers === 'loading' || offers === null) {
+      setBusy(true);
+      const o = await loadPlanOffers();
+      setBusy(false);
+      setOffers(o);
+      if (o === null) {
+        haptics.warn();
+        setNotice(
+          "Subscriptions aren't available right now. Check your connection and try again.",
+        );
+      }
+      return;
     }
-    // CANCELLED → user closed the native sheet; stay here quietly.
+    const offer = offers.find((o) => o.plan === plan) ?? offers[0];
+    setBusy(true);
+    const result = await purchasePlan(offer, surface);
+    setBusy(false);
+    if (result === 'purchased') {
+      // The StoreKit intro trial starts with the subscription.
+      track(Ev.TRIAL_STARTED, { trial_days: 14, trial_type: 'storekit' });
+      dismiss();
+    } else if (result === 'failed') {
+      haptics.error();
+      setNotice("That didn't go through. You weren't charged. Try again.");
+    }
+    // cancelled → stay quietly.
   };
 
-  // While the native sheet is presenting (or we're closing), keep a calm,
-  // on-brand backdrop underneath rather than a flash of empty space.
-  if (phase !== 'fallback') {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-bg">
-        <ActivityIndicator color={clean.accent} />
-      </SafeAreaView>
-    );
-  }
+  const onRestore = async () => {
+    if (busy) return;
+    haptics.tap();
+    setNotice(null);
+    setBusy(true);
+    const restored = await restorePurchases();
+    setBusy(false);
+    if (restored) {
+      dismiss();
+    } else {
+      haptics.warn();
+      setNotice('No previous purchases found for this Apple ID.');
+    }
+  };
 
   return (
     <HalePlusUpsell
-      onMaybeLater={dismiss}
+      onFreeVersion={() => {
+        haptics.tap();
+        dismiss();
+      }}
       onStart={onStart}
-      retrying={retrying}
-      unavailable={unavailable}
+      onRestore={onRestore}
+      plan={plan}
+      onPlan={(p) => {
+        haptics.select();
+        setPlan(p);
+      }}
+      offers={offers}
+      busy={busy}
+      notice={notice}
     />
   );
 }
@@ -164,27 +180,38 @@ export default function Paywall() {
 /* ------------------------------------------------------------------ */
 
 function HalePlusUpsell({
-  onMaybeLater,
+  onFreeVersion,
   onStart,
-  retrying,
-  unavailable,
+  onRestore,
+  plan,
+  onPlan,
+  offers,
+  busy,
+  notice,
 }: {
-  onMaybeLater: () => void;
+  onFreeVersion: () => void;
   onStart: () => void;
-  retrying: boolean;
-  unavailable: boolean;
+  onRestore: () => void;
+  plan: HalePlan;
+  onPlan: (p: HalePlan) => void;
+  offers: PlanOffer[] | null | 'loading';
+  busy: boolean;
+  notice: string | null;
 }) {
+  const insets = useSafeAreaInsets();
+  const priceFor = (p: HalePlan, fallback: string) => {
+    if (offers === 'loading' || offers === null) return fallback;
+    return offers.find((o) => o.plan === p)?.price ?? fallback;
+  };
+  // Explicit insets: SafeAreaView can race to zero inside fullScreenModal
+  // and put the header under the status bar (ui-audit D4).
   return (
-    <SafeAreaView className="flex-1 bg-bg" edges={['top', 'bottom']}>
+    <View className="flex-1 bg-bg" style={{ paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 8) }}>
       {/* Close — top right, hairline surface chip */}
       <View className="px-gutter pt-3">
         <View className="flex-row items-center justify-end">
           <Pressable
-            onPress={() => {
-              // Custom close chrome → light tap (dismissal).
-              haptics.tap();
-              onMaybeLater();
-            }}
+            onPress={onFreeVersion}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Close"
@@ -206,7 +233,7 @@ function HalePlusUpsell({
           <Badge label="HALE+" tone="soft" />
 
           <Display className="mt-4 text-fg text-5xl leading-tight tracking-tight">
-            GO ALL IN.
+            Go all in.
           </Display>
 
           <Heading className="mt-3 text-accent text-xl leading-snug">
@@ -227,35 +254,8 @@ function HalePlusUpsell({
 
         {/* Reassurance */}
         <Caption className="mt-5 text-center leading-relaxed">
-          14-day free trial, then $79.99/yr. Auto-renews until cancelled in Settings.
+          14-day free trial, then your chosen plan. Cancel anytime in Apple Settings.
         </Caption>
-        {/* Subscription legal (Guideline 3.1.2): functional Privacy + Terms links
-            reachable from the purchase surface. Quiet by design — never crowds the CTA. */}
-        <View className="mt-2 flex-row items-center justify-center gap-6">
-          <Pressable
-            hitSlop={8}
-            accessibilityRole="link"
-            onPress={() => {
-              // Quiet legal link → a subtle selection tick (never the louder tap
-              // of a real action), so it never competes with the CTA below.
-              haptics.select();
-              void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {});
-            }}
-          >
-            <Caption className="underline">Privacy</Caption>
-          </Pressable>
-          <Pressable
-            hitSlop={8}
-            accessibilityRole="link"
-            onPress={() => {
-              // Quiet legal link → a subtle selection tick (see Privacy above).
-              haptics.select();
-              void WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {});
-            }}
-          >
-            <Caption className="underline">Terms</Caption>
-          </Pressable>
-        </View>
       </ScrollView>
 
       {/* Pinned footer: price stays visible WITH the CTA, and it's slim enough
@@ -264,35 +264,118 @@ function HalePlusUpsell({
         className="border-t border-stroke bg-surface px-gutter pb-2 pt-4"
         style={{ shadowColor: '#000000', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: -8 } }}
       >
-        {/* Price promoted to the ANTON value-hero so the conversion moment finally
-            lands a massive numeral; the footer is a raised surface plane so the cards
-            recede UNDER it (no more sliced 4th card). Price value unchanged. */}
-        <View className="mb-3 flex-row items-baseline justify-center">
-          <Display className="text-fg text-5xl leading-tight tracking-tight">$79.99</Display>
-          <Body className="ml-2 text-fg-2 text-sm">/yr · $6.67/mo</Body>
+        {/* Plan selector — annual is the highlighted default. */}
+        <View className="mb-3 flex-row gap-3">
+          <PlanCard
+            selected={plan === 'annual'}
+            onPress={() => onPlan('annual')}
+            title="Annual"
+            price={priceFor('annual', '$79.99')}
+            per="/yr · $6.67/mo"
+            tag="Best value"
+          />
+          <PlanCard
+            selected={plan === 'monthly'}
+            onPress={() => onPlan('monthly')}
+            title="Monthly"
+            price={priceFor('monthly', '$12.99')}
+            per="/mo"
+          />
         </View>
 
-        <SheenButton onPress={onStart} label={unavailable ? 'Try again' : 'Start HALE+'} busy={retrying} />
-        {unavailable ? (
-          <Body className="mt-3 text-center text-[13px] leading-5 text-fg-2">
-            Subscriptions aren't available right now. Check your connection and try again — your
-            14-day full-access window keeps working in the meantime.
-          </Body>
+        <SheenButton
+          onPress={onStart}
+          label={notice ? 'Try again' : 'Start my 14-day free trial'}
+          busy={busy}
+        />
+        {notice ? (
+          <Body className="mt-3 text-center text-[13px] leading-5 text-fg-2">{notice}</Body>
         ) : null}
 
-        <Pressable
-          onPress={() => {
-            // Custom dismiss link → light tap.
-            haptics.tap();
-            onMaybeLater();
-          }}
-          accessibilityRole="button"
-          className="mt-2 items-center py-3 active:opacity-70"
-        >
-          <Caption className="text-fg-2">Maybe later</Caption>
-        </Pressable>
+        {/* Stacked, not side-by-side: the two labels + a gap overflow the row
+            width on 402pt devices and RN collapses the gap (ui-audit root
+            cause #2) — vertical guarantees a fit on every width. */}
+        <View className="mt-1 items-center">
+          <Pressable
+            onPress={onRestore}
+            accessibilityRole="button"
+            className="items-center px-6 py-2.5 active:opacity-70"
+          >
+            <Caption className="text-fg-2">Restore purchases</Caption>
+          </Pressable>
+          <Pressable
+            onPress={onFreeVersion}
+            accessibilityRole="button"
+            className="items-center px-6 py-2.5 active:opacity-70"
+          >
+            <Caption className="text-fg-3">Continue with the free version</Caption>
+          </Pressable>
+          {/* Subscription legal (Guideline 3.1.2): functional Privacy + Terms
+              links on the purchase surface. Quiet by design. */}
+          <View className="mt-0.5 flex-row items-center gap-6">
+            <Pressable
+              hitSlop={8}
+              accessibilityRole="link"
+              onPress={() => {
+                haptics.select();
+                void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {});
+              }}
+            >
+              <Caption className="text-fg-3 underline">Privacy</Caption>
+            </Pressable>
+            <Pressable
+              hitSlop={8}
+              accessibilityRole="link"
+              onPress={() => {
+                haptics.select();
+                void WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {});
+              }}
+            >
+              <Caption className="text-fg-3 underline">Terms</Caption>
+            </Pressable>
+          </View>
+        </View>
       </View>
-    </SafeAreaView>
+    </View>
+  );
+}
+
+/** Selectable plan card — emerald ring when active (the single accent). */
+function PlanCard({
+  selected,
+  onPress,
+  title,
+  price,
+  per,
+  tag,
+}: {
+  selected: boolean;
+  onPress: () => void;
+  title: string;
+  price: string;
+  per: string;
+  tag?: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      className={`flex-1 rounded-tile px-4 py-3 ${
+        selected ? 'border-[1.5px] border-accent bg-accent-soft' : 'border border-stroke bg-surface-2'
+      }`}
+    >
+      {/* Tag below the title, never beside it: side-by-side, the pill collided
+          with "Annual" on 402pt widths (ui-audit D7). */}
+      <Caption className={selected ? 'text-accent' : 'text-fg-3'}>{title}</Caption>
+      {tag ? (
+        <View className="mt-1 self-start rounded-pill bg-accent px-1.5 py-0.5">
+          <Caption className="text-[9px] font-sora-bold text-accent-ink">{tag}</Caption>
+        </View>
+      ) : null}
+      <Display className="mt-1 text-[22px] leading-7 text-fg">{price}</Display>
+      <Caption className="text-[11px] text-fg-3">{per}</Caption>
+    </Pressable>
   );
 }
 

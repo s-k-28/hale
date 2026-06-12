@@ -54,12 +54,12 @@ export function inviteShareParams(text: string, url: string): { message: string;
 /** Referral share text — the typed code rides along as the through-install fallback. */
 export function referralShareText(code: string): string {
   return (
-    `I'm quitting nicotine with HALE, be my accountability buddy and we'll keep each other ` +
+    `I'm quitting nicotine with HALE. Be my accountability buddy, and we'll keep each other ` +
     `on streak. Join me (invite code ${code})`
   );
 }
 
 /** Plain buddy-invite share text (no referral code attached). */
 export function buddyShareText(): string {
-  return `I'm quitting nicotine with HALE, be my accountability buddy? We'll keep each other on streak.`;
+  return `I'm quitting nicotine with HALE. Be my accountability buddy? We'll keep each other on streak.`;
 }

@@ -101,9 +101,9 @@ export function InviteCodeEntry() {
           disabled={!code.trim() || state === 'checking'}
           accessibilityRole="button"
           accessibilityLabel="Apply invite code"
-          className="rounded-xl bg-accent px-5 py-3 active:opacity-80 disabled:opacity-40"
+          className="rounded-xl border border-stroke bg-surface-2 px-5 py-3 active:opacity-80 disabled:opacity-50"
         >
-          <Body className="font-sora-bold text-sm text-accent-ink">
+          <Body className="font-sora-bold text-sm text-accent">
             {state === 'checking' ? '…' : 'Apply'}
           </Body>
         </Pressable>

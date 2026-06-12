@@ -14,11 +14,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toast } from 'sonner-native';
 import { ArrowUp, Wind, MessageCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
-import { presentPaywall } from '@/lib/paywall';
 import { Body, Display, Muted, H2 as Heading, Eyebrow as Label } from '@/ui';
 import { clean } from '@/theme/clean';
 import Animated, {
@@ -59,10 +57,11 @@ export default function Coach() {
   // without firing on the initial transcript load.
   const prevLastRef = useRef<{ id: string; role: string } | null | undefined>(undefined);
 
-  const onUpgradeSage = useCallback(async () => {
+  // Hard paywall: every upsell routes to OUR paywall screen — never the RC
+  // native sheet (same rule as LockedFeature).
+  const onUpgradeSage = useCallback(() => {
     track(Ev.PAYWALL_FEATURE_TAPPED, { feature: 'unlimited_sage' });
-    const result = await presentPaywall('unlimited_sage');
-    if (result === PAYWALL_RESULT.NOT_PRESENTED) router.push('/paywall');
+    router.push('/paywall');
   }, []);
 
   // Coach efficacy north-star: one session event per screen mount.
@@ -342,7 +341,7 @@ function EmptyState() {
         I&apos;m here the second a craving hits. Tell me what&apos;s going on — no
         judgment, just backup while you ride it out. It peaks, then it passes.
       </Body>
-      <Label className="mt-8 text-fg-2">Cravings pass · you don&apos;t quit on yourself</Label>
+      <Label className="mt-8 text-center text-fg-2">Cravings pass · you don&apos;t quit on yourself</Label>
     </View>
   );
 }
@@ -367,8 +366,8 @@ function BreathingSage() {
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <Animated.View style={style}>
-      <View className="h-28 w-28 items-center justify-center rounded-full bg-accent">
-        <Wind color={clean.accentInk} size={48} strokeWidth={2.2} />
+      <View className="h-28 w-28 items-center justify-center rounded-full bg-accent-soft">
+        <Wind color={clean.accent} size={48} strokeWidth={2.2} />
       </View>
     </Animated.View>
   );
