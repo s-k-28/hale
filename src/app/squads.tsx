@@ -105,7 +105,7 @@ export default function Squads() {
         </Pressable>
 
         <Label className="text-accent">Quit together</Label>
-        <Heading className="mt-1 text-5xl leading-[0.9]">SQUADS</Heading>
+        <Heading className="mt-1 text-5xl leading-tight">Squads</Heading>
         <Body className="mt-2 text-base leading-6 text-fg-2">
           Pick a group going through the same thing. Start a 6-week challenge and stay clean
           together.

@@ -549,18 +549,25 @@ function BuddyRow({
   const buddy = data?.buddy ?? null;
 
   // Streak framing line — your own progress, shown alongside the buddy row.
-  const streakLine = landmark
-    ? `${landmark - streak} day${landmark - streak === 1 ? '' : 's'} to your ${landmark}-day mark`
-    : `Best yet, ${longestStreak} days clean`;
+  // Dedupes the awkward "0 day streak" + "1 day to your 1-day mark" repetition:
+  // a day-0 user gets a clean starting line; otherwise we lead with the streak and
+  // append the next landmark (skipping the redundant "X-day to your X-day mark").
+  let streakLine: string;
+  if (streak === 0) {
+    streakLine = 'Your streak starts at your first check-in';
+  } else if (landmark) {
+    const remaining = landmark - streak;
+    streakLine = `${streak}-day streak · ${remaining} day${remaining === 1 ? '' : 's'} from your ${landmark}-day mark`;
+  } else {
+    streakLine = `${streak}-day streak · best yet, ${longestStreak} days clean`;
+  }
 
   if (!buddy) {
     return (
       <View>
         <View className="mb-3 flex-row items-center gap-2">
           <Flame color={clean.fg3} size={16} strokeWidth={2.2} />
-          <Eyebrow>
-            {streak} day streak · {streakLine}
-          </Eyebrow>
+          <Eyebrow>{streakLine}</Eyebrow>
         </View>
         <Pressable
           onPress={() => {
@@ -589,9 +596,7 @@ function BuddyRow({
     <View>
       <View className="mb-3 flex-row items-center gap-2">
         <Flame color={clean.fg3} size={16} strokeWidth={2.2} />
-        <Eyebrow>
-          {streak} day streak · {streakLine}
-        </Eyebrow>
+        <Eyebrow>{streakLine}</Eyebrow>
       </View>
       <Pressable
         onPress={() => {

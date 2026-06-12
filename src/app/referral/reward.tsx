@@ -1,9 +1,10 @@
 import { View } from 'react-native'
-import { router } from 'expo-router'
+import { Redirect, router } from 'expo-router'
 import { useQuery } from 'convex/react'
 import { Gift } from 'lucide-react-native'
 import { api } from '@convex/_generated/api'
-import { Screen, H1, Lead, Button, Badge } from '@/ui'
+import { REFERRAL_REWARD_DAYS } from '@convex/model/entitlement'
+import { Screen, H1, Lead, Button, Badge, Body } from '@/ui'
 import { clean } from '@/theme/clean'
 
 /**
@@ -12,10 +13,22 @@ import { clean } from '@/theme/clean'
  * server-side (exactly-once, at the 3rd completed referral) and REWARD_GRANTED
  * already fired from the pairing flow — no new grant logic, no new events.
  * Reached from the referral hub once the reward window is active.
+ *
+ * Guard: if rewardActive is false (e.g. reward expired or not yet unlocked),
+ * redirect to the referral hub rather than rendering a "0 days" headline.
  */
 export default function RewardUnlocked() {
   const progress = useQuery(api.referrals.myProgress)
-  const days = progress?.rewardDaysRemaining ?? 7
+
+  // While loading, render nothing (Screen would flash).
+  if (progress === undefined) return null
+
+  // Not active — send them back to the hub instead of showing "0 days of HALE+".
+  if (!progress?.rewardActive) {
+    return <Redirect href="/referral" />
+  }
+
+  const days = progress.rewardDaysRemaining ?? REFERRAL_REWARD_DAYS
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -26,12 +39,17 @@ export default function RewardUnlocked() {
         </View>
         <Badge label="Reward unlocked" tone="warm" className="mt-7" />
         <H1 className="mt-3">
-          {days} {days === 1 ? 'day' : 'days'} of HALE+,{'\n'}on your friends
+          {REFERRAL_REWARD_DAYS} days of HALE+,{'\n'}on your friends.
         </H1>
         <Lead className="mt-4">
           Full analytics, unlimited Sage, every tool, free because you brought your people
           with you. No card, nothing auto-charges.
         </Lead>
+        {days < REFERRAL_REWARD_DAYS ? (
+          <Body className="mt-3 text-fg-2">
+            {days} {days === 1 ? 'day' : 'days'} remaining.
+          </Body>
+        ) : null}
       </View>
 
       <View className="gap-2 px-gutter pb-[30px] pt-4">

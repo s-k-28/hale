@@ -136,7 +136,7 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
                 {Array.from({ length: target }).map((_, i) => (
                   <View
                     key={i}
-                    className={`h-2 flex-1 rounded-full ${i < completedCount ? 'bg-warm' : 'bg-track'}`}
+                    className={`h-2 flex-1 rounded-full ${i < completedCount ? 'bg-warm' : 'border border-stroke-2 bg-surface-2'}`}
                   />
                 ))}
               </View>

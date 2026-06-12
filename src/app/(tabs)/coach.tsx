@@ -334,8 +334,8 @@ function EmptyState() {
       <BreathingSage />
       <Display className="mt-6 text-center text-5xl text-fg">Hey,{'\n'}I&apos;m Sage</Display>
       <Body className="mt-4 max-w-[300px] text-center text-base leading-6 text-fg-2">
-        Here the second a craving hits. Tell me what&apos;s going on, no judgment,
-        just backup to ride it out. It peaks, then it passes.
+        I&apos;m here the second a craving hits. Tell me what&apos;s going on — no
+        judgment, just backup while you ride it out. It peaks, then it passes.
       </Body>
       <Label className="mt-8 text-fg-2">Cravings pass · you don&apos;t quit on yourself</Label>
     </View>

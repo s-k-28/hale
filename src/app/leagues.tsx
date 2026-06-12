@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { router } from 'expo-router';
 import { useMutation, useQuery } from 'convex/react';
-import { Crown, Layers, Trophy } from 'lucide-react-native';
+import { ChevronLeft, Crown, Layers, Trophy } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
@@ -89,11 +90,19 @@ export default function Leagues() {
         contentContainerClassName="px-6 pb-16 pt-4"
         showsVerticalScrollIndicator={false}
       >
-        <View className="flex-row items-center">
-          <Trophy color={clean.accent} size={28} strokeWidth={2.5} />
-          <Heading className="ml-2 text-4xl">LEAGUE</Heading>
-        </View>
-        <Body className="mt-1 text-base text-fg-2">
+        {/* Header — back chevron + wordmark, matching sibling screens. */}
+        <Pressable
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/today'))}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          className="mb-4 h-10 w-10 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-80"
+        >
+          <ChevronLeft color={clean.fg} size={22} strokeWidth={2.5} />
+        </Pressable>
+
+        <Label className="text-accent">Weekly ranking</Label>
+        <Heading className="mt-1 text-5xl leading-tight">League</Heading>
+        <Body className="mt-2 text-base text-fg-2">
           A fresh leaderboard every week. Most clean days wins.
         </Body>
 

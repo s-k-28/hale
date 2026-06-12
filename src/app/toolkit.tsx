@@ -65,7 +65,7 @@ export default function Toolkit() {
           </Pressable>
           <View>
             <Label className="text-accent">Craving depth</Label>
-            <Heading className="mt-0.5 text-3xl leading-[0.9]">TOOLKIT</Heading>
+            <Heading className="mt-1 text-3xl leading-tight">Toolkit</Heading>
           </View>
         </View>
         <Badge label="HALE+" tone="soft" />

@@ -810,7 +810,7 @@ function SlipChoose({
         <Header title="No shame here" onBack={onCancel} />
 
         <View className="mt-4">
-          <Heading className="text-4xl leading-[0.95]">Slips are part of quitting,</Heading>
+          <Heading className="text-4xl leading-[0.95]">Slips are part of quitting.</Heading>
           <Display className="mt-2 text-5xl leading-tight text-accent">Not the end.</Display>
         </View>
         <Body className="mt-5 text-base leading-relaxed text-fg-2">
@@ -977,8 +977,11 @@ function RecoverKindly({
           </View>
           <View className="border-t border-stroke px-5 py-4">
             <SageNote chip={false}>
-              You already proved you can do this for {bestStreak > 0 ? `${bestStreak} ` : 'a '}
-              {bestStreak === 1 ? 'day' : 'days'}. You can do it again, starting now.
+              {bestStreak >= 2
+                ? `You already proved you can do this for ${bestStreak} days. You can do it again, starting now.`
+                : bestStreak === 1
+                  ? 'You already proved you can do this for a day. You can do it again, starting now.'
+                  : "Starting is the hardest part, and you've already done it once. Do it again, right now."}
             </SageNote>
           </View>
         </Card>
@@ -1040,12 +1043,12 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
         hitSlop={12}
         accessibilityRole="button"
         accessibilityLabel="Back"
-        className="h-10 w-10 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-70"
+        className="h-11 w-11 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-70"
       >
         <ChevronLeft color={clean.fg} size={20} strokeWidth={2.5} />
       </Pressable>
       <Label className="text-fg-2">{title}</Label>
-      <View className="h-10 w-10" />
+      <View className="h-11 w-11" />
     </View>
   );
 }
