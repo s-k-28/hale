@@ -353,7 +353,7 @@ export default function Today() {
         <View className="mb-3 flex-row gap-3">
           <StatTile label="Money saved" value={money(state.currentMoneySaved)} />
           {/* Soften the bare "0%" on day 0, frame it as the start, not a void. */}
-          <StatTile label="Recovery" value={recoveryPct === 0 ? 'Day 1' : `${recoveryPct}%`} />
+          <StatTile label="Typical recovery" value={recoveryPct === 0 ? 'Day 1' : `${recoveryPct}%`} />
         </View>
         </RiseIn>
         {/* Lifetime line only when it ADDS info, i.e. there's history beyond this

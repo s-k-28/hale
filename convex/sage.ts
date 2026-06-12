@@ -81,6 +81,11 @@ export const send = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
     const user = await ctx.db.get(userId);
+    // Guideline 5.1.2(i): chat content reaches third-party AI (Groq replies,
+    // Google embeddings), so no message is accepted before explicit consent
+    // (users.setAiConsent). The coach UI gates first; this is the enforcement.
+    if (user?.aiConsentAt === undefined)
+      return { accepted: false as const, tier: 'free' as const, dailyCount: 0, capType: 'consent_required' as const };
     const now = Date.now();
     const tier = tierOf(user, now);
     const today = user?.timezone

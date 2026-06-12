@@ -11,6 +11,7 @@ import * as Haptics from 'expo-haptics';
 import { Screen } from '@/components/ui/Screen';
 import { Heading, Body, Label } from '@/components/ui/Text';
 import { RiseIn } from '@/components/motion';
+import { CommunityRulesGate } from '@/components/community/CommunityRulesGate';
 import { colors } from '@/theme/colors';
 import { COMMUNITY_GROUPS, COMMUNITY_TAB_TITLE } from '@/constants/communityCopy';
 
@@ -88,6 +89,7 @@ export default function Community() {
   const realGroups = groups.filter((g) => !g.isGlobal);
 
   return (
+    <CommunityRulesGate>
     <Screen edges={['top']}>
       <ScrollView
         contentContainerClassName="px-5 pb-24 pt-3"
@@ -143,6 +145,7 @@ export default function Community() {
         ))}
       </ScrollView>
     </Screen>
+    </CommunityRulesGate>
   );
 }
 

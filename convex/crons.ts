@@ -49,4 +49,12 @@ crons.hourly('proactive-nudge', { minuteUTC: 0 }, internal.pushes.proactiveNudge
  */
 crons.interval('moderation-requeue', { minutes: 15 }, internal.communityModeration.requeueStalePending, {});
 
+/**
+ * report-sla: Guideline 1.2 requires acting on UGC reports within 24 hours
+ * (remove the content / eject the offender). This watchdog runs every 6h and
+ * pages (Convex error log + MODERATION_ALERT_EMAIL) whenever any report has
+ * been open longer than 12h — leaving real time to act inside the window.
+ */
+crons.interval('report-sla', { hours: 6 }, internal.communityModeration.alertStaleReports, {});
+
 export default crons;

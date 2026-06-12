@@ -68,19 +68,43 @@ export type CrisisAlert = {
 };
 
 /**
- * The caller's mute set (Set of anonProfileIds), loaded once per execution via
- * a prefix scan on by_muter_profile. Muting hides a pseudonym's posts AND
- * comments for the muter only — never for anyone else.
+ * The caller's blocked-ACCOUNT set, loaded once per execution via a prefix
+ * scan on by_muter_profile. Blocks are keyed by the userId behind the
+ * pseudonym (Guideline 1.2), so every handle that account uses — in any
+ * group — is hidden for the blocker. Pre-migration rows without mutedUserId
+ * fall back to resolving the profile. Never affects anyone else's view.
  */
-async function loadMutedProfileIds(
+async function loadBlockedUserIds(
   ctx: QueryCtx,
   userId: Id<'users'>,
-): Promise<Set<Id<'anonProfiles'>>> {
+): Promise<Set<Id<'users'>>> {
   const mutes = await ctx.db
     .query('communityMutes')
     .withIndex('by_muter_profile', (q) => q.eq('muterUserId', userId))
     .collect();
-  return new Set(mutes.map((m) => m.mutedProfileId));
+  const blocked = new Set<Id<'users'>>();
+  for (const m of mutes) {
+    if (m.mutedUserId) {
+      blocked.add(m.mutedUserId);
+    } else {
+      const profile = await ctx.db.get(m.mutedProfileId);
+      if (profile) blocked.add(profile.userId);
+    }
+  }
+  return blocked;
+}
+
+/**
+ * Server-side write gates shared by createPost/createComment (Guideline 1.2):
+ * banned accounts can't write, and nobody writes before affirmatively
+ * accepting the zero-tolerance community rules. Returned as friendly-copy
+ * reasons (not throws) so the composer keeps the draft.
+ */
+async function writeGate(ctx: QueryCtx, userId: Id<'users'>) {
+  const user = await ctx.db.get(userId);
+  if (user?.bannedAt !== undefined) return 'banned' as const;
+  if (user?.communityRulesAcceptedAt === undefined) return 'rules_not_accepted' as const;
+  return null;
 }
 
 /**
@@ -99,6 +123,9 @@ export const createPost = mutation({
   handler: async (ctx, { groupId, body }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
+
+    const gate = await writeGate(ctx, userId);
+    if (gate) return { ok: false as const, reason: gate };
 
     const trimmed = body.trim();
     const check = validatePostBody(trimmed);
@@ -172,17 +199,19 @@ export const feed = query({
             .order('desc')
             .paginate(paginationOpts);
 
-    // Per-execution context: the caller's mute set + groupId → slug map (the
-    // global feed tags each post with its origin group).
-    const muted = await loadMutedProfileIds(ctx, userId);
+    // Per-execution context: the caller's blocked set + groupId → slug map
+    // (the global feed tags each post with its origin group).
+    const blocked = await loadBlockedUserIds(ctx, userId);
     const groups = await ctx.db.query('communityGroups').collect();
     const slugByGroup = new Map(groups.map((g) => [g._id, g.slug]));
 
     const now = Date.now();
+    // 'removed' (admin takedown) is hidden from EVERYONE, author included.
     const visible = result.page.filter(
       (post) =>
+        post.status !== 'removed' &&
         (post.status === 'published' || post.userId === userId) &&
-        (post.userId === userId || !muted.has(post.anonProfileId)),
+        (post.userId === userId || !blocked.has(post.userId)),
     );
 
     const page: CommunityFeedItem[] = await Promise.all(
@@ -198,8 +227,9 @@ export const feed = query({
           .collect();
         const commentCount = comments.filter(
           (c) =>
+            c.status !== 'removed' &&
             (c.status === 'published' || c.userId === userId) &&
-            (c.userId === userId || !muted.has(c.anonProfileId)),
+            (c.userId === userId || !blocked.has(c.userId)),
         ).length;
 
         const isMine = post.userId === userId;
@@ -248,6 +278,9 @@ export const createComment = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
 
+    const gate = await writeGate(ctx, userId);
+    if (gate) return { ok: false as const, reason: gate };
+
     const trimmed = body.trim();
     const check = validatePostBody(trimmed);
     if (!check.ok) return { ok: false as const, reason: check.reason as 'empty' | 'too_long' };
@@ -294,13 +327,14 @@ export const comments = query({
       .query('communityComments')
       .withIndex('by_post_ts', (q) => q.eq('postId', postId))
       .collect();
-    const muted = await loadMutedProfileIds(ctx, userId);
+    const blocked = await loadBlockedUserIds(ctx, userId);
     const now = Date.now();
 
     const visible = rows.filter(
       (c) =>
+        c.status !== 'removed' &&
         (c.status === 'published' || c.userId === userId) &&
-        (c.userId === userId || !muted.has(c.anonProfileId)),
+        (c.userId === userId || !blocked.has(c.userId)),
     );
 
     return await Promise.all(
@@ -350,6 +384,11 @@ export const toggleReaction = mutation({
       .query('communityReactions')
       .withIndex('by_post_user', (q) => q.eq('postId', postId).eq('userId', userId))
       .first();
+
+    // Ejected accounts can't interact (Guideline 1.2) — silent no-op.
+    const caller = await ctx.db.get(userId);
+    if (caller?.bannedAt !== undefined)
+      return { reacted: existing !== null, reactionCount: post.reactionCount };
 
     if (existing) {
       await ctx.db.delete(existing._id);

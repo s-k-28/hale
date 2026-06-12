@@ -27,3 +27,13 @@ export async function isPremium(): Promise<boolean> {
     return false;
   }
 }
+
+/** Account-deletion cleanup. Throws if already anonymous — safe to swallow. */
+export async function logOutPurchaser() {
+  if (!has('revenueCatIosKey') && !has('revenueCatAndroidKey')) return;
+  try {
+    await Purchases.logOut();
+  } catch {
+    /* already anonymous / scaffold */
+  }
+}

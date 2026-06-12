@@ -29,6 +29,8 @@ import {
   MUTE_ACTION_LABEL,
   REACTION_LABEL,
   REPORT_ACTION_LABEL,
+  REPORT_COMMENT_ACTION_LABEL,
+  REPORT_REASONS,
 } from '@/constants/communityCopy';
 import { Composer } from './Composer';
 
@@ -48,9 +50,28 @@ export type PostCardProps = {
   index?: number; // RiseIn stagger position
   showGroupTag?: boolean; // global feed: show origin-group Pill (groupSlug)
   onToggleReaction: (postId: Id<'communityPosts'>) => void;
-  onReport: (args: { targetType: 'post' | 'comment'; targetId: string }) => void;
+  onReport: (args: { targetType: 'post' | 'comment'; targetId: string; reason: string }) => void;
   onMuteAuthor: (args: { profileId: Id<'anonProfiles'>; handle: string }) => void;
 };
+
+/**
+ * Report flow (Guideline 1.2): a reason picker so triage can prioritize
+ * (self-harm reports jump the queue). The chosen key lands in
+ * communityReports.reason.
+ */
+function openReportReasons(
+  targetType: 'post' | 'comment',
+  targetId: string,
+  onReport: PostCardProps['onReport'],
+) {
+  Alert.alert("What's going on?", 'Your report is anonymous.', [
+    ...REPORT_REASONS.map((r) => ({
+      text: r.label,
+      onPress: () => onReport({ targetType, targetId, reason: r.key }),
+    })),
+    { text: 'Cancel', style: 'cancel' as const },
+  ]);
+}
 
 // Pressable driven by Reanimated so the press transform runs on the UI thread.
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -116,20 +137,31 @@ function AnonAvatar({ seed, handle, size = 36 }: { seed: string; handle: string;
 function CommentRow({
   comment,
   onReport,
+  onMuteAuthor,
 }: {
   comment: CommunityCommentItem;
   onReport: PostCardProps['onReport'];
+  onMuteAuthor: PostCardProps['onMuteAuthor'];
 }) {
   const isPending = comment.isMine && comment.status === 'pending';
+  // Report + block both offered on others' comments (1.2 requires both
+  // actions on every piece of UGC, not just top-level posts).
   const confirmReport = () => {
-    Alert.alert(comment.handle, undefined, [
+    const buttons: AlertButton[] = [
       {
-        text: REPORT_ACTION_LABEL,
-        onPress: () =>
-          onReport({ targetType: 'comment', targetId: comment.commentId }),
+        text: REPORT_COMMENT_ACTION_LABEL,
+        onPress: () => openReportReasons('comment', comment.commentId, onReport),
       },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    ];
+    if (!comment.isMine) {
+      buttons.push({
+        text: MUTE_ACTION_LABEL(comment.handle),
+        onPress: () =>
+          onMuteAuthor({ profileId: comment.authorProfileId, handle: comment.handle }),
+      });
+    }
+    buttons.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert(comment.handle, undefined, buttons);
   };
   return (
     <View className="flex-row gap-2.5">
@@ -173,12 +205,12 @@ export function PostCard({
 
   const isPending = item.isMine && item.status === 'pending';
 
-  // Report always offered; mute hidden on your own posts.
+  // Report always offered; block hidden on your own posts.
   const openOverflow = () => {
     const buttons: AlertButton[] = [
       {
         text: REPORT_ACTION_LABEL,
-        onPress: () => onReport({ targetType: 'post', targetId: item.postId }),
+        onPress: () => openReportReasons('post', item.postId, onReport),
       },
     ];
     if (!item.isMine) {
@@ -281,7 +313,12 @@ export function PostCard({
               <ActivityIndicator color={colors.volt} />
             ) : (
               comments.map((comment) => (
-                <CommentRow key={comment.commentId} comment={comment} onReport={onReport} />
+                <CommentRow
+                  key={comment.commentId}
+                  comment={comment}
+                  onReport={onReport}
+                  onMuteAuthor={onMuteAuthor}
+                />
               ))
             )}
             <Composer

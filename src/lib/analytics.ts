@@ -1,5 +1,14 @@
 import PostHog from 'posthog-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { env, has } from './config';
+
+/**
+ * PRIVACY GUARDRAIL (Guideline 5.1.3(i)): events here may carry coarse
+ * health-context dims (craving intensity, relapse trigger, quit stage) ONLY
+ * for app-functionality/health-management analysis. Never add message/post
+ * CONTENT, never export these properties to advertising or marketing tools,
+ * and keep every dim disclosed in the privacy policy + App Privacy labels.
+ */
 
 /**
  * The §9 event map — single source of truth. Every Phase-1 feature MUST
@@ -107,6 +116,45 @@ export const posthog: PostHog | null = has('posthogKey')
 /** Back-compat: the client is now an eager singleton (see `posthog` above). */
 export function initAnalytics(): PostHog | null {
   return posthog;
+}
+
+// ── Analytics consent (Guideline 5.1.1(ii)): collection is disclosed at the
+// onboarding welcome step and withdrawable any time from You ▸ Settings. The
+// opt-out is OUR persisted flag (re-applied at every launch) so it can't
+// drift from PostHog's internal state across SDK upgrades. ──
+const ANALYTICS_OPT_OUT_KEY = 'hale_analytics_opt_out';
+
+/** Re-apply a stored opt-out at launch. Called once from the root layout. */
+export async function initAnalyticsConsent() {
+  try {
+    if ((await AsyncStorage.getItem(ANALYTICS_OPT_OUT_KEY)) === '1') await posthog?.optOut();
+  } catch {
+    /* storage unavailable — default stays opted-in per the disclosed default */
+  }
+}
+
+export async function isAnalyticsEnabled(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(ANALYTICS_OPT_OUT_KEY)) !== '1';
+  } catch {
+    return true;
+  }
+}
+
+/** The You-tab settings toggle: persist the choice and apply it immediately. */
+export async function setAnalyticsEnabled(enabled: boolean) {
+  try {
+    await AsyncStorage.setItem(ANALYTICS_OPT_OUT_KEY, enabled ? '0' : '1');
+  } catch {
+    /* still apply for this session */
+  }
+  if (enabled) await posthog?.optIn();
+  else await posthog?.optOut();
+}
+
+/** Account-deletion cleanup: drop the local identity + queued events. */
+export function resetAnalyticsIdentity() {
+  posthog?.reset();
 }
 
 /** Cohort/wedge properties (has_buddy, coach_used, plan_type) attach here. */

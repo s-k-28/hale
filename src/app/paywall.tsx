@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import Purchases from 'react-native-purchases';
 import { PAYWALL_RESULT } from 'react-native-purchases-ui';
+import { toast } from 'sonner-native';
 import { Check, X, Bot, LineChart, Users, LayoutGrid } from 'lucide-react-native';
 import { presentPaywall } from '@/lib/paywall';
+import { APPLE_EULA_URL, PRIVACY_POLICY_URL } from '@/constants/legal';
 import { track, Ev } from '@/lib/analytics';
 import { Display, Heading, Body, Caption } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -172,9 +175,11 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
           ))}
         </View>
 
-        {/* Reassurance */}
+        {/* Reassurance — full auto-renewal disclosure (3.1.2): price, period,
+            and renewal mechanics stated on the purchase surface itself. */}
         <Caption className="mt-5 text-center leading-relaxed">
-          14-day free trial, then billed yearly. Cancel anytime.
+          14-day free trial, then $79.99/year. Auto-renews until cancelled —
+          cancel anytime in your App Store settings, at least 24h before renewal.
         </Caption>
       </ScrollView>
 
@@ -201,6 +206,41 @@ function HalePlusUpsell({ onMaybeLater }: { onMaybeLater: () => void }) {
         >
           <Caption className="text-ash">Maybe later</Caption>
         </Pressable>
+
+        {/* Subscription compliance rail (3.1.2): restore + Terms (Apple EULA)
+            + privacy policy must be reachable from the purchase surface. */}
+        <View className="flex-row items-center justify-center gap-2 pb-1">
+          <Pressable
+            accessibilityRole="button"
+            onPress={async () => {
+              try {
+                await Purchases.restorePurchases();
+                toast('Purchases restored.');
+              } catch {
+                toast.error("Couldn't restore. Check your App Store account.");
+              }
+            }}
+            className="py-2 active:opacity-70"
+          >
+            <Caption className="text-ash">Restore purchases</Caption>
+          </Pressable>
+          <Caption className="text-ash">·</Caption>
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => Linking.openURL(APPLE_EULA_URL).catch(() => {})}
+            className="py-2 active:opacity-70"
+          >
+            <Caption className="text-ash">Terms of Use</Caption>
+          </Pressable>
+          <Caption className="text-ash">·</Caption>
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {})}
+            className="py-2 active:opacity-70"
+          >
+            <Caption className="text-ash">Privacy</Caption>
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );

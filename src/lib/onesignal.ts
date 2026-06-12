@@ -56,3 +56,9 @@ export function setUserTags(tags: Record<string, string>) {
   if (!has('oneSignalAppId')) return;
   OneSignal.User.addTags(tags);
 }
+
+/** Account-deletion cleanup: detach this device from the deleted identity. */
+export function logoutOneSignal() {
+  if (!has('oneSignalAppId')) return;
+  OneSignal.logout();
+}

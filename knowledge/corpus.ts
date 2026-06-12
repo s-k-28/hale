@@ -1027,7 +1027,7 @@ export const CORPUS: CorpusEntry[] = [
     "sourceName": "PubMed Central",
     "domain": "ncbi.nlm.nih.gov",
     "topic": "vaping",
-    "referenceOnly": false,
+    "referenceOnly": true,
     "retrievalDate": "2026-06-10",
     "chunks": [
       "Clinical guidance for e-cigarette (vaping) cessation was developed through a modified Delphi consensus process run from September through December 2021, involving 24 international experts in tobacco and e-cigarette cessation plus a panel of people with lived experience of vaping. The process produced 24 evidence-informed recommendations and 2 consensus statements across eight domains, covering assessment, treatment, dual use, pharmacotherapy, behavioral therapy, harm reduction, and relapse prevention. Because the evidence base for e-cigarette cessation specifically remains weak, most recommendations were adapted from established tobacco cessation research.",
@@ -1572,7 +1572,7 @@ export const CORPUS: CorpusEntry[] = [
     "sourceName": "NHS",
     "domain": "nhs.uk",
     "topic": "vaping",
-    "referenceOnly": false,
+    "referenceOnly": true,
     "retrievalDate": "2026-06-10",
     "chunks": [
       "Nicotine vaping is substantially less harmful than smoking and is one of the most effective tools for quitting smoking. It is not completely harmless and carries some risks, so it is only recommended for adult smokers as a way to stop smoking. Children and people who have never smoked should never vape.",

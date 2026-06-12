@@ -341,6 +341,13 @@ function RecoveryProgress({ recovery }: { recovery: Recovery }) {
           Every tracked recovery milestone reached. Your body has come a long way.
         </Body>
       )}
+
+      {/* Methodology note (Guideline 1.4.1): population-typical, cited, never
+          a measurement of this user's body. */}
+      <Body className="mt-4 text-xs leading-relaxed text-ash">
+        Typical timeline as published by the US CDC, WHO, and US Surgeon
+        General — population averages, not measurements of your body.
+      </Body>
     </View>
   );
 }

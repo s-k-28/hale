@@ -1,15 +1,48 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Pressable,
+  ScrollView,
+  Switch,
+  View,
+} from 'react-native';
 import type { View as RNView } from 'react-native';
 import { Redirect, router } from 'expo-router';
-import { useQuery } from 'convex/react';
-import { BarChart3, Check, ChevronRight, Crown, Gift, Share2, Sparkles } from 'lucide-react-native';
+import { useMutation, useQuery } from 'convex/react';
+import { useAuthActions } from '@convex-dev/auth/react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { toast } from 'sonner-native';
+import {
+  BarChart3,
+  Check,
+  ChevronRight,
+  Crown,
+  FileText,
+  Gift,
+  LifeBuoy,
+  Lock,
+  Share2,
+  Sparkles,
+  Trash2,
+  UserX,
+} from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 import {
   HEALTH_MILESTONES,
   reachedHealthMilestones,
 } from '@convex/model/plan';
-import { track, Ev } from '@/lib/analytics';
+import {
+  track,
+  Ev,
+  isAnalyticsEnabled,
+  setAnalyticsEnabled,
+  resetAnalyticsIdentity,
+} from '@/lib/analytics';
+import { logoutOneSignal } from '@/lib/onesignal';
+import { logOutPurchaser } from '@/lib/revenuecat';
 import TransformationCard, { shareCard } from '@/components/TransformationCard';
 import { Screen } from '@/components/ui/Screen';
 import { Display, Heading, Body, Label } from '@/components/ui/Text';
@@ -18,6 +51,14 @@ import { StatTile } from '@/components/ui/StatTile';
 import { Pill } from '@/components/ui/Pill';
 import { LockedFeature } from '@/components/ui/LockedFeature';
 import { colors } from '@/theme/colors';
+import { UNMUTE_CONFIRMATION } from '@/constants/communityCopy';
+import {
+  APPLE_EULA_URL,
+  MANAGE_SUBSCRIPTIONS_URL,
+  PRIVACY_POLICY_URL,
+  SUPPORT_EMAIL,
+  SUPPORT_MAILTO,
+} from '@/constants/legal';
 
 /**
  * You — the profile / pride screen (P3). Three jobs:
@@ -230,7 +271,9 @@ function YouContent({
             </View>
           )}
           <Body className="mt-3 px-1 text-xs leading-relaxed text-ash">
-            Commonly reported recovery timeline, supportive, not medical advice.
+            Typical recovery timeline as published by the US CDC, WHO, and US
+            Surgeon General — population averages, not measurements of your
+            body. Supportive, not medical advice.
           </Body>
         </View>
 
@@ -313,8 +356,194 @@ function YouContent({
             onPress={() => router.push('/analytics')}
           />
         </View>
+
+        {/* Settings & support — the App Review surface: published contact
+            (1.2), privacy policy + terms in-app (5.1.1(i)/3.1.2), block-list
+            management (1.2), analytics withdrawal (5.1.1(ii)), and in-app
+            account deletion (5.1.1(v)). */}
+        <SettingsSection premium={state.premium} />
       </ScrollView>
     </Screen>
+  );
+}
+
+function SettingsSection({ premium }: { premium: boolean }) {
+  const { signOut } = useAuthActions();
+  const deleteAccount = useMutation(api.users.deleteAccount);
+  const unmuteProfile = useMutation(api.communityModeration.unmuteProfile);
+  const mutes = useQuery(api.communityModeration.myMutes, {});
+
+  const [blockedOpen, setBlockedOpen] = useState(false);
+  const [analyticsOn, setAnalyticsOn] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    isAnalyticsEnabled().then(setAnalyticsOn);
+  }, []);
+
+  const onToggleAnalytics = (enabled: boolean) => {
+    setAnalyticsOn(enabled);
+    void setAnalyticsEnabled(enabled);
+  };
+
+  const onUnblock = async (profileId: Id<'anonProfiles'>, handle: string) => {
+    try {
+      await unmuteProfile({ profileId });
+      toast(UNMUTE_CONFIRMATION(handle));
+    } catch {
+      /* reactive list simply stays as-is */
+    }
+  };
+
+  const doDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount({});
+    } catch {
+      setDeleting(false);
+      toast.error("Couldn't delete your account. Please try again or email " + SUPPORT_EMAIL);
+      return;
+    }
+    // Server data is gone — best-effort local/provider cleanup, then out.
+    resetAnalyticsIdentity();
+    logoutOneSignal();
+    await logOutPurchaser();
+    await AsyncStorage.clear().catch(() => {});
+    await signOut().catch(() => {
+      /* server session already cascaded away — local state is what matters */
+    });
+    router.replace('/(onboarding)/welcome');
+  };
+
+  const onDeleteAccount = () => {
+    Alert.alert(
+      'Delete your account?',
+      'This permanently erases your quit history, chats, community posts, and profile. It cannot be undone.' +
+        (premium
+          ? '\n\nDeleting your account does NOT cancel your App Store subscription — manage that with Apple.'
+          : ''),
+      [
+        { text: 'Cancel', style: 'cancel' },
+        ...(premium
+          ? [
+              {
+                text: 'Manage subscription',
+                onPress: () => Linking.openURL(MANAGE_SUBSCRIPTIONS_URL).catch(() => {}),
+              },
+            ]
+          : []),
+        { text: 'Delete forever', style: 'destructive', onPress: () => void doDelete() },
+      ],
+    );
+  };
+
+  return (
+    <View className="mt-8">
+      <Label className="mb-3 ml-1">Settings &amp; support</Label>
+      <View className="gap-3">
+        <YouLink
+          icon={<LifeBuoy color={colors.volt} size={20} strokeWidth={2.5} />}
+          title="Contact support"
+          sub={SUPPORT_EMAIL}
+          onPress={() => Linking.openURL(SUPPORT_MAILTO).catch(() => {})}
+        />
+        <YouLink
+          icon={<Lock color={colors.volt} size={20} strokeWidth={2.5} />}
+          title="Privacy policy"
+          sub="What we collect and why."
+          onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {})}
+        />
+        <YouLink
+          icon={<FileText color={colors.volt} size={20} strokeWidth={2.5} />}
+          title="Terms of use"
+          sub="The agreement behind HALE+."
+          onPress={() => Linking.openURL(APPLE_EULA_URL).catch(() => {})}
+        />
+
+        {/* Blocked members — manage the account-level block list. */}
+        <View className="rounded-2xl border border-line bg-coal">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Blocked members"
+            accessibilityState={{ expanded: blockedOpen }}
+            onPress={() => setBlockedOpen((open) => !open)}
+            className="flex-row items-center px-5 py-4 active:bg-card"
+          >
+            <UserX color={colors.volt} size={20} strokeWidth={2.5} />
+            <View className="ml-3 flex-1">
+              <Body className="font-body-semibold text-base text-chalk">Blocked members</Body>
+              <Body className="mt-0.5 text-sm text-ash">
+                {mutes && mutes.length > 0
+                  ? `${mutes.length} blocked`
+                  : "No one blocked — you'd never see their posts again."}
+              </Body>
+            </View>
+            <ChevronRight
+              color={colors.ash}
+              size={20}
+              style={{ transform: [{ rotate: blockedOpen ? '90deg' : '0deg' }] }}
+            />
+          </Pressable>
+          {blockedOpen &&
+            (mutes ?? []).map((m) => (
+              <View
+                key={m.profileId}
+                className="flex-row items-center border-t border-line px-5 py-3"
+              >
+                <Body className="flex-1 text-sm text-chalk">{m.handle}</Body>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Unblock ${m.handle}`}
+                  onPress={() => void onUnblock(m.profileId, m.handle)}
+                  className="rounded-full border border-line px-3 py-1.5 active:opacity-70"
+                >
+                  <Label>Unblock</Label>
+                </Pressable>
+              </View>
+            ))}
+        </View>
+
+        {/* Analytics consent withdrawal (5.1.1(ii)) — applies immediately. */}
+        <View className="flex-row items-center rounded-2xl border border-line bg-coal px-5 py-4">
+          <BarChart3 color={colors.volt} size={20} strokeWidth={2.5} />
+          <View className="ml-3 flex-1 pr-3">
+            <Body className="font-body-semibold text-base text-chalk">Share anonymous analytics</Body>
+            <Body className="mt-0.5 text-sm text-ash">
+              Usage data that helps us improve HALE. Never sold, never for ads.
+            </Body>
+          </View>
+          <Switch
+            value={analyticsOn}
+            onValueChange={onToggleAnalytics}
+            trackColor={{ true: colors.volt, false: colors.line }}
+            accessibilityLabel="Share anonymous analytics"
+          />
+        </View>
+
+        {/* Account deletion (5.1.1(v)) — in-app, full erasure. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Delete account"
+          onPress={onDeleteAccount}
+          disabled={deleting}
+          className="flex-row items-center rounded-2xl border border-sos/40 bg-coal px-5 py-4 active:bg-card"
+        >
+          {deleting ? (
+            <ActivityIndicator color={colors.sos} />
+          ) : (
+            <Trash2 color={colors.sos} size={20} strokeWidth={2.5} />
+          )}
+          <View className="ml-3 flex-1">
+            <Body className="font-body-semibold text-base text-sos">
+              {deleting ? 'Deleting everything…' : 'Delete account'}
+            </Body>
+            <Body className="mt-0.5 text-sm text-ash">
+              Permanently erase your account and all your data.
+            </Body>
+          </View>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 

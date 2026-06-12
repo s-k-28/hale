@@ -21,10 +21,12 @@ import { Body, Caption, Label } from '@/components/ui/Text';
 import { PRESS_IN_SPRING, PRESS_OUT_SPRING } from '@/components/motion';
 import { colors } from '@/theme/colors';
 import {
+  BANNED_MESSAGE,
   COMPOSER_PLACEHOLDER,
   COMPOSER_PENDING_LINE,
   POST_FAILED,
   RATE_LIMIT_MESSAGE,
+  RULES_REQUIRED_MESSAGE,
 } from '@/constants/communityCopy';
 
 /**
@@ -98,6 +100,12 @@ export function Composer({
         setDraft(body); // keep the draft — nothing the writer typed is lost
         if (res.reason === 'rate_limited') {
           toast(RATE_LIMIT_MESSAGE(res.retryAtMs));
+        } else if (res.reason === 'banned') {
+          // Ejected account (Guideline 1.2) — honest copy + the appeal path.
+          setInlineError(BANNED_MESSAGE);
+        } else if (res.reason === 'rules_not_accepted') {
+          // Should be unreachable behind CommunityRulesGate; honest fallback.
+          setInlineError(RULES_REQUIRED_MESSAGE);
         } else {
           // 'empty' / 'too_long' are guarded client-side, so reaching here is
           // a race (e.g. server rules tightened) — show the generic copy.

@@ -231,7 +231,9 @@ export const requeueStalePending = internalMutation({
 });
 
 /**
- * Report a post/comment — audit trail only in v1 (no automated action).
+ * Report a post/comment — lands in the triage queue (openReports) and the
+ * report-sla cron pages the team while it sits unresolved (Guideline 1.2:
+ * concerns are acted on within 24 hours).
  * Idempotent UX: re-reporting the same target returns { ok: true } without a
  * duplicate row. The return never carries userId or the reporter's identity.
  */
@@ -263,10 +265,146 @@ export const reportContent = mutation({
   },
 });
 
+// ── Admin triage (Guideline 1.2: timely response — remove + eject within 24h) ──
+// Internal-only: run from the back office via `npx convex run`, e.g.
+//   npx convex run communityModeration:openReports
+//   npx convex run communityModeration:removeContent '{"targetType":"post","targetId":"..."}'
+//   npx convex run communityModeration:banUser '{"userId":"..."}'
+//   npx convex run communityModeration:resolveReport '{"reportId":"...","resolution":"removed"}'
+
 /**
- * Mute an anonProfile — hides that pseudonym's posts AND comments for the
- * caller only (the feed/comments queries filter against the caller's mute
- * set). Muting your own profile is a silent no-op: we return { ok: true }
+ * The open report queue, oldest first — each entry joined to its target's
+ * current body/status and the author's account id so one read is enough to
+ * decide remove/ban/dismiss.
+ */
+export const openReports = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const reports = await ctx.db.query('communityReports').order('asc').collect();
+    const open = reports.filter((r) => r.resolvedAt === undefined);
+    return await Promise.all(
+      open.map(async (r) => {
+        const doc =
+          r.targetType === 'post'
+            ? await ctx.db.get(r.targetId as Id<'communityPosts'>)
+            : await ctx.db.get(r.targetId as Id<'communityComments'>);
+        const author = doc ? await ctx.db.get(doc.userId) : null;
+        return {
+          reportId: r._id,
+          reportedAt: r.ts,
+          ageHours: Math.round((Date.now() - r.ts) / 3_600_000),
+          reason: r.reason ?? null,
+          targetType: r.targetType,
+          targetId: r.targetId,
+          body: doc?.body ?? '(deleted)',
+          status: doc?.status ?? null,
+          authorUserId: doc?.userId ?? null,
+          authorBanned: author?.bannedAt !== undefined,
+        };
+      }),
+    );
+  },
+});
+
+/** Take down a post/comment — hidden from everyone, author included. */
+export const removeContent = internalMutation({
+  args: {
+    targetType: v.union(v.literal('post'), v.literal('comment')),
+    targetId: v.string(),
+  },
+  handler: async (ctx, { targetType, targetId }) => {
+    const doc =
+      targetType === 'post'
+        ? await ctx.db.get(targetId as Id<'communityPosts'>)
+        : await ctx.db.get(targetId as Id<'communityComments'>);
+    if (!doc) return { ok: false as const, reason: 'not_found' as const };
+    await ctx.db.patch(doc._id, { status: 'removed' as const });
+    return { ok: true as const };
+  },
+});
+
+/**
+ * Eject a user from the community: createPost/createComment/toggleReaction
+ * reject while bannedAt is set. Their existing content stays subject to
+ * removeContent (ban + sweep separately so each action is auditable).
+ */
+export const banUser = internalMutation({
+  args: { userId: v.id('users') },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) return { ok: false as const, reason: 'not_found' as const };
+    if (user.bannedAt === undefined) await ctx.db.patch(userId, { bannedAt: Date.now() });
+    return { ok: true as const };
+  },
+});
+
+/** Lift a ban (appeal path). */
+export const unbanUser = internalMutation({
+  args: { userId: v.id('users') },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) return { ok: false as const, reason: 'not_found' as const };
+    await ctx.db.patch(userId, { bannedAt: undefined });
+    return { ok: true as const };
+  },
+});
+
+/** Close a report with its outcome — clears it from openReports + the SLA cron. */
+export const resolveReport = internalMutation({
+  args: {
+    reportId: v.id('communityReports'),
+    resolution: v.union(v.literal('removed'), v.literal('banned'), v.literal('dismissed')),
+  },
+  handler: async (ctx, { reportId, resolution }) => {
+    const report = await ctx.db.get(reportId);
+    if (!report) return { ok: false as const, reason: 'not_found' as const };
+    await ctx.db.patch(reportId, { resolvedAt: Date.now(), resolution });
+    return { ok: true as const };
+  },
+});
+
+// Page well inside the 24h window so there's time to actually act.
+const REPORT_SLA_PAGE_AFTER_MS = 12 * 3_600_000;
+
+/**
+ * SLA watchdog (cron: report-sla). Any report open longer than 12h logs an
+ * error (visible in the Convex dashboard) and, when MODERATION_ALERT_EMAIL is
+ * set, emails the team via email.sendEmail (itself a no-op without
+ * RESEND_API_KEY — safe before keys land).
+ */
+export const alertStaleReports = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - REPORT_SLA_PAGE_AFTER_MS;
+    const reports = await ctx.db.query('communityReports').order('asc').collect();
+    const stale = reports.filter((r) => r.resolvedAt === undefined && r.ts <= cutoff);
+    if (stale.length === 0) return { stale: 0 };
+    const oldestHours = Math.round((Date.now() - stale[0].ts) / 3_600_000);
+    console.error(
+      `[moderation] REPORT SLA: ${stale.length} open report(s), oldest ${oldestHours}h — act within 24h (Guideline 1.2)`,
+    );
+    const to = process.env.MODERATION_ALERT_EMAIL;
+    if (to) {
+      await ctx.scheduler.runAfter(0, internal.email.sendEmail, {
+        to,
+        subject: `[HALE] ${stale.length} community report(s) need action (oldest ${oldestHours}h)`,
+        html: `<p>There are <strong>${stale.length}</strong> unresolved community reports; the oldest has been open <strong>${oldestHours} hours</strong>. Apple requires action within 24 hours of a report.</p>
+<p>Triage:</p>
+<pre>npx convex run communityModeration:openReports
+npx convex run communityModeration:removeContent '{"targetType":"post","targetId":"..."}'
+npx convex run communityModeration:banUser '{"userId":"..."}'
+npx convex run communityModeration:resolveReport '{"reportId":"...","resolution":"removed"}'</pre>`,
+      });
+    }
+    return { stale: stale.length };
+  },
+});
+
+/**
+ * Block a member — hides the ACCOUNT behind the pseudonym everywhere: all
+ * their pseudonyms, posts, and comments across every group, for the caller
+ * only (the feed/comments queries filter against the caller's blocked-user
+ * set). Blocking your own profile is a silent no-op: we return { ok: true }
  * without revealing that the profile is yours.
  */
 export const muteProfile = mutation({
@@ -287,8 +425,12 @@ export const muteProfile = mutation({
       await ctx.db.insert('communityMutes', {
         muterUserId: userId,
         mutedProfileId: profileId,
+        mutedUserId: profile.userId,
         ts: Date.now(),
       });
+    } else if (existing.mutedUserId === undefined) {
+      // Pre-migration row — backfill the account key so the block follows the user.
+      await ctx.db.patch(existing._id, { mutedUserId: profile.userId });
     }
     return { ok: true as const };
   },

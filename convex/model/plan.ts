@@ -39,18 +39,24 @@ export function projectedAnnualSavings(profile: QuitProfile) {
   return dailySpend(profile) * 365;
 }
 
-/** Health-recovery milestones — "commonly reported" (NOT medical advice; disclaimed in UI). */
+/**
+ * Health-recovery milestones — population-TYPICAL timeline (Guideline 1.4.1:
+ * phrased as what typically happens after quitting, never as a measurement of
+ * this user's body). Timepoints follow the published CDC / WHO / US Surgeon
+ * General benefits-of-quitting timelines; the You tab cites them next to the
+ * list. NOT medical advice; disclaimed in UI.
+ */
 export const HEALTH_MILESTONES: { hours: number; label: string }[] = [
-  { hours: 0.33, label: 'Heart rate begins to normalize' },
-  { hours: 8, label: 'Blood oxygen returns toward normal' },
-  { hours: 24, label: 'Carbon monoxide cleared from blood' },
-  { hours: 48, label: 'Nicotine largely out of your system' },
-  { hours: 72, label: 'Breathing eases; bronchial tubes relax' },
-  { hours: 24 * 7, label: 'Taste & smell sharpen' },
-  { hours: 24 * 14, label: 'Circulation improves' },
-  { hours: 24 * 30, label: 'Cravings markedly reduced (receptors resetting)' },
-  { hours: 24 * 90, label: 'Lung function noticeably improved' },
-  { hours: 24 * 365, label: 'Heart-disease risk roughly halved vs. continuing' },
+  { hours: 0.33, label: 'Heart rate typically starts to settle' },
+  { hours: 8, label: 'Blood oxygen typically returns toward normal' },
+  { hours: 24, label: 'Carbon monoxide typically cleared from blood' },
+  { hours: 48, label: 'Nicotine largely out of the system for most people' },
+  { hours: 72, label: 'Breathing typically eases as airways relax' },
+  { hours: 24 * 7, label: 'Taste & smell typically sharpen' },
+  { hours: 24 * 14, label: 'Circulation typically improving' },
+  { hours: 24 * 30, label: 'Cravings typically ease (receptors resetting)' },
+  { hours: 24 * 90, label: 'Lung function typically improves noticeably' },
+  { hours: 24 * 365, label: 'Excess heart-disease risk typically about halved' },
 ];
 
 /** Landmark streak/day celebrations (gated — Decision: rare = powerful). */

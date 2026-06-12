@@ -1,8 +1,9 @@
-import { KeyboardAvoidingView, Platform } from 'react-native'
+import { KeyboardAvoidingView, Linking, Platform, Text } from 'react-native'
 import { Link } from 'expo-router'
 import { YStack } from 'tamagui'
 import { Screen, Display, Heading, Label, Button, Pill } from '@/components/tama'
 import { InviteCodeEntry } from '@/components/InviteCodeEntry'
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@/constants/legal'
 
 /** Welcome → quiz. Migrated to Tamagui (Bold Momentum primitives). */
 export default function Welcome() {
@@ -57,6 +58,35 @@ export default function Welcome() {
           letterSpacing={0}
         >
           Free to start · 60-second setup
+        </Label>
+        {/* Disclosure at the point of entry (5.1.1(i)/(ii)): continuing means
+            the privacy policy + terms apply, incl. anonymous usage analytics
+            (withdrawable in You ▸ Settings). */}
+        <Label
+          color="$ash"
+          opacity={0.7}
+          textAlign="center"
+          marginTop={8}
+          fontSize={11}
+          lineHeight={16}
+          textTransform="none"
+          letterSpacing={0}
+        >
+          By continuing you agree to our{' '}
+          <Text
+            style={{ textDecorationLine: 'underline' }}
+            onPress={() => Linking.openURL(TERMS_URL).catch(() => {})}
+          >
+            Terms
+          </Text>
+          {' '}and{' '}
+          <Text
+            style={{ textDecorationLine: 'underline' }}
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {})}
+          >
+            Privacy Policy
+          </Text>
+          , including anonymous usage analytics you can turn off anytime.
         </Label>
         {/* Typed-code referral fallback — the deferred-attribution path for fresh
             installs (the share message carries the code; iOS can't pass it

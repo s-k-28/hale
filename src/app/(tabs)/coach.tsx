@@ -19,8 +19,11 @@ import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { presentPaywall } from '@/lib/paywall';
-import { Body, Display, Heading, Label } from '@/components/ui/Text';
+import { Body, Caption, Display, Heading, Label } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
 import { colors } from '@/theme/colors';
+import { PRIVACY_POLICY_URL } from '@/constants/legal';
+import { Linking } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -48,6 +51,12 @@ export default function Coach() {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
   const messages = useQuery(api.sage.messages, isAuthenticated ? {} : 'skip');
   const send = useMutation(api.sage.send);
+  // Guideline 5.1.2(i): chat content goes to third-party AI (Groq replies,
+  // Google embeddings) — explicit consent gates the composer, and sage.send
+  // enforces the same flag server-side.
+  const aiConsent = useQuery(api.users.aiConsentStatus, isAuthenticated ? {} : 'skip');
+  const setAiConsent = useMutation(api.users.setAiConsent);
+  const consented = aiConsent?.consented === true;
 
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -124,8 +133,9 @@ export default function Coach() {
     }
   }, [draft, sending, send, capHit]);
 
-  const canSend = draft.trim().length > 0 && !sending;
-  const loading = authLoading || (isAuthenticated && messages === undefined);
+  const canSend = draft.trim().length > 0 && !sending && consented;
+  const loading =
+    authLoading || (isAuthenticated && (messages === undefined || aiConsent === undefined));
 
   // "Sage is thinking" — tied to REAL backend state: the user's turn is the last
   // message and Sage's reactive reply row hasn't landed yet (or the send mutation
@@ -188,6 +198,40 @@ export default function Coach() {
           />
         )}
 
+        {/* AI-consent card (5.1.2(i)) — one explicit yes before any chat data
+            leaves for third-party AI. Declining just leaves the composer
+            locked; the rest of HALE works without Sage. */}
+        {!loading && !consented ? (
+          <View className="mx-4 mb-2 rounded-2xl border border-line bg-coal px-4 py-4">
+            <Body className="font-body-semibold text-[15px] text-chalk">
+              Before you chat with Sage
+            </Body>
+            <Body className="mt-2 text-[13px] leading-5 text-ash">
+              Sage runs on third-party AI. Messages you send — plus your quit
+              stats like streak, cravings, and triggers — are shared with Groq
+              (which writes Sage&apos;s replies) and Google (which powers
+              knowledge search). They process it only to run this feature,
+              never for ads. Delete it all anytime in You ▸ Delete account.
+            </Body>
+            <Body
+              className="mt-2 text-[13px] text-volt"
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {})}
+              accessibilityRole="link"
+            >
+              Read the privacy policy
+            </Body>
+            <Button
+              label="I agree — start chatting"
+              onPress={() => {
+                void setAiConsent({}).catch(() => {
+                  toast.error("Couldn't save that. Please try again.");
+                });
+              }}
+              className="mt-3"
+            />
+          </View>
+        ) : null}
+
         {/* Free-tier daily cap reached → unlock unlimited Sage with HALE+. */}
         {capHit ? (
           <Pressable
@@ -217,12 +261,12 @@ export default function Coach() {
             <TextInput
               value={draft}
               onChangeText={setDraft}
-              placeholder="Talk to Sage…"
+              placeholder={consented ? 'Talk to Sage…' : 'Agree above to start chatting'}
               placeholderTextColor={colors.ash}
               className="max-h-32 font-body text-base leading-5 text-chalk"
               multiline
               returnKeyType="default"
-              editable={!sending}
+              editable={!sending && consented}
             />
           </View>
           <Pressable
@@ -259,6 +303,13 @@ export default function Coach() {
             )}
           </Pressable>
         </View>
+
+        {/* Persistent medical disclaimer (Guideline 1.4.1) — on the chat
+            surface itself, not just onboarding/SOS. */}
+        <Caption className="px-5 pb-2 text-center">
+          Sage is an AI coach, not a medical professional. Check with a doctor
+          before medical decisions, including NRT or medication.
+        </Caption>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

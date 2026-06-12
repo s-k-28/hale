@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/Button';
 import { RiseIn } from '@/components/motion';
 import { PostCard } from '@/components/community/PostCard';
 import { Composer } from '@/components/community/Composer';
+import { CommunityRulesGate } from '@/components/community/CommunityRulesGate';
 import { CrisisCard } from '@/components/community/CrisisCard';
 import { GroupEmptyState } from '@/components/community/GroupEmptyState';
 import { MUTE_CONFIRMATION, REPORT_CONFIRMATION } from '@/constants/communityCopy';
@@ -84,7 +85,7 @@ export default function GroupFeed() {
   );
 
   const onReport = useCallback(
-    async (args: { targetType: 'post' | 'comment'; targetId: string }) => {
+    async (args: { targetType: 'post' | 'comment'; targetId: string; reason: string }) => {
       try {
         await reportContent(args);
         toast(REPORT_CONFIRMATION);
@@ -153,6 +154,7 @@ export default function GroupFeed() {
   }
 
   return (
+    <CommunityRulesGate>
     <Screen edges={['top']}>
       <KeyboardAvoidingView
         className="flex-1"
@@ -228,5 +230,6 @@ export default function GroupFeed() {
         </View>
       </KeyboardAvoidingView>
     </Screen>
+    </CommunityRulesGate>
   );
 }

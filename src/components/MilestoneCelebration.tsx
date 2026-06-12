@@ -56,19 +56,19 @@ function celebrationCopy(day: number): { title: string; sub: string } {
     case 3:
       return { title: 'Three days clean', sub: 'Nicotine is leaving your system for good.' };
     case 7:
-      return { title: 'One week free', sub: 'Taste and smell are already sharpening.' };
+      return { title: 'One week free', sub: 'Taste and smell typically sharpen by now.' };
     case 14:
-      return { title: 'Two weeks strong', sub: 'Your circulation is measurably better.' };
+      return { title: 'Two weeks strong', sub: 'Circulation is typically improving by now.' };
     case 30:
-      return { title: 'A full month', sub: 'Cravings are fading as your brain resets.' };
+      return { title: 'A full month', sub: 'Cravings typically fade as the brain resets.' };
     case 60:
       return { title: 'Sixty days', sub: 'This is who you are now.' };
     case 90:
-      return { title: 'Ninety days', sub: 'Lung function noticeably improved.' };
+      return { title: 'Ninety days', sub: 'Lung function typically improves noticeably by now.' };
     case 180:
       return { title: 'Half a year', sub: 'Six months of proof you don’t need it.' };
     case 365:
-      return { title: 'One year free', sub: 'Heart-disease risk roughly halved.' };
+      return { title: 'One year free', sub: 'Excess heart-disease risk typically about halved.' };
     default:
       return { title: `${day} days clean`, sub: 'Another landmark behind you.' };
   }
