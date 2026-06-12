@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useMutation, useQuery } from 'convex/react';
-import { Crown, Layers, Trophy } from 'lucide-react-native';
+import { ChevronLeft, Crown, Layers, Trophy } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import {
@@ -84,6 +85,17 @@ export default function Leagues() {
         contentContainerClassName="px-6 pb-16 pt-4"
         showsVerticalScrollIndicator={false}
       >
+        {/* Back affordance (ui-audit root cause #3): this screen is pushed
+            OUTSIDE the tab bar, so without a header control it was a visual
+            dead end — same pattern as squads/goals/analytics. */}
+        <Pressable
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/squad'))}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          className="mb-3 h-9 w-9 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-70"
+        >
+          <ChevronLeft color={clean.fg2} size={20} strokeWidth={2.5} />
+        </Pressable>
         <View className="flex-row items-center">
           <Trophy color={clean.accent} size={28} strokeWidth={2.5} />
           <Heading className="ml-2 text-4xl">LEAGUE</Heading>
