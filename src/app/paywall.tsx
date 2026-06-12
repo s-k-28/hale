@@ -276,18 +276,21 @@ function HalePlusUpsell({
           <Body className="mt-3 text-center text-[13px] leading-5 text-fg-2">{notice}</Body>
         ) : null}
 
-        <View className="mt-1 flex-row items-center justify-center gap-6">
+        {/* Stacked, not side-by-side: the two labels + a gap overflow the row
+            width on 402pt devices and RN collapses the gap (ui-audit root
+            cause #2) — vertical guarantees a fit on every width. */}
+        <View className="mt-1 items-center">
           <Pressable
             onPress={onRestore}
             accessibilityRole="button"
-            className="items-center py-3 active:opacity-70"
+            className="items-center px-6 py-2.5 active:opacity-70"
           >
             <Caption className="text-fg-2">Restore purchases</Caption>
           </Pressable>
           <Pressable
             onPress={onFreeVersion}
             accessibilityRole="button"
-            className="items-center py-3 active:opacity-70"
+            className="items-center px-6 py-2.5 active:opacity-70"
           >
             <Caption className="text-fg-3">Continue with the free version</Caption>
           </Pressable>
