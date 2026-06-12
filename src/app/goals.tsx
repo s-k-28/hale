@@ -139,11 +139,10 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
           >
             <ChevronLeft color={clean.fg2} size={18} strokeWidth={2.5} />
           </Pressable>
-          <Badge label="Treat yourself" tone="soft" />
         </View>
 
         <View className="mb-7">
-          <Heading className="text-5xl leading-[0.9]">TREAT{'\n'}YOURSELF</Heading>
+          <Heading className="text-5xl leading-tight">Treat{'\n'}yourself</Heading>
           <Body className="mt-3 text-base leading-relaxed text-fg-2">
             Every clean day buys back real money. Name what you&apos;re saving for,
             watch it fill.

@@ -324,7 +324,11 @@ function PlanCard({
     >
       <View className="flex-row items-center justify-between">
         <Caption className={selected ? 'text-accent' : 'text-fg-3'}>{title}</Caption>
-        {tag ? <Caption className="text-[10px] text-accent">{tag}</Caption> : null}
+        {tag ? (
+          <View className="rounded-pill bg-accent px-1.5 py-0.5">
+            <Caption className="text-[9px] font-sora-bold text-accent-ink">{tag}</Caption>
+          </View>
+        ) : null}
       </View>
       <Display className="mt-1 text-[22px] leading-7 text-fg">{price}</Display>
       <Caption className="text-[11px] text-fg-3">{per}</Caption>

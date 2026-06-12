@@ -141,7 +141,7 @@ function OptInState({
         <Heading className="mt-5 text-2xl">Join this week</Heading>
         <Body className="mt-2 text-base leading-6 text-fg-2">
           Opt in to land in a friendly weekly league with others at your stage. Every clean check-in
-          this week earns a point, climb the board, stay quit.
+          this week earns a point. Climb the board, stay quit.
         </Body>
 
         <View className="mt-5 flex-row items-center">

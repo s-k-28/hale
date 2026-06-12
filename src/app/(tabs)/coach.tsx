@@ -310,7 +310,7 @@ function EmptyState() {
         Here the second a craving hits. Tell me what&apos;s going on, no judgment,
         just backup to ride it out. It peaks, then it passes.
       </Body>
-      <Label className="mt-8 text-fg-2">Cravings pass · you don&apos;t quit on yourself</Label>
+      <Label className="mt-8 text-center text-fg-2">Cravings pass · you don&apos;t quit on yourself</Label>
     </View>
   );
 }
@@ -335,8 +335,8 @@ function BreathingSage() {
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <Animated.View style={style}>
-      <View className="h-28 w-28 items-center justify-center rounded-full bg-accent">
-        <Wind color={clean.accentInk} size={48} strokeWidth={2.2} />
+      <View className="h-28 w-28 items-center justify-center rounded-full bg-accent-soft">
+        <Wind color={clean.accent} size={48} strokeWidth={2.2} />
       </View>
     </Animated.View>
   );

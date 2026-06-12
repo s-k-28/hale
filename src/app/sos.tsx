@@ -757,7 +757,7 @@ function SlipChoose({
         <Header title="No shame here" onBack={onCancel} />
 
         <View className="mt-4">
-          <Heading className="text-4xl leading-[0.95]">Slips are part of quitting,</Heading>
+          <Heading className="text-4xl leading-[0.95]">Slips are part of quitting.</Heading>
           <Display className="mt-2 text-5xl leading-tight text-accent">Not the end.</Display>
         </View>
         <Body className="mt-5 text-base leading-relaxed text-fg-2">

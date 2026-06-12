@@ -79,7 +79,7 @@ export default function Analytics() {
           </Pressable>
           <View>
             <Label className="text-accent">Your data</Label>
-            <Heading className="mt-0.5 text-3xl leading-[0.9]">Insights</Heading>
+            <Heading className="mt-0.5 text-3xl leading-tight">Insights</Heading>
           </View>
         </View>
         <Badge label="HALE+" tone="soft" />
@@ -193,7 +193,7 @@ function Unlocked({
       <RecoveryProgress recovery={recovery} />
 
       <Body className="mt-4 px-1 text-xs leading-relaxed text-fg-2">
-        Commonly reported recovery timeline, supportive, not medical advice.
+        Commonly reported recovery timelines. Supportive, not medical advice.
       </Body>
     </ScrollView>
   );
