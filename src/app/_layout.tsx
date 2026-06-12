@@ -71,8 +71,13 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="(onboarding)" />
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="sos" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
+          {/* fullScreenModal (not pageSheet): SOS is a crisis surface and the
+              paywall is a deliberate decision point — neither may show the
+              screen behind through a top gap nor be drag-dismissed by the
+              system gesture (ui-audit root cause #1). Both screens carry their
+              own explicit dismiss affordances. */}
+          <Stack.Screen name="sos" options={{ presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
         </Stack>
         {/* App-wide transient feedback (sonner-native). Sibling of the navigator so
             toasts overlay every screen; SafeArea/GestureHandler contexts come from
