@@ -27,6 +27,11 @@ export const LINK_DOMAIN = 'go.haleapp.com';
 // (You tab) AND the App Store Connect privacy-policy field both point at it.
 export const PRIVACY_POLICY_URL = 'https://haleapp.com/privacy';
 
+// TODO(launch): this page must be live before submission — the in-app links
+// (You tab + paywall) point at it, and Apple Guideline 3.1.2 requires a working
+// Terms of Use link for the auto-renewable subscription.
+export const TERMS_URL = 'https://haleapp.com/terms';
+
 /** The shareable referral link: opens HALE if installed, web redirect if not. */
 export function referralLink(code: string): string {
   return `https://${LINK_DOMAIN}/r/${code}`;

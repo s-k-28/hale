@@ -4,7 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { Check, X, Bot, LineChart, Users, LayoutGrid } from 'lucide-react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { presentPaywall } from '@/lib/paywall';
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/links';
 import { track, Ev } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
 import {
@@ -221,8 +223,26 @@ function HalePlusUpsell({
 
         {/* Reassurance */}
         <Caption className="mt-5 text-center leading-relaxed">
-          14-day free trial, then billed yearly. Cancel anytime.
+          14-day free trial, then $79.99/yr. Auto-renews until cancelled in Settings.
         </Caption>
+        {/* Subscription legal (Guideline 3.1.2): functional Privacy + Terms links
+            reachable from the purchase surface. Quiet by design — never crowds the CTA. */}
+        <View className="mt-2 flex-row items-center justify-center gap-6">
+          <Pressable
+            hitSlop={8}
+            accessibilityRole="link"
+            onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {})}
+          >
+            <Caption className="underline">Privacy</Caption>
+          </Pressable>
+          <Pressable
+            hitSlop={8}
+            accessibilityRole="link"
+            onPress={() => void WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {})}
+          >
+            <Caption className="underline">Terms</Caption>
+          </Pressable>
+        </View>
       </ScrollView>
 
       {/* Pinned footer: price stays visible WITH the CTA, and it's slim enough

@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Switch, View } from 'react-na
 import type { View as RNView } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { BarChart3, BookOpenCheck, Check, ChevronRight, Crown, Flame, Gift, Share2, ShieldCheck, Trash2, Vibrate } from 'lucide-react-native';
+import { BarChart3, BookOpenCheck, Check, ChevronRight, Crown, FileText, Flame, Gift, Share2, ShieldCheck, Trash2, Vibrate } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { api } from '@convex/_generated/api';
 import {
@@ -12,7 +12,7 @@ import {
 } from '@convex/model/plan';
 import { track, Ev } from '@/lib/analytics';
 import { haptics, getHapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
-import { PRIVACY_POLICY_URL } from '@/lib/links';
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/links';
 import TransformationCard, { shareCard } from '@/components/TransformationCard';
 import {
   Screen,
@@ -339,6 +339,16 @@ function YouContent({
             sub="What we store and why. No ads, no tracking."
             onPress={() => {
               void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {
+                // No browser available — nothing sensible to do silently here.
+              });
+            }}
+          />
+          <YouLink
+            icon={<FileText color={clean.accent} size={20} strokeWidth={2.2} />}
+            title="Terms of service"
+            sub="Subscriptions, referrals, and the ground rules."
+            onPress={() => {
+              void WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {
                 // No browser available — nothing sensible to do silently here.
               });
             }}
