@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation } from 'convex/react';
@@ -26,27 +26,49 @@ export default function DeleteAccount() {
   const [armed, setArmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // SYNCHRONOUS double-fire guard. `busy` state alone can't stop two presses in
+  // the same frame (setState is async, both reads see false) — the racing second
+  // deleteAccount then hits "Not authenticated" (the first already destroyed the
+  // session) and painted a false "didn't go through" error over a SUCCESSFUL
+  // deletion. Caught live in the design audit via rapid double-tap.
+  const busyRef = useRef(false);
+
+  /** Shared success path: detach RC, clear the local token, land on welcome. */
+  const finishDeleted = async () => {
+    track(Ev.ACCOUNT_DELETED);
+    // Detach the RC identity so the entitlement doesn't orphan onto the next
+    // account on this device. Never cancels the App Store subscription.
+    await logOutPurchaser();
+    // Server rows (incl. auth sessions) are already gone; signOut clears the
+    // LOCAL token so the next launch starts signed out. The server half of
+    // signOut may no-op/fail against the deleted session — that's expected.
+    try {
+      await signOut();
+    } catch {
+      // Session already deleted server-side by deleteAccount.
+    }
+    router.replace('/(onboarding)/welcome');
+  };
 
   const onDelete = async () => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setNotice(null);
     try {
       await deleteAccount();
-      track(Ev.ACCOUNT_DELETED);
-      // Detach the RC identity so the entitlement doesn't orphan onto the next
-      // account on this device. Never cancels the App Store subscription.
-      await logOutPurchaser();
-      // Server rows (incl. auth sessions) are already gone; signOut clears the
-      // LOCAL token so the next launch starts signed out. The server half of
-      // signOut may no-op/fail against the deleted session — that's expected.
-      try {
-        await signOut();
-      } catch {
-        // Session already deleted server-side by deleteAccount.
+      await finishDeleted();
+    } catch (e) {
+      // "Not authenticated" here means the session is ALREADY gone — i.e. the
+      // deletion (this press or a racing one) succeeded and destroyed it. That
+      // is a success, not a failure: showing an error while the account is
+      // deleted would be terrifyingly wrong. Finish the sign-out path instead.
+      const msg = e instanceof Error ? e.message : '';
+      if (msg.includes('Not authenticated')) {
+        await finishDeleted();
+        return;
       }
-      router.replace('/(onboarding)/welcome');
-    } catch {
+      busyRef.current = false;
       setBusy(false);
       setNotice("Deletion didn't go through. Check your connection and try again.");
     }

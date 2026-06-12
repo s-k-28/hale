@@ -194,10 +194,11 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
               ) : null}
             </View>
 
-            {/* Hero: the day count — HUGE Sora numeral. The numeral + unit share
-                a TRUE baseline (items-baseline) so "DAYS" sits on the numeral's
-                foot, not its mid-height; the caption is integrated directly
-                under the lockup as one visual block. Robust at 1/2/3+ digits. */}
+            {/* Hero: the day count — HUGE Sora numeral. The unit is a NESTED Text
+                run inside the numeral's Text, so the text engine itself lays both
+                on ONE shared baseline ("DAYS" sits on the numeral's foot) — sibling
+                flex `items-baseline` proved unreliable on iOS at mixed sizes.
+                Robust at 1/2/3+ digits; caption hugs the lockup as one block. */}
             <View>
               <Text
                 className="text-[11px] uppercase tracking-[5px] text-accent"
@@ -205,39 +206,33 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
               >
                 Nicotine-free
               </Text>
-              <View className="mt-2 flex-row items-baseline">
+              <Text
+                className="mt-2 text-fg"
+                style={{
+                  fontFamily: FONTS.display,
+                  fontSize: 132,
+                  // Tall numerals clip when lineHeight == fontSize; ~1.06x gives
+                  // the glyph tops room without stranding the unit/caption.
+                  lineHeight: 140,
+                  color: clean.fg,
+                  includeFontPadding: false,
+                }}
+              >
+                {dispDays}
                 <Text
-                  className="text-fg"
                   style={{
                     fontFamily: FONTS.display,
-                    fontSize: 132,
-                    // Tall numerals clip when lineHeight == fontSize; ~1.06x
-                    // gives the glyph tops room without pushing the baseline far
-                    // below the box (the "0"→"U" clip fix, tightened so the
-                    // unit + caption sit close).
-                    lineHeight: 140,
-                    color: clean.fg,
-                    // Trim the trailing advance so "DAYS" hugs the numeral.
-                    includeFontPadding: false,
-                  }}
-                >
-                  {dispDays}
-                </Text>
-                <Text
-                  className="ml-3 text-accent"
-                  style={{
-                    fontFamily: FONTS.display,
-                    // Unit scaled proportionally to the numeral (~0.26x) and
-                    // baseline-aligned — no manual margin nudge.
+                    // Unit scaled ~0.26x; no lineHeight so it inherits the parent
+                    // run's baseline exactly.
                     fontSize: 34,
-                    lineHeight: 34,
                     color: clean.accent,
                     includeFontPadding: false,
                   }}
                 >
+                  {' '}
                   {wholeDays === 1 ? 'DAY' : 'DAYS'}
                 </Text>
-              </View>
+              </Text>
               <Text
                 className="mt-2 text-base text-fg"
                 style={{ fontFamily: FONTS.body, color: clean.fg }}
