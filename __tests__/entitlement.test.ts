@@ -46,7 +46,7 @@ describe('referralRewardStatus', () => {
   });
 });
 
-describe('resolveEntitlement — single hasHALEPlus, three grant paths', () => {
+describe('resolveEntitlement — single hasHALEPlus, two grant paths (paid, referral reward)', () => {
   it('returns none for a free user past trial with no reward', () => {
     const e = resolveEntitlement({ premium: false, trialEndsAt: NOW - MS_PER_DAY }, NOW);
     expect(e.hasHALEPlus).toBe(false);
@@ -54,10 +54,10 @@ describe('resolveEntitlement — single hasHALEPlus, three grant paths', () => {
     expect(e.referralRewardActive).toBe(false);
   });
 
-  it('grants via an active trial', () => {
+  it('an active trial window grants NOTHING (hard paywall: StoreKit only)', () => {
     const e = resolveEntitlement({ premium: false, trialEndsAt: NOW + 3 * MS_PER_DAY }, NOW);
-    expect(e.hasHALEPlus).toBe(true);
-    expect(e.source).toBe('trial');
+    expect(e.hasHALEPlus).toBe(false);
+    expect(e.source).toBe('none');
   });
 
   it('grants via the referral reward when trial is over', () => {
@@ -88,12 +88,13 @@ describe('resolveEntitlement — single hasHALEPlus, three grant paths', () => {
     expect(e.rewardDaysRemaining).toBe(5);
   });
 
-  it('reports the reward window even while a trial takes precedence', () => {
+  it('the reward wins even while a legacy trial window is open', () => {
     const e = resolveEntitlement(
       { premium: false, trialEndsAt: NOW + 6 * MS_PER_DAY, referralRewardEndsAt: NOW + 2 * MS_PER_DAY },
       NOW,
     );
-    expect(e.source).toBe('trial');
+    expect(e.hasHALEPlus).toBe(true);
+    expect(e.source).toBe('referral_reward');
     expect(e.referralRewardActive).toBe(true);
     expect(e.rewardDaysRemaining).toBe(2);
   });

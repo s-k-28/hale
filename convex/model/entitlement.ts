@@ -1,23 +1,24 @@
 /**
  * HALE+ entitlement — the SINGLE source of truth (`hasHALEPlus`).
  *
- * Three independent grant paths all resolve through here, so every server gate
+ * Two independent grant paths resolve through here, so every server gate
  * (Sage caps, premium-only logic) and the client mirror (`usePremium`) read one
  * definition:
  *   • paid            — RC entitlement, mirrored onto users.premium by the webhook.
- *   • trial           — the app-managed 14-day full-access window (model/trial.ts).
  *   • referral_reward — the 7-day window unlocked by 3 successful buddy referrals.
  *
- * Precedence (for the reported `source` only): paid > trial > referral_reward.
- * ANY non-'none' source ⇒ hasHALEPlus = true. The referral-reward window is
- * reported (active + days remaining) regardless of source, so the UI can show a
- * "7 days of HALE+" countdown even while a trial also happens to be active.
+ * There is deliberately NO app-managed trial floor (removed 2026-06-11, hard
+ * paywall): the only free trial is the real StoreKit introductory offer, which
+ * surfaces here as `paid` via the RC mirror once the subscription starts.
+ *
+ * Precedence (for the reported `source` only): paid > referral_reward. ANY
+ * non-'none' source ⇒ hasHALEPlus = true. The referral-reward window is
+ * reported (active + days remaining) regardless of source, so the UI can show
+ * a "7 days of HALE+" countdown even alongside a subscription.
  *
  * This is a PURE module (no ctx) — same pattern as model/trial.ts — so it's unit
  * testable and usable from both queries and mutations.
  */
-
-import { trialStatus } from './trial';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -49,7 +50,7 @@ export function referralRewardStatus(
   return { active, daysRemaining: active ? Math.ceil(msLeft / DAY_MS) : 0, endsAt: ends };
 }
 
-export type EntitlementSource = 'paid' | 'trial' | 'referral_reward' | 'none';
+export type EntitlementSource = 'paid' | 'referral_reward' | 'none';
 
 export type Entitlement = {
   hasHALEPlus: boolean;
@@ -80,17 +81,6 @@ export function resolveEntitlement(
     return {
       hasHALEPlus: true,
       source: 'paid',
-      referralRewardActive: reward.active,
-      rewardDaysRemaining: reward.daysRemaining,
-    };
-  }
-
-  // premium=false here, so trialStatus reports the real window.
-  const trial = trialStatus(now, user?.trialEndsAt, false);
-  if (trial.trialActive) {
-    return {
-      hasHALEPlus: true,
-      source: 'trial',
       referralRewardActive: reward.active,
       rewardDaysRemaining: reward.daysRemaining,
     };

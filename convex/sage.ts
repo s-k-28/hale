@@ -28,6 +28,8 @@ import { resolveEntitlement } from './model/entitlement';
  * single HALE+ entitlement resolver. A referral-reward window grants the same
  * unlimited-Sage 'paid' tier as a subscription for its 7 days — both feed one
  * hasHALEPlus, so the daily cap lifts identically however the user unlocked it.
+ * With the app-managed trial floor removed (hard paywall), the live tiers are
+ * free/paid; 'trial' remains in the cap table and message rows for legacy data.
  */
 function tierOf(
   user: { premium?: boolean; trialEndsAt?: number; referralRewardEndsAt?: number } | null,
@@ -35,7 +37,6 @@ function tierOf(
 ): 'free' | 'trial' | 'paid' {
   const { source } = resolveEntitlement(user, now);
   if (source === 'paid' || source === 'referral_reward') return 'paid';
-  if (source === 'trial') return 'trial';
   return 'free';
 }
 

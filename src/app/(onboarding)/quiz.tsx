@@ -352,11 +352,6 @@ export default function Quiz() {
         baseline_per_day: profile.baselinePerDay,
         projected_annual: annual,
       });
-      // App-managed 14-day full-access floor begins now (§8) — granted server-side
-      // in completeOnboarding. This is the soft floor for anyone who dismisses the
-      // paywall below; it is NOT the StoreKit subscription trial.
-      track(Ev.TRIAL_STARTED, { trial_days: 14, trial_type: 'app_managed' });
-
       // Peak-intent paywall — monetize right after the personalized plan reveal,
       // at maximum motivation (the data-backed conversion moment). Onboarding runs
       // BEFORE the tabs layer that normally identifies the purchaser, so we log the

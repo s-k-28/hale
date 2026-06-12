@@ -18,10 +18,11 @@ import { isPremium as rcIsPremium } from '@/lib/revenuecat';
  * `loading` is true until the very first resolution (either signal) so callers
  * can avoid flashing a locked state on cold start.
  *
- * A third grant path — the 7-day REFERRAL REWARD — is OR'd in via the Convex
+ * The second grant path — the 7-day REFERRAL REWARD — is OR'd in via the Convex
  * mirror (todayState.referralRewardActive, computed by model/entitlement.ts). So
- * the subscription, the trial, AND the referral reward all feed ONE hasHALEPlus,
- * which every blurred feature gates on. `hasAccess` is kept as a back-compat alias.
+ * the subscription AND the referral reward feed ONE hasHALEPlus, which every
+ * blurred feature gates on. There is no app-managed trial grant (hard paywall).
+ * `hasAccess` is kept as a back-compat alias.
  */
 export function usePremium(): {
   premium: boolean;
@@ -86,9 +87,11 @@ export function usePremium(): {
   const rewardDaysRemaining = today?.rewardDaysRemaining ?? 0;
 
   // The single gate every blurred feature reads. premium (RC runtime OR mirror)
-  // OR trial OR referral reward. Equivalent to todayState.hasHALEPlus, but also
-  // honors RC's runtime truth before the webhook mirror lands.
-  const hasHALEPlus = premium || trialActive || referralRewardActive;
+  // OR referral reward. The app-managed trial is NOT a grant path (hard paywall,
+  // 2026-06-11): the only trial is StoreKit's intro offer, which arrives as
+  // `premium` via RC. trialActive stays reported above for legacy data/analytics
+  // but never unlocks anything.
+  const hasHALEPlus = premium || referralRewardActive;
 
   return {
     premium,

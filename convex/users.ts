@@ -2,7 +2,7 @@ import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 import { mutation, query, internalMutation } from './_generated/server';
 import { moneySaved, nextHealthMilestone } from './model/plan';
-import { trialEndsFrom, trialStatus } from './model/trial';
+import { trialStatus } from './model/trial';
 import { resolveEntitlement } from './model/entitlement';
 
 /** Called right after anonymous sign-in at the commitment step (Decision 2). */
@@ -37,11 +37,8 @@ export const completeOnboarding = mutation({
       lifetimeCleanDays: 0,
       lifetimeMoneySaved: 0,
       premium: false,
-      // Grant the app-managed 14-day full-access trial (§8). Paywall gates only
-      // after this window closes (unless they subscribe first).
-      trialStartedAt: now,
-      trialEndsAt: trialEndsFrom(now),
-      trialReminderSent: false,
+      // No app-managed trial is granted (hard paywall, 2026-06-11): access is
+      // paid (StoreKit, incl. its intro trial) or the referral reward, only.
     });
     return { attemptId, userId };
   },
