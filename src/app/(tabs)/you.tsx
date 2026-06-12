@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import type { View as RNView } from 'react-native';
 import { Redirect, router } from 'expo-router';
-import { useQuery } from 'convex/react';
+import { useConvexAuth, useQuery } from 'convex/react';
 import { BarChart3, BookOpenCheck, Check, ChevronRight, Crown, Flame, Gift, Share2, ShieldCheck, Trash2 } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { api } from '@convex/_generated/api';
@@ -69,20 +69,27 @@ function milestoneWhen(hours: number) {
 }
 
 export default function You() {
-  const state = useQuery(api.users.todayState, {});
+  // Auth-gated query (white-screen fix, 2026-06-12): an ungated mount can
+  // receive the query's first result before auth attaches -> null -> the
+  // not-onboarded Redirect fires for an ONBOARDED user mid-navigation and
+  // strands an empty tab scene. Same pattern as goals.tsx / usePremium.
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+  const state = useQuery(api.users.todayState, isAuthenticated ? {} : 'skip');
   const now = useNow();
   const cardRef = useRef<RNView>(null);
 
-  // Loading — query in flight.
-  if (state === undefined) {
+  // Loading — auth resolving or query in flight.
+  if (authLoading || (isAuthenticated && state === undefined)) {
     return (
       <Screen className="items-center justify-center">
         <ActivityIndicator color={clean.accent} />
       </Screen>
     );
   }
-  // Not onboarded → start the quiz (consistent with Today).
-  if (state === null) return <Redirect href="/(onboarding)/welcome" />;
+  // Signed out or not onboarded → start the quiz (consistent with Today).
+  if (!isAuthenticated || state === null || state === undefined) {
+    return <Redirect href="/(onboarding)/welcome" />;
+  }
 
   return <YouContent state={state} now={now} cardRef={cardRef} />;
 }

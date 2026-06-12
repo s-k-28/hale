@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Redirect, router } from 'expo-router';
-import { useMutation, useQuery } from 'convex/react';
+import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { Check, ChevronRight, Flame, ShieldCheck, Siren } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { localDateOf } from '@convex/model/streak';
@@ -101,7 +101,13 @@ function reachedLandmark(wholeDays: number): number | null {
 const LAST_CELEBRATED_LANDMARK_KEY = 'hale:lastCelebratedLandmark';
 
 export default function Today() {
-  const state = useQuery(api.users.todayState, {});
+  // Auth-gated query (white-screen fix, 2026-06-12): an ungated mount can
+  // receive the query's first result before auth attaches -> null -> the
+  // not-onboarded Redirect fires for an ONBOARDED user mid-navigation and
+  // strands an empty tab scene. 'skip' until auth is confirmed, and treat
+  // auth-loading as loading (same pattern as goals.tsx / usePremium).
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
+  const state = useQuery(api.users.todayState, isAuthenticated ? {} : 'skip');
   const checkIn = useMutation(api.checkins.checkIn);
   const buddy = useQuery(api.buddies.myBuddy, {});
 
@@ -211,15 +217,17 @@ export default function Today() {
   }, [checking, alreadyCheckedIn, checkIn]);
 
   // Loading — query in flight.
-  if (state === undefined) {
+  if (authLoading || (isAuthenticated && state === undefined)) {
     return (
       <Screen className="items-center justify-center">
         <ActivityIndicator color={clean.accent} />
       </Screen>
     );
   }
-  // Not onboarded → start the quiz (Decision 2: deferred sign-up).
-  if (state === null) return <Redirect href="/(onboarding)/welcome" />;
+  // Signed out or not onboarded → start the quiz (Decision 2: deferred sign-up).
+  if (!isAuthenticated || state === null || state === undefined) {
+    return <Redirect href="/(onboarding)/welcome" />;
+  }
 
   const cleanMs = now - state.quitStart;
   const t = breakdown(cleanMs);
