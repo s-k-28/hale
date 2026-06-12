@@ -121,7 +121,11 @@ export default function MilestoneCelebration({
             {/* Dismiss */}
             <View className="flex-row justify-end pt-2">
               <Pressable
-                onPress={onClose}
+                onPress={() => {
+                  // Custom close chrome → light tap (dismissal).
+                  haptics.tap();
+                  onClose();
+                }}
                 hitSlop={12}
                 accessibilityRole="button"
                 accessibilityLabel="Close"
@@ -178,7 +182,11 @@ export default function MilestoneCelebration({
                 onPress={onShare}
               />
               <Pressable
-                onPress={onClose}
+                onPress={() => {
+                  // Custom dismiss link → light tap.
+                  haptics.tap();
+                  onClose();
+                }}
                 accessibilityRole="button"
                 className="mt-3 items-center py-3"
               >

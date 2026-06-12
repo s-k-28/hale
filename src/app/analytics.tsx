@@ -6,6 +6,7 @@ import Svg, { Defs, Line, LinearGradient, Path, Rect, Stop } from 'react-native-
 import { ChevronLeft, Crown, TrendingDown } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import { usePremium } from '@/hooks/usePremium';
 import {
   Screen,
@@ -69,7 +70,12 @@ export default function Analytics() {
       <View className="flex-row items-center justify-between px-5 pb-2 pt-3">
         <View className="flex-row items-center gap-3">
           <Pressable
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/you'))}
+            onPress={() => {
+              // Custom back chrome (not IconBtn) → fire its own light tap.
+              haptics.tap();
+              if (router.canGoBack()) router.back();
+              else router.replace('/(tabs)/you');
+            }}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Back"

@@ -62,7 +62,12 @@ export function InviteCodeEntry() {
   if (!open) {
     return (
       <Pressable
-        onPress={() => setOpen(true)}
+        onPress={() => {
+          // Custom disclosure link → light tap (reveals the code input). The
+          // Apply button below owns its own outcome haptics (success/error).
+          haptics.tap();
+          setOpen(true);
+        }}
         accessibilityRole="button"
         accessibilityLabel="Enter an invite code"
         className="mt-4 items-center py-1 active:opacity-70"

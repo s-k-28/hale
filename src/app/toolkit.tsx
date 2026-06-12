@@ -55,7 +55,12 @@ export default function Toolkit() {
       <View className="flex-row items-center justify-between px-5 pb-2 pt-3">
         <View className="flex-row items-center gap-3">
           <Pressable
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/today'))}
+            onPress={() => {
+              // Custom back chrome (not IconBtn) → fire its own light tap.
+              haptics.tap();
+              if (router.canGoBack()) router.back();
+              else router.replace('/(tabs)/today');
+            }}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Back"

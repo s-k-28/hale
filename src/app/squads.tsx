@@ -96,7 +96,11 @@ export default function Squads() {
       >
         {/* Header — back chevron to the Squad tab + loud wordmark. */}
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => {
+            // Custom back chrome (not IconBtn) → fire its own light tap.
+            haptics.tap();
+            router.back();
+          }}
           accessibilityRole="button"
           accessibilityLabel="Back"
           className="mb-4 h-10 w-10 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-80"
@@ -213,7 +217,11 @@ function SquadCard({
       {/* Tappable header + progress (the toggle). Kept separate from the detail
           so the inner Share button never collides with a nested Pressable. */}
       <Pressable
-        onPress={onToggle}
+        onPress={() => {
+          // Expand/collapse is a selection-style disclosure → selection tick.
+          haptics.select();
+          onToggle();
+        }}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
         accessibilityLabel={`${squad.name}, ${squad.memberCount} members`}

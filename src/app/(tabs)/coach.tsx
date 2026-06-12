@@ -217,7 +217,12 @@ export default function Coach() {
         {/* Free-tier daily cap reached → unlock unlimited Sage with HALE+. */}
         {capHit ? (
           <Pressable
-            onPress={onUpgradeSage}
+            onPress={() => {
+              // Custom upsell row (not a UI primitive) → light tap on the way to
+              // the paywall.
+              haptics.tap();
+              onUpgradeSage();
+            }}
             accessibilityRole="button"
             accessibilityLabel="Unlock unlimited Sage with HALE+"
             className="mx-4 mb-1 flex-row items-center rounded-2xl border border-accent-edge/30 bg-accent/10 px-4 py-3 active:opacity-90"

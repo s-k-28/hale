@@ -253,6 +253,10 @@ function YouContent({
         {!state.premium ? (
           <Pressable
             onPress={goPaywall}
+            // The premium upsell surface mirrors LockedFeature's gate → a Medium
+            // press (a primary, deliberate action), fired here since this is a
+            // custom Pressable, not a UI primitive.
+            onPressIn={() => haptics.press()}
             accessibilityRole="button"
             className="overflow-hidden rounded-3xl border border-stroke bg-surface active:opacity-90"
           >
@@ -397,7 +401,11 @@ function YouLink({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
-      onPress={onPress}
+      onPress={() => {
+        // Custom settings/navigation row (not a UI primitive) → light tap.
+        haptics.tap();
+        onPress();
+      }}
       className="flex-row items-center rounded-2xl border border-stroke bg-surface px-5 py-4 active:bg-surface-2"
     >
       {icon}

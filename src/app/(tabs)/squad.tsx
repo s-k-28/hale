@@ -303,7 +303,12 @@ function PairedState({
 
       {/* Quiet escape hatch — one buddy at a time, so switching starts here. */}
       <Pressable
-        onPress={onUnpair}
+        onPress={() => {
+          // Light tap to open the confirm dialog. The destructive GRAVITY beat
+          // (warn) fires only on the in-Alert "End pairing" confirm, not here.
+          haptics.tap();
+          onUnpair();
+        }}
         accessibilityRole="button"
         accessibilityLabel={`End pairing with ${displayName}`}
         className="mt-4 items-center py-2 active:opacity-70"
@@ -402,7 +407,11 @@ function NavRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
-      onPress={onPress}
+      onPress={() => {
+        // Custom navigation row (not a UI primitive) → light tap.
+        haptics.tap();
+        onPress();
+      }}
       className="flex-row items-center rounded-2xl bg-surface/40 px-5 py-4 active:bg-surface"
     >
       {icon}

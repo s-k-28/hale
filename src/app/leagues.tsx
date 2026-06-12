@@ -92,7 +92,12 @@ export default function Leagues() {
       >
         {/* Header — back chevron + wordmark, matching sibling screens. */}
         <Pressable
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/today'))}
+          onPress={() => {
+            // Custom back chrome (not IconBtn) → fire its own light tap.
+            haptics.tap();
+            if (router.canGoBack()) router.back();
+            else router.replace('/(tabs)/today');
+          }}
           accessibilityRole="button"
           accessibilityLabel="Back"
           className="mb-4 h-10 w-10 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-80"

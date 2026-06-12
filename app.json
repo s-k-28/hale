@@ -3,7 +3,7 @@
     "name": "HALE",
     "slug": "hale",
     "version": "1.0.0",
-    "description": "Quit nicotine for good. HALE gives you a personalized quit plan, a craving SOS toolkit, an AI coach in your corner, and a buddy to keep you honest — so you stay clean one day at a time.",
+    "description": "Quit nicotine for good. HALE gives you a personalized quit plan, a craving SOS toolkit, an AI coach in your corner, and a buddy to keep you honest \u2014 so you stay clean one day at a time.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "hale",
@@ -16,7 +16,10 @@
       "supportsTablet": false,
       "associatedDomains": [
         "applinks:go.haleapp.com"
-      ]
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.haleapp.hale",
@@ -57,7 +60,7 @@
       [
         "onesignal-expo-plugin",
         {
-          "mode": "development"
+          "mode": "production"
         }
       ],
       "expo-router",

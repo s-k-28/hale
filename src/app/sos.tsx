@@ -272,7 +272,11 @@ export default function CravingSos() {
             <Label className="text-coral">Craving SOS</Label>
           </View>
           <Pressable
-            onPress={close}
+            onPress={() => {
+              // Custom close chrome → light tap (dismissal).
+              haptics.tap();
+              close();
+            }}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Close"
@@ -444,7 +448,11 @@ function CravingLogCapture({
           className="mt-9"
         />
         <Pressable
-          onPress={onSkip}
+          onPress={() => {
+            // Custom skip link → light tap (dismissal).
+            haptics.tap();
+            onSkip();
+          }}
           accessibilityRole="button"
           className="mt-4 items-center py-2 active:opacity-70"
         >
@@ -643,7 +651,16 @@ function RideItOut({
           />
         )}
 
-        <Pressable onPress={onSlip} accessibilityRole="button" className="mt-3 items-center py-2">
+        <Pressable
+          onPress={() => {
+            // NEUTRAL tap — anti-shame: a slip never gets warn()/error(). Just a
+            // quiet beat as we move into the slip flow.
+            haptics.tap();
+            onSlip();
+          }}
+          accessibilityRole="button"
+          className="mt-3 items-center py-2"
+        >
           <Body className="text-sm text-fg-2">I slipped</Body>
         </Pressable>
 
@@ -777,7 +794,16 @@ function BoxBreathing({
 
         <Button label="I feel steadier, I'm good" variant="primary" onPress={onSurvived} />
 
-        <Pressable onPress={onSlip} accessibilityRole="button" className="mt-3 items-center py-2">
+        <Pressable
+          onPress={() => {
+            // NEUTRAL tap — anti-shame: a slip never gets warn()/error(). Just a
+            // quiet beat as we move into the slip flow.
+            haptics.tap();
+            onSlip();
+          }}
+          accessibilityRole="button"
+          className="mt-3 items-center py-2"
+        >
           <Body className="text-sm text-fg-2">I slipped</Body>
         </Pressable>
 
@@ -854,7 +880,15 @@ function SlipChoose({
           </Body>
         </Pressable>
 
-        <Pressable onPress={onCancel} accessibilityRole="button" className="mt-7 items-center py-2">
+        <Pressable
+          onPress={() => {
+            // Custom back-out link → light tap (dismissal). Anti-shame: never warn.
+            haptics.tap();
+            onCancel();
+          }}
+          accessibilityRole="button"
+          className="mt-7 items-center py-2"
+        >
           <Body className="text-sm text-fg-2">Actually, I'm okay. Go back</Body>
         </Pressable>
 
@@ -1039,7 +1073,11 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <View className="flex-row items-center justify-between pt-2">
       <Pressable
-        onPress={onBack}
+        onPress={() => {
+          // Custom back chrome (not IconBtn) → fire its own light tap.
+          haptics.tap();
+          onBack();
+        }}
         hitSlop={12}
         accessibilityRole="button"
         accessibilityLabel="Back"

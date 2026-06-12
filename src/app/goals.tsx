@@ -135,7 +135,11 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
         {/* Header — back chip + wordmark. */}
         <View className="mb-4 flex-row items-center">
           <Pressable
-            onPress={back}
+            onPress={() => {
+              // Custom back chrome (not IconBtn) → fire its own light tap.
+              haptics.tap();
+              back();
+            }}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Back"

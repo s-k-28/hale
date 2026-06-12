@@ -180,7 +180,11 @@ function HalePlusUpsell({
       <View className="px-gutter pt-3">
         <View className="flex-row items-center justify-end">
           <Pressable
-            onPress={onMaybeLater}
+            onPress={() => {
+              // Custom close chrome → light tap (dismissal).
+              haptics.tap();
+              onMaybeLater();
+            }}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Close"
@@ -231,14 +235,23 @@ function HalePlusUpsell({
           <Pressable
             hitSlop={8}
             accessibilityRole="link"
-            onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {})}
+            onPress={() => {
+              // Quiet legal link → a subtle selection tick (never the louder tap
+              // of a real action), so it never competes with the CTA below.
+              haptics.select();
+              void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {});
+            }}
           >
             <Caption className="underline">Privacy</Caption>
           </Pressable>
           <Pressable
             hitSlop={8}
             accessibilityRole="link"
-            onPress={() => void WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {})}
+            onPress={() => {
+              // Quiet legal link → a subtle selection tick (see Privacy above).
+              haptics.select();
+              void WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {});
+            }}
           >
             <Caption className="underline">Terms</Caption>
           </Pressable>
@@ -268,7 +281,11 @@ function HalePlusUpsell({
         ) : null}
 
         <Pressable
-          onPress={onMaybeLater}
+          onPress={() => {
+            // Custom dismiss link → light tap.
+            haptics.tap();
+            onMaybeLater();
+          }}
           accessibilityRole="button"
           className="mt-2 items-center py-3 active:opacity-70"
         >

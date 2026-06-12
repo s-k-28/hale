@@ -68,6 +68,9 @@ export default function DeleteAccount() {
         await finishDeleted();
         return;
       }
+      // A genuine failure (not the already-deleted race) — the SYSTEM failed the
+      // user, so an error beat is warranted (this is never about a slip).
+      haptics.error();
       busyRef.current = false;
       setBusy(false);
       setNotice("Deletion didn't go through. Check your connection and try again.");
