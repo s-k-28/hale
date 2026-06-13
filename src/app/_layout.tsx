@@ -22,7 +22,7 @@ import { env } from '@/lib/config';
 import { initRevenueCat } from '@/lib/revenuecat';
 import { initOneSignal } from '@/lib/onesignal';
 import { initSentry } from '@/lib/sentry';
-import { posthog } from '@/lib/analytics';
+import { posthog, initAnalyticsConsent } from '@/lib/analytics';
 import { Toaster } from 'sonner-native';
 
 initSentry();
@@ -52,6 +52,9 @@ export default function RootLayout() {
   useEffect(() => {
     initRevenueCat();
     initOneSignal();
+    // Re-apply a stored analytics opt-out before any meaningful capture
+    // (Guideline 5.1.1(ii): consent is withdrawable from You ▸ Settings).
+    void initAnalyticsConsent();
   }, []);
 
   useEffect(() => {

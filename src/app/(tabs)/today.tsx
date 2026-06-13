@@ -345,7 +345,7 @@ export default function Today() {
         <View className="mb-3 flex-row gap-3">
           <Tile k="Money saved" v={money(state.currentMoneySaved)} className="flex-1" />
           {/* Soften the bare "0%" on day 0, frame it as the start, not a void. */}
-          <Tile k="Recovery" v={recoveryPct === 0 ? 'Day 1' : `${recoveryPct}%`} className="flex-1" />
+          <Tile k="Typical recovery" v={recoveryPct === 0 ? 'Day 1' : `${recoveryPct}%`} className="flex-1" />
         </View>
         </RiseIn>
         {/* Lifetime line only when it ADDS info, i.e. there's history beyond this

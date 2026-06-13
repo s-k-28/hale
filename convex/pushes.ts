@@ -207,12 +207,13 @@ export const proactiveNudgeSweep = internalAction({
     const due: Array<{ userId: Id<'users'>; hardestHour: number; localDate: string }> =
       await ctx.runQuery(internal.pushes.proactiveDueUsers, {});
     for (const { userId, hardestHour, localDate } of due) {
-      const h12 = hardestHour % 12 === 0 ? 12 : hardestHour % 12;
-      const ampm = hardestHour < 12 ? 'am' : 'pm';
+      // Lock-screen copy stays GENERIC (Guideline 4.5.4 / 5.1.3): no
+      // self-reported health detail ("your tough hour", "craving") visible on
+      // a locked phone. hardestHour rides only in the silent payload.
       await ctx.scheduler.runAfter(0, internal.pushes.notifyUser, {
         userId,
-        title: `${h12}${ampm} is usually your tough hour`,
-        body: 'Get ahead of it — 60 seconds with Sage now beats a craving later.',
+        title: 'This hour can be a tough one',
+        body: '60 seconds with Sage now can get you ahead of it.',
         data: { kind: 'proactive', hardestHour },
       });
       await ctx.runMutation(internal.pushes.markProactiveNudged, { userId, localDate });

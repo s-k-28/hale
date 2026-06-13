@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   TextInput,
@@ -16,8 +17,9 @@ import { ArrowUp, Wind, MessageCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
-import { Body, Display, Muted, H2 as Heading, Eyebrow as Label } from '@/ui';
+import { Body, Button, Display, Muted, H2 as Heading, Eyebrow as Label } from '@/ui';
 import { clean } from '@/theme/clean';
+import { PRIVACY_POLICY_URL } from '@/constants/legal';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -45,6 +47,12 @@ export default function Coach() {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
   const messages = useQuery(api.sage.messages, isAuthenticated ? {} : 'skip');
   const send = useMutation(api.sage.send);
+  // Guideline 5.1.2(i): chat content goes to third-party AI (Groq replies,
+  // Google embeddings) — explicit consent gates the composer, and sage.send
+  // enforces the same flag server-side. Withdrawable in You ▸ Settings.
+  const aiConsent = useQuery(api.users.aiConsentStatus, isAuthenticated ? {} : 'skip');
+  const setAiConsent = useMutation(api.users.setAiConsent);
+  const consented = aiConsent?.consented === true;
 
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -122,8 +130,9 @@ export default function Coach() {
     }
   }, [draft, sending, send, capHit]);
 
-  const canSend = draft.trim().length > 0 && !sending;
-  const loading = authLoading || (isAuthenticated && messages === undefined);
+  const canSend = draft.trim().length > 0 && !sending && consented;
+  const loading =
+    authLoading || (isAuthenticated && (messages === undefined || aiConsent === undefined));
 
   // "Sage is thinking" — tied to REAL backend state: the user's turn is the last
   // message and Sage's reactive reply row hasn't landed yet (or the send mutation
@@ -138,7 +147,10 @@ export default function Coach() {
         <View>
           <Heading className="text-3xl text-fg">SAGE</Heading>
           <Label className="mt-1 text-fg-2">Your quit coach · always on</Label>
-          <Muted className="mt-1 text-[11px]">General support, not medical advice.</Muted>
+          <Muted className="mt-1 text-[11px]">
+            AI coach, not a medical professional — check with a doctor before
+            medical decisions, including NRT or medication.
+          </Muted>
         </View>
         <View className="h-11 w-11 items-center justify-center rounded-full bg-accent">
           <Wind color={clean.accentInk} size={20} strokeWidth={2.75} />
@@ -187,6 +199,40 @@ export default function Coach() {
           />
         )}
 
+        {/* AI-consent card (5.1.2(i)) — one explicit yes before any chat data
+            leaves for third-party AI. Declining just leaves the composer
+            locked; the rest of HALE works without Sage. */}
+        {!loading && !consented ? (
+          <View className="mx-4 mb-2 rounded-2xl border border-stroke bg-surface px-4 py-4">
+            <Body className="font-sora-semibold text-[15px] text-fg">
+              Before you chat with Sage
+            </Body>
+            <Body className="mt-2 text-[13px] leading-5 text-fg-2">
+              Sage runs on third-party AI. Messages you send — plus your quit
+              stats like streak, cravings, and triggers — are shared with Groq
+              (which writes Sage&apos;s replies) and Google (which powers
+              knowledge search). They process it only to run this feature,
+              never for ads. You can turn this off anytime in You ▸ Settings.
+            </Body>
+            <Body
+              className="mt-2 text-[13px] text-accent"
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {})}
+              accessibilityRole="link"
+            >
+              Read the privacy policy
+            </Body>
+            <Button
+              label="I agree — start chatting"
+              onPress={() => {
+                void setAiConsent({}).catch(() => {
+                  toast.error("Couldn't save that. Please try again.");
+                });
+              }}
+              className="mt-3"
+            />
+          </View>
+        ) : null}
+
         {/* Free-tier daily cap reached → unlock unlimited Sage with HALE+. */}
         {capHit ? (
           <Pressable
@@ -216,12 +262,12 @@ export default function Coach() {
             <TextInput
               value={draft}
               onChangeText={setDraft}
-              placeholder="Talk to Sage…"
+              placeholder={consented ? 'Talk to Sage…' : 'Agree above to start chatting'}
               placeholderTextColor={clean.fg2}
               className="max-h-32 font-sora text-base leading-5 text-fg"
               multiline
               returnKeyType="default"
-              editable={!sending}
+              editable={!sending && consented}
             />
           </View>
           <Pressable

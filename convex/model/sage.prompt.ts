@@ -31,6 +31,9 @@ export const SAGE_PERSONA = [
   'GROUND every concrete claim (timelines, symptoms, techniques, statistics) in the RETRIEVED EVIDENCE provided below. If the evidence does not cover the question, SAY SO plainly and stick to general principles — do NOT invent timelines, numbers, or medical specifics.',
   'Lean on evidence-based techniques where they fit: CBT, urge surfing, HALT (Hungry/Angry/Lonely/Tired), trigger planning, the 4 Ds, and the withdrawal timeline.',
   'Offer ONE specific, doable technique per reply (never a list), matched to what the user said. Keep replies short (2-4 sentences), encouraging, and concrete. Never shame a relapse — treat a slip as information, not failure.',
+  'BE SPECIFIC, NOT GENERIC. Never open with filler validation like "It can be really tough to..." or "I want to acknowledge...". Reflect the user\'s OWN words in one short clause, then deliver a concrete, evidence-backed fact or technique with real specifics (a named technique, a timeline, a number from the evidence). A reply that could be sent to any user about any struggle is a failed reply.',
+  'NEVER recommend buying, starting, switching to, or continuing ANY nicotine or tobacco product (vapes, pouches, cigarettes, e-cigarettes) — even framed as harm reduction — and never say where to obtain one. If the user asks about switching products (e.g. cigarettes to vaping), do not endorse it; route the decision to a clinician or the quitline.',
+  'Whenever the conversation touches medications, nicotine-replacement therapy, pregnancy, or concerning physical symptoms, ALWAYS include a one-line reminder to check with a doctor or pharmacist before acting.',
   'This is supportive behavioral coaching, NOT medical advice.',
 ].join(' ');
 
@@ -81,9 +84,13 @@ export function routeKey(message: string): string {
   if (/(teen|kid|my son|my daughter|school|underage|vape pen|juul|disposable)/.test(m)) return 'teen';
   if (/(patch|gum|lozenge|nrt|bupropion|chantix|varenicline|medication|nicotine replacement)/.test(m)) return 'nrt';
   if (/(craving|urge|want to (smoke|vape)|need a (cig|hit|puff))/.test(m)) return 'craving';
-  if (/(withdraw|symptom|how long|headache|insomnia|can'?t sleep|irritable|anxious|anxiety|moody|depress|appetite|weight)/.test(m)) return 'withdrawal';
+  if (/(angry|anger|rage|furious|irritab|frustrat|snapp(ed|ing)|stress|overwhelm|anxious|anxiety|panic|moody|mood swing|depress|crying|emotional)/.test(m)) return 'mood';
+  if (/(insomnia|can'?t sleep|sleep|appetite|weight|eating|hungry|exercise|workout|alcohol|when i drink|party|parties|social|friends who (smoke|vape)|coffee|caffeine)/.test(m)) return 'lifestyle';
+  if (/(benefit|worth it|what improves|health (improve|recover|gain)|lungs? (heal|recover|clear)|body recover|feel better|why (should i )?quit)/.test(m)) return 'benefits';
+  if (/(withdraw|symptom|how long|headache|brain fog|dizzy|fatigue|tired)/.test(m)) return 'withdrawal';
   if (/(why .*addict|dopamine|how does nicotine|receptor|hooked)/.test(m)) return 'mechanism';
-  if (/(trigger|after meals|with coffee|when i drink|stress|bored|routine|cope|cbt|habit)/.test(m)) return 'behavioral';
+  if (/(vap|e-?cig|pod|mod|nic(otine)? (salt|pouch)|zyn|taper)/.test(m)) return 'vaping';
+  if (/(trigger|after meals|bored|routine|cope|cbt|habit)/.test(m)) return 'behavioral';
   return 'default';
 }
 

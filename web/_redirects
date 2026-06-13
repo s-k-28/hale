@@ -4,4 +4,7 @@
 # rules deliberately exclude /.well-known/*.
 /r/*  /index.html  200
 /u/*  /index.html  200
+# Clean legal URLs — these exact paths ship inside the app (src/constants/legal.ts)
+# and in App Store Connect metadata.
 /privacy  /privacy.html  200
+/terms    /terms.html    200

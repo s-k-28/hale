@@ -22,6 +22,18 @@ export const ALLOWLISTED_DOMAINS = [
   'mayoclinic.org',
   'cochranelibrary.com',
   'ncbi.nlm.nih.gov', // PubMed / PubMed Central abstracts
+  'truthinitiative.org', // research-driven nonprofit; strongest vaping/teen content
+  'cancer.org', // American Cancer Society
+  'lung.org', // American Lung Association
+  'heart.org', // American Heart Association
+  'nhs.uk', // UK National Health Service
+  'samhsa.gov', // substance-use + mental-health agency
+  'medlineplus.gov', // NLM plain-language medical encyclopedia
+  'fda.gov', // tobacco products / vaping regulation + facts
+  'clevelandclinic.org',
+  'hopkinsmedicine.org',
+  'health.harvard.edu',
+  'healthychildren.org', // American Academy of Pediatrics
 ] as const;
 
 export type AllowlistedDomain = (typeof ALLOWLISTED_DOMAINS)[number];
@@ -48,6 +60,10 @@ export const TOPICS = [
   'relapse', // relapse prevention + recovery from a slip
   'nrt', // nicotine-replacement / medication OVERVIEW (high level only)
   'teen', // teen vaping specifics
+  'mood', // anger, stress, anxiety, low-mood coping while quitting
+  'vaping', // adult vaping / e-cig quitting specifics (devices, tapering, dual use)
+  'lifestyle', // sleep, appetite/weight, exercise, alcohol/caffeine, social situations
+  'benefits', // health-recovery timeline + motivation (what improves and when)
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -55,12 +71,16 @@ export type Topic = (typeof TOPICS)[number];
 // Which namespaces to search for a given user intent. Keep small + overlapping.
 export const TOPIC_ROUTES: Record<string, Topic[]> = {
   craving: ['cravings', 'behavioral', 'withdrawal'],
-  withdrawal: ['withdrawal', 'cravings', 'mechanism'],
-  relapse: ['relapse', 'behavioral', 'cravings'],
+  withdrawal: ['withdrawal', 'mood', 'cravings'],
+  relapse: ['relapse', 'behavioral', 'mood'],
   behavioral: ['behavioral', 'cravings', 'relapse'],
   mechanism: ['mechanism', 'withdrawal'],
-  nrt: ['nrt', 'mechanism'],
-  teen: ['teen', 'mechanism', 'cravings'],
+  nrt: ['nrt', 'mechanism', 'vaping'],
+  teen: ['teen', 'vaping', 'mechanism'],
+  mood: ['mood', 'withdrawal', 'behavioral'],
+  vaping: ['vaping', 'nrt', 'cravings'],
+  lifestyle: ['lifestyle', 'withdrawal', 'behavioral'],
+  benefits: ['benefits', 'mechanism', 'withdrawal'],
   default: ['withdrawal', 'cravings', 'behavioral'],
 };
 
@@ -76,6 +96,18 @@ export const DOMAIN_IMPORTANCE: Record<AllowlistedDomain, number> = {
   'who.int': 0.85,
   'smokefree.gov': 0.8,
   'mayoclinic.org': 0.75,
+  'truthinitiative.org': 0.85,
+  'cancer.org': 0.85,
+  'lung.org': 0.8,
+  'heart.org': 0.8,
+  'nhs.uk': 0.85,
+  'samhsa.gov': 0.85,
+  'medlineplus.gov': 0.85,
+  'fda.gov': 0.85,
+  'clevelandclinic.org': 0.75,
+  'hopkinsmedicine.org': 0.8,
+  'health.harvard.edu': 0.75,
+  'healthychildren.org': 0.8,
 };
 
 export function importanceFor(url: string): number {

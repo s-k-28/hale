@@ -60,6 +60,11 @@ export function usePushTags(
   }, [userId, linkOneSignal]);
 
   // Mirror behavior-targeting tags.
+  // PRIVACY GUARDRAIL (Guideline 5.1.3(i)): these tags carry coarse
+  // quit-journey context (streak, hardest hour) ONLY so functional pushes land
+  // at the right moment. Never add health log CONTENT (craving notes, chat),
+  // and never use these tags for marketing/advertising segments — they're
+  // disclosed in the privacy policy as app-functionality data.
   useEffect(() => {
     // Wait for the user to be known before tagging — otherwise tags could land
     // on an anonymous device record that the server can't address.

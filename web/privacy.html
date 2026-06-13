@@ -49,6 +49,9 @@
       never used for advertising.</li>
       <li><strong>Coach conversations.</strong> Messages you send to Sage, the in-app coach,
       and its replies.</li>
+      <li><strong>Community content.</strong> Posts, comments, and reactions you publish
+      under a system-generated pseudonym, plus reports and blocks you file. Other members
+      only ever see the pseudonym — never your name or account.</li>
       <li><strong>Buddies, squads, and referrals.</strong> Who you're paired with, squads
       you join, and referral records (who invited whom) so accountability features and
       invite rewards work. Buddies see only your first name, streak, and last check-in
@@ -64,9 +67,15 @@
     <p>HALE runs on a small set of service providers, each receiving only what its job needs:</p>
     <ul>
       <li><strong>Convex</strong> — our database; stores the account and content above.</li>
-      <li><strong>Anthropic</strong> — when you message Sage, your message and recent
-      conversation context are sent to Anthropic's API to generate the reply. Sage offers
-      general support, not medical advice.</li>
+      <li><strong>Groq</strong> — when you message Sage, your message, recent conversation
+      context, and quit stats (streak, triggers, craving counts) are sent to Groq's API to
+      generate the reply. Sage offers general support, not medical advice. Sage is off
+      until you explicitly consent in the app, and you can withdraw that consent anytime
+      in You tab → Settings → "AI coach data sharing".</li>
+      <li><strong>Google</strong> — each Sage message is also embedded via Google's Gemini
+      API to search our quit-science knowledge base (same consent as above).</li>
+      <li><strong>Anthropic</strong> — community posts and comments are sent to Anthropic's
+      API for automated safety review before anyone else can see them.</li>
       <li><strong>RevenueCat</strong> — subscription status and purchase events.</li>
       <li><strong>OneSignal</strong> — delivers push notifications you've opted into.</li>
       <li><strong>PostHog</strong> — product analytics (which features are used), keyed to
@@ -81,8 +90,8 @@
     <h2>Deleting your data</h2>
     <p>You can permanently delete your account and its content at any time, in the app:
     <strong>You tab → Delete account</strong>. This erases your quit history, check-ins,
-    cravings, coach conversations, goals, squads you own, and your buddy pairing, and it
-    cannot be undone. Referral records that already counted toward another person's reward
+    cravings, coach conversations, community posts and comments, goals, squads you own,
+    and your buddy pairing, and it cannot be undone. Referral records that already counted toward another person's reward
     are kept, without your profile attached.</p>
     <p>Deleting your account does <strong>not</strong> cancel an App Store subscription —
     Apple owns that billing relationship. Manage it in Settings → Apple ID → Subscriptions.</p>
@@ -97,7 +106,7 @@
 
     <h2>Changes and contact</h2>
     <p>If this policy changes materially, we'll update this page and the date above.
-    Questions or requests: <a href="mailto:CONTACT_EMAIL_HERE">CONTACT_EMAIL_HERE</a>.</p>
+    Questions or requests: <a href="mailto:support@haleapp.com">support@haleapp.com</a>.</p>
   </main>
 </body>
 </html>

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Check, X, Bot, LineChart, Users, LayoutGrid } from 'lucide-react-native';
+import { Check, X, Bot, LineChart, Users } from 'lucide-react-native';
 import { useLocalSearchParams } from 'expo-router';
 import {
   loadPlanOffers,
@@ -12,6 +12,7 @@ import {
   type PlanOffer,
 } from '@/lib/paywall';
 import { track, Ev } from '@/lib/analytics';
+import { APPLE_EULA_URL, PRIVACY_POLICY_URL } from '@/constants/legal';
 import {
   Button,
   Display,
@@ -69,11 +70,8 @@ const BENEFITS: { title: string; detail: string; Icon: IconCmp }[] = [
     detail: 'Quit alongside more than one buddy and keep every group accountable.',
     Icon: Users,
   },
-  {
-    title: 'Home-screen widgets',
-    detail: 'Your clean-time counter and money saved, glanceable without opening the app.',
-    Icon: LayoutGrid,
-  },
+  // NOTE: do NOT list features that aren't in the binary (Guideline 2.1/3.1.2)
+  // — home-screen widgets were removed here until the WidgetKit extension ships.
 ];
 
 export default function Paywall() {
@@ -241,7 +239,7 @@ function HalePlusUpsell({
 
         {/* Reassurance */}
         <Caption className="mt-5 text-center leading-relaxed">
-          14-day free trial, then your chosen plan. Cancel anytime in Apple Settings.
+          14-day free trial, then your chosen plan auto-renews until cancelled. Cancel anytime in Apple Settings, at least 24h before renewal.
         </Caption>
       </ScrollView>
 
@@ -297,6 +295,25 @@ function HalePlusUpsell({
           >
             <Caption className="text-fg-3">Continue with the free version</Caption>
           </Pressable>
+          {/* Subscription compliance (3.1.2): Terms (Apple EULA) + privacy
+              policy reachable from the purchase surface itself. */}
+          <View className="flex-row items-center justify-center gap-2">
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => Linking.openURL(APPLE_EULA_URL).catch(() => {})}
+              className="py-2 active:opacity-70"
+            >
+              <Caption className="text-fg-3">Terms of Use</Caption>
+            </Pressable>
+            <Caption className="text-fg-3">·</Caption>
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {})}
+              className="py-2 active:opacity-70"
+            >
+              <Caption className="text-fg-3">Privacy Policy</Caption>
+            </Pressable>
+          </View>
         </View>
       </View>
     </View>

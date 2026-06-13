@@ -1,6 +1,7 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
-import { mutation, query, internalMutation } from './_generated/server';
+import { mutation, query, internalMutation, internalAction } from './_generated/server';
+import { internal } from './_generated/api';
 import { moneySaved, nextHealthMilestone } from './model/plan';
 import { trialStatus } from './model/trial';
 import { resolveEntitlement } from './model/entitlement';
@@ -114,6 +115,166 @@ export const linkOneSignal = mutation({
     if (user.oneSignalExternalId === externalId) return { linked: true, changed: false };
     await ctx.db.patch(userId, { oneSignalExternalId: externalId });
     return { linked: true, changed: true };
+  },
+});
+
+/**
+ * Affirmative acceptance of the zero-tolerance community rules (Guideline
+ * 1.2). communityPosts.createPost/createComment are server-gated on this —
+ * the client interstitial alone is not the enforcement point. Idempotent.
+ */
+export const acceptCommunityRules = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+    const user = await ctx.db.get(userId);
+    if (user && user.communityRulesAcceptedAt === undefined)
+      await ctx.db.patch(userId, { communityRulesAcceptedAt: Date.now() });
+    return { ok: true as const };
+  },
+});
+
+/**
+ * Explicit consent to share chat data with third-party AI providers
+ * (Guideline 5.1.2(i)): Groq generates Sage's replies, Google embeds messages
+ * for knowledge search. sage.send is server-gated on this. Idempotent.
+ */
+export const setAiConsent = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+    const user = await ctx.db.get(userId);
+    if (user && user.aiConsentAt === undefined)
+      await ctx.db.patch(userId, { aiConsentAt: Date.now() });
+    return { ok: true as const };
+  },
+});
+
+/**
+ * Withdraw AI-consent (5.1.1(ii): consent must be revocable). Unsetting the
+ * flag re-locks sage.send server-side; the coach UI re-shows the consent card.
+ */
+export const revokeAiConsent = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+    const user = await ctx.db.get(userId);
+    if (user && user.aiConsentAt !== undefined)
+      await ctx.db.patch(userId, { aiConsentAt: undefined });
+    return { ok: true as const };
+  },
+});
+
+/** Whether the caller has consented to AI data sharing (gates the coach UI). */
+export const aiConsentStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { consented: false };
+    const user = await ctx.db.get(userId);
+    return { consented: user?.aiConsentAt !== undefined };
+  },
+});
+
+/** Whether the caller has accepted the community rules (gates the feed UI). */
+export const communityRulesStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { accepted: false };
+    const user = await ctx.db.get(userId);
+    return { accepted: user?.communityRulesAcceptedAt !== undefined };
+  },
+});
+
+// NOTE: account deletion lives in convex/account.ts (the canonical cascade,
+// incl. community/feed/referral product decisions). It schedules the
+// purgeExternalAccounts action below.
+
+/**
+ * Provider-side purge after deleteAccount — best-effort with loud logs.
+ * Each provider is independent and skipped (with a log) when its env keys are
+ * absent, mirroring the email scaffold pattern, so a missing key can never
+ * block in-app deletion. Designed so a future Sign in with Apple token
+ * revocation drops in as one more step.
+ */
+export const purgeExternalAccounts = internalAction({
+  args: { externalId: v.string(), oneSignalExternalId: v.string() },
+  handler: async (_ctx, { externalId, oneSignalExternalId }) => {
+    const results: Record<string, string> = {};
+
+    // OneSignal — delete the user (device aliases + tags) by external id.
+    const osAppId = process.env.ONESIGNAL_APP_ID;
+    const osKey = process.env.ONESIGNAL_REST_API_KEY;
+    if (osAppId && osKey) {
+      try {
+        const res = await fetch(
+          `https://api.onesignal.com/apps/${osAppId}/users/by/external_id/${encodeURIComponent(oneSignalExternalId)}`,
+          { method: 'DELETE', headers: { Authorization: `Key ${osKey}` } },
+        );
+        results.onesignal = res.ok || res.status === 404 ? 'ok' : `status ${res.status}`;
+      } catch (e) {
+        results.onesignal = e instanceof Error ? e.message : String(e);
+      }
+    } else {
+      results.onesignal = 'skipped (ONESIGNAL_APP_ID/ONESIGNAL_REST_API_KEY unset)';
+    }
+
+    // PostHog — delete the person (and their events) by distinct id.
+    const phProject = process.env.POSTHOG_PROJECT_ID;
+    const phKey = process.env.POSTHOG_PERSONAL_API_KEY;
+    const phHost = process.env.POSTHOG_HOST ?? 'https://us.posthog.com';
+    if (phProject && phKey) {
+      try {
+        const lookup = await fetch(
+          `${phHost}/api/projects/${phProject}/persons/?distinct_id=${encodeURIComponent(externalId)}`,
+          { headers: { Authorization: `Bearer ${phKey}` } },
+        );
+        const data = lookup.ok ? await lookup.json() : null;
+        const personId = data?.results?.[0]?.id;
+        if (personId) {
+          const res = await fetch(
+            `${phHost}/api/projects/${phProject}/persons/${personId}/?delete_events=true`,
+            { method: 'DELETE', headers: { Authorization: `Bearer ${phKey}` } },
+          );
+          results.posthog = res.ok ? 'ok' : `status ${res.status}`;
+        } else {
+          results.posthog = lookup.ok ? 'no person found' : `lookup status ${lookup.status}`;
+        }
+      } catch (e) {
+        results.posthog = e instanceof Error ? e.message : String(e);
+      }
+    } else {
+      results.posthog = 'skipped (POSTHOG_PROJECT_ID/POSTHOG_PERSONAL_API_KEY unset)';
+    }
+
+    // RevenueCat — delete the subscriber record (does NOT cancel App Store
+    // billing; the client warns and links to manage-subscriptions).
+    const rcKey = process.env.REVENUECAT_SECRET_API_KEY;
+    if (rcKey) {
+      try {
+        const res = await fetch(
+          `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(externalId)}`,
+          { method: 'DELETE', headers: { Authorization: `Bearer ${rcKey}` } },
+        );
+        results.revenuecat = res.ok || res.status === 404 ? 'ok' : `status ${res.status}`;
+      } catch (e) {
+        results.revenuecat = e instanceof Error ? e.message : String(e);
+      }
+    } else {
+      results.revenuecat = 'skipped (REVENUECAT_SECRET_API_KEY unset)';
+    }
+
+    const failed = Object.entries(results).filter(
+      ([, r]) => r !== 'ok' && !r.startsWith('skipped') && r !== 'no person found',
+    );
+    if (failed.length > 0)
+      console.error(`[deletion] external purge incomplete for ${externalId}:`, results);
+    else console.log(`[deletion] external purge for ${externalId}:`, results);
+    return results;
   },
 });
 

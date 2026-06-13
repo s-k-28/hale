@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, Switch, View } from 'react-native';
 import type { View as RNView } from 'react-native';
 import { Redirect, router } from 'expo-router';
-import { useConvexAuth, useQuery } from 'convex/react';
-import { BarChart3, BookOpenCheck, Check, ChevronRight, Crown, Flame, Gift, Share2, ShieldCheck, Trash2 } from 'lucide-react-native';
+import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import { BarChart3, BookOpenCheck, Bot, Check, ChevronRight, Crown, FileText, Flame, Gift, LifeBuoy, Share2, ShieldCheck, Trash2, UserX } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
+import { toast } from 'sonner-native';
 import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 import {
   HEALTH_MILESTONES,
   reachedHealthMilestones,
 } from '@convex/model/plan';
-import { track, Ev } from '@/lib/analytics';
+import { track, Ev, isAnalyticsEnabled, setAnalyticsEnabled } from '@/lib/analytics';
 import { PRIVACY_POLICY_URL } from '@/lib/links';
+import { APPLE_EULA_URL, SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/constants/legal';
+import { UNMUTE_CONFIRMATION } from '@/constants/communityCopy';
 import TransformationCard, { shareCard } from '@/components/TransformationCard';
 import {
   Screen,
@@ -285,30 +289,10 @@ function YouContent({
           </View>
         )}
 
-        {/* Home-screen widgets — blurred preview now; the real WidgetKit
-            extension is a fast-follow. Free users see what HALE+ unlocks. */}
-        <View className="mt-4">
-          <Label className="mb-3 ml-1">Home-screen widgets</Label>
-          <LockedFeature
-            feature="widgets"
-            variant="inline"
-            title="Glanceable widgets"
-            subtitle="Your clean-time and money saved on your home screen, unlocked with HALE+."
-          >
-            <View className="flex-row gap-3 p-1">
-              <View className="flex-1 rounded-3xl bg-surface-2 px-4 py-5">
-                <Label className="text-accent">Days free</Label>
-                <Display className="mt-1 text-4xl text-fg">{Math.floor(days)}</Display>
-                <Body className="mt-1 text-xs text-fg-2">HALE</Body>
-              </View>
-              <View className="flex-1 rounded-3xl bg-surface-2 px-4 py-5">
-                <Label className="text-accent">Saved</Label>
-                <Display className="mt-1 text-4xl text-fg">{money(state.currentMoneySaved)}</Display>
-                <Body className="mt-1 text-xs text-fg-2">HALE</Body>
-              </View>
-            </View>
-          </LockedFeature>
-        </View>
+        {/* NOTE: the "Home-screen widgets" HALE+ preview was removed — no
+            WidgetKit extension exists in the binary yet, and selling an
+            unshipped feature is a Guideline 2.1/3.1.2 rejection. Re-add the
+            block (and any paywall benefit row) when the extension ships. */}
 
         {/* Phase-2 entry points */}
         <View className="mt-4 gap-3">
@@ -340,6 +324,31 @@ function YouContent({
               });
             }}
           />
+          {/* Published support contact (Guideline 1.2) + Terms (3.1.2). */}
+          <YouLink
+            icon={<LifeBuoy color={clean.accent} size={20} strokeWidth={2.2} />}
+            title="Contact support"
+            sub={SUPPORT_EMAIL}
+            onPress={() =>
+              Linking.openURL(SUPPORT_MAILTO).catch(() => toast(`Email us: ${SUPPORT_EMAIL}`))
+            }
+          />
+          <YouLink
+            icon={<FileText color={clean.accent} size={20} strokeWidth={2.2} />}
+            title="Terms of use"
+            sub="The agreement behind HALE+."
+            onPress={() => {
+              void WebBrowser.openBrowserAsync(APPLE_EULA_URL).catch(() => {});
+            }}
+          />
+
+          {/* Blocked members (1.2: manage the account-level block list). */}
+          <BlockedMembers />
+
+          {/* Consent withdrawals (5.1.1(ii)) — both apply immediately. */}
+          <AnalyticsToggle />
+          <AiConsentToggle />
+
           {/* Destructive lane (coral) — Guideline 5.1.1(v): in-app account deletion,
               visible in Settings, not buried. */}
           <YouLink
@@ -351,6 +360,123 @@ function YouContent({
         </View>
       </ScrollView>
     </Screen>
+  );
+}
+
+/** Manage the account-level block list (Guideline 1.2) — expandable row. */
+function BlockedMembers() {
+  const mutes = useQuery(api.communityModeration.myMutes, {});
+  const unmuteProfile = useMutation(api.communityModeration.unmuteProfile);
+  const [open, setOpen] = useState(false);
+
+  const onUnblock = async (profileId: Id<'anonProfiles'>, handle: string) => {
+    try {
+      await unmuteProfile({ profileId });
+      toast(UNMUTE_CONFIRMATION(handle));
+    } catch {
+      /* reactive list simply stays as-is */
+    }
+  };
+
+  return (
+    <View className="rounded-2xl border border-stroke bg-surface">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Blocked members"
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen((o) => !o)}
+        className="flex-row items-center px-5 py-4 active:bg-surface-2"
+      >
+        <UserX color={clean.accent} size={20} strokeWidth={2.2} />
+        <View className="ml-3 flex-1">
+          <Body className="font-sora-semibold text-base text-fg">Blocked members</Body>
+          <Body className="mt-0.5 text-sm text-fg-2">
+            {mutes && mutes.length > 0
+              ? `${mutes.length} blocked`
+              : "No one blocked — you'd never see their posts again."}
+          </Body>
+        </View>
+        <ChevronRight
+          color={clean.fg2}
+          size={20}
+          style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}
+        />
+      </Pressable>
+      {open &&
+        (mutes ?? []).map((m) => (
+          <View key={m.profileId} className="flex-row items-center border-t border-stroke px-5 py-3">
+            <Body className="flex-1 text-sm text-fg">{m.handle}</Body>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Unblock ${m.handle}`}
+              onPress={() => void onUnblock(m.profileId, m.handle)}
+              className="rounded-full border border-stroke px-3 py-1.5 active:opacity-70"
+            >
+              <Label>Unblock</Label>
+            </Pressable>
+          </View>
+        ))}
+    </View>
+  );
+}
+
+/** Usage-analytics consent withdrawal (5.1.1(ii)) — applies immediately.
+ *  Copy says "linked to your account ID", never "anonymous": events are
+ *  identified via posthog.identify(userId) (2.3.1 accuracy). */
+function AnalyticsToggle() {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    isAnalyticsEnabled().then(setOn);
+  }, []);
+  return (
+    <View className="flex-row items-center rounded-2xl border border-stroke bg-surface px-5 py-4">
+      <BarChart3 color={clean.accent} size={20} strokeWidth={2.2} />
+      <View className="ml-3 flex-1 pr-3">
+        <Body className="font-sora-semibold text-base text-fg">Share usage analytics</Body>
+        <Body className="mt-0.5 text-sm text-fg-2">
+          Usage data linked to your account ID that helps us improve HALE. Never
+          sold, never for ads.
+        </Body>
+      </View>
+      <Switch
+        value={on}
+        onValueChange={(enabled) => {
+          setOn(enabled);
+          void setAnalyticsEnabled(enabled);
+        }}
+        trackColor={{ true: clean.accent, false: clean.surface3 }}
+        accessibilityLabel="Share usage analytics"
+      />
+    </View>
+  );
+}
+
+/** AI-consent withdrawal (5.1.2(i)/5.1.1(ii)): off re-locks the Sage composer
+ *  (users.revokeAiConsent unsets the flag; convex/sage.ts refuses sends). */
+function AiConsentToggle() {
+  const status = useQuery(api.users.aiConsentStatus, {});
+  const setAiConsent = useMutation(api.users.setAiConsent);
+  const revokeAiConsent = useMutation(api.users.revokeAiConsent);
+  return (
+    <View className="flex-row items-center rounded-2xl border border-stroke bg-surface px-5 py-4">
+      <Bot color={clean.accent} size={20} strokeWidth={2.2} />
+      <View className="ml-3 flex-1 pr-3">
+        <Body className="font-sora-semibold text-base text-fg">AI coach data sharing</Body>
+        <Body className="mt-0.5 text-sm text-fg-2">
+          Lets Sage work by sharing your chats and quit stats with our AI
+          providers. Off pauses the coach.
+        </Body>
+      </View>
+      <Switch
+        value={status?.consented === true}
+        disabled={status === undefined}
+        onValueChange={(enabled) => {
+          void (enabled ? setAiConsent({}) : revokeAiConsent({})).catch(() => {});
+        }}
+        trackColor={{ true: clean.accent, false: clean.surface3 }}
+        accessibilityLabel="AI coach data sharing"
+      />
+    </View>
   );
 }
 

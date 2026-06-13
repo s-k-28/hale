@@ -4,8 +4,10 @@ import { router } from 'expo-router';
 import { useMutation } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { ChevronLeft, TriangleAlert } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '@convex/_generated/api';
-import { track, Ev } from '@/lib/analytics';
+import { track, Ev, resetAnalyticsIdentity } from '@/lib/analytics';
+import { logoutOneSignal } from '@/lib/onesignal';
 import { logOutPurchaser } from '@/lib/revenuecat';
 import { Screen, IconBtn, H1, Lead, Body, Muted, Button, Card2 } from '@/ui';
 import { clean } from '@/theme/clean';
@@ -33,9 +35,14 @@ export default function DeleteAccount() {
     try {
       await deleteAccount();
       track(Ev.ACCOUNT_DELETED);
-      // Detach the RC identity so the entitlement doesn't orphan onto the next
-      // account on this device. Never cancels the App Store subscription.
+      // Detach every on-device identity so nothing orphans onto the next
+      // account: RC entitlement, PostHog person + queued events, OneSignal
+      // device alias, and local storage. Never cancels the App Store
+      // subscription (Apple owns that billing relationship).
       await logOutPurchaser();
+      resetAnalyticsIdentity();
+      logoutOneSignal();
+      await AsyncStorage.clear().catch(() => {});
       // Server rows (incl. auth sessions) are already gone; signOut clears the
       // LOCAL token so the next launch starts signed out. The server half of
       // signOut may no-op/fail against the deleted session — that's expected.

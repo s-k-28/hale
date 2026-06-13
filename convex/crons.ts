@@ -29,4 +29,20 @@ crons.daily(
  */
 crons.hourly('proactive-nudge', { minuteUTC: 0 }, internal.pushes.proactiveNudgeSweep);
 
+/**
+ * moderation-requeue: drains community posts/comments stuck 'pending' (classify
+ * exhausted its retries — typically a missing/bad ANTHROPIC_API_KEY). Without
+ * this, content authored during an outage would never publish even after the
+ * key is fixed. Idempotent + batched; a no-op when nothing is stuck.
+ */
+crons.interval('moderation-requeue', { minutes: 15 }, internal.communityModeration.requeueStalePending, {});
+
+/**
+ * report-sla: Guideline 1.2 requires acting on UGC reports within 24 hours
+ * (remove the content / eject the offender). This watchdog runs every 6h and
+ * pages (Convex error log + MODERATION_ALERT_EMAIL) whenever any report has
+ * been open longer than 12h — leaving real time to act inside the window.
+ */
+crons.interval('report-sla', { hours: 6 }, internal.communityModeration.alertStaleReports, {});
+
 export default crons;

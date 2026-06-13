@@ -89,6 +89,18 @@ export const createSquad = mutation({
   handler: async (ctx, { name, isPublic, challengeWeeks }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
+
+    // Squad names are stranger-visible UGC (publicSquads) — same write gates
+    // as community content (Guideline 1.2): no banned accounts, and the name
+    // gets a contact-info/link/length floor before it can be published.
+    const user = await ctx.db.get(userId);
+    if (user?.bannedAt !== undefined) throw new Error('Account suspended from community features');
+    const trimmedName = name.trim();
+    if (trimmedName.length < 2 || trimmedName.length > 40)
+      throw new Error('Squad names need 2–40 characters');
+    if (/(https?:\/\/|www\.|\.com|\.net|\.org|@|\b\d{7,}\b|snap|insta|telegram|whatsapp)/i.test(trimmedName))
+      throw new Error('Squad names can’t include links or contact info');
+
     await assertSquadSlotAvailable(ctx, userId);
 
     const inviteCode = await uniqueInviteCode(ctx);
@@ -104,7 +116,7 @@ export const createSquad = mutation({
         : {};
 
     const squadId = await ctx.db.insert('squads', {
-      name,
+      name: trimmedName,
       ownerId: userId,
       isPublic,
       inviteCode,
@@ -264,13 +276,16 @@ export const squadDetail = query({
 });
 
 /**
- * Discover public squads (S3) — the first 20 public squads, with a sanitized
- * card slice (no invite code; joining still goes through joinByCode or a future
- * public-join). Open to any authed user.
+ * Discover public squads (S3) — the first 20 public squads as a card slice.
+ * The inviteCode IS returned intentionally: public squads are open-join, and
+ * the Discover card's Join action funnels it into joinByCode. Auth-gated
+ * (1.6): squad names are member content and never served unauthenticated.
  */
 export const publicSquads = query({
   args: {},
   handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     const squads = await ctx.db
       .query('squads')
       .withIndex('by_public', (q) => q.eq('isPublic', true))

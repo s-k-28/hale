@@ -1,5 +1,6 @@
 import { mutation } from './_generated/server';
 import { getAuthUserId } from '@convex-dev/auth/server';
+import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 
 /**
@@ -29,6 +30,15 @@ export const deleteAccount = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
+
+    // 0. Provider-side purge (OneSignal / PostHog / RevenueCat) — capture the
+    //    external ids BEFORE the rows vanish; the action runs after commit and
+    //    is best-effort (skips per-provider when env keys are absent).
+    const me = await ctx.db.get(userId);
+    await ctx.scheduler.runAfter(0, internal.users.purgeExternalAccounts, {
+      externalId: String(userId),
+      oneSignalExternalId: me?.oneSignalExternalId ?? String(userId),
+    });
 
     // 1. Quit history + self-logged content (all indexed by userId).
     for (const row of await ctx.db
@@ -133,7 +143,75 @@ export const deleteAccount = mutation({
       .query('squadMembers')
       .withIndex('by_user', (q) => q.eq('userId', userId))
       .collect()) {
+      // Squads merely JOINED survive — keep their denormalized count honest.
+      const squad = await ctx.db.get(membership.squadId);
+      if (squad)
+        await ctx.db.patch(squad._id, { memberCount: Math.max(0, squad.memberCount - 1) });
       await ctx.db.delete(membership._id);
+    }
+
+    // 4b. Community (anonymous peer feed): the user's posts go with their
+    //     whole thread (comments/reactions would be unreachable orphans),
+    //     then their comments on others' posts, reactions (with count
+    //     decrements), reports they filed, blocks in both directions, and
+    //     their pseudonyms (decrementing each group's member-ish count).
+    for (const post of await ctx.db
+      .query('communityPosts')
+      .withIndex('by_user_ts', (q) => q.eq('userId', userId))
+      .collect()) {
+      for (const c of await ctx.db
+        .query('communityComments')
+        .withIndex('by_post_ts', (q) => q.eq('postId', post._id))
+        .collect()) {
+        await ctx.db.delete(c._id);
+      }
+      for (const r of await ctx.db
+        .query('communityReactions')
+        .withIndex('by_post_user', (q) => q.eq('postId', post._id))
+        .collect()) {
+        await ctx.db.delete(r._id);
+      }
+      await ctx.db.delete(post._id);
+    }
+    for (const c of await ctx.db
+      .query('communityComments')
+      .withIndex('by_user_ts', (q) => q.eq('userId', userId))
+      .collect()) {
+      await ctx.db.delete(c._id);
+    }
+    for (const r of await ctx.db.query('communityReactions').collect()) {
+      if (r.userId !== userId) continue;
+      const post = await ctx.db.get(r.postId);
+      if (post)
+        await ctx.db.patch(post._id, { reactionCount: Math.max(0, post.reactionCount - 1) });
+      await ctx.db.delete(r._id);
+    }
+    for (const report of await ctx.db
+      .query('communityReports')
+      .withIndex('by_reporter_target', (q) => q.eq('reporterUserId', userId))
+      .collect()) {
+      await ctx.db.delete(report._id);
+    }
+    for (const muteRow of await ctx.db
+      .query('communityMutes')
+      .withIndex('by_muter_profile', (q) => q.eq('muterUserId', userId))
+      .collect()) {
+      await ctx.db.delete(muteRow._id);
+    }
+    for (const muteRow of await ctx.db
+      .query('communityMutes')
+      .withIndex('by_muted_user', (q) => q.eq('mutedUserId', userId))
+      .collect()) {
+      await ctx.db.delete(muteRow._id);
+    }
+    for (const profile of await ctx.db
+      .query('anonProfiles')
+      .withIndex('by_user_group', (q) => q.eq('userId', userId))
+      .collect()) {
+      const group = await ctx.db.get(profile.groupId);
+      if (group)
+        await ctx.db.patch(group._id, { memberCount: Math.max(0, group.memberCount - 1) });
+      await ctx.db.delete(profile._id);
     }
 
     // 5. Feed events: everything the user authored anywhere, plus every event

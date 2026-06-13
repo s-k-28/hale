@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { KeyboardAvoidingView, Platform, View } from 'react-native'
+import { KeyboardAvoidingView, Linking, Platform, View } from 'react-native'
 import { Link, Redirect } from 'expo-router'
 import { Screen, Button, Lead, Muted } from '@/ui'
 import { RNText } from '@/ui/internal'
 import { InviteCodeEntry } from '@/components/InviteCodeEntry'
 import { getAgeConfirmed } from '@/lib/ageGate'
 import { getDisclaimerAck } from '@/lib/disclaimer'
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@/constants/legal'
 
 /** HALE logo block (design HaleLogo): emerald rounded square + wordmark. */
 function HaleLogo({ size = 50 }: { size?: number }) {
@@ -67,6 +68,27 @@ export default function Welcome() {
           </Link>
           <Muted className="mt-3.5 text-center text-[12px] uppercase tracking-[0.48px]">
             Free to start · 60-second setup
+          </Muted>
+          {/* Disclosure at the point of entry (5.1.1(i)/(ii)): continuing means
+              the privacy policy + terms apply, incl. usage analytics linked to
+              the account ID (withdrawable in You ▸ Settings). */}
+          <Muted className="mt-2 text-center text-[11px] leading-4">
+            By continuing you agree to our{' '}
+            <Muted
+              className="text-[11px] underline"
+              onPress={() => Linking.openURL(TERMS_URL).catch(() => {})}
+            >
+              Terms
+            </Muted>{' '}
+            and{' '}
+            <Muted
+              className="text-[11px] underline"
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {})}
+            >
+              Privacy Policy
+            </Muted>
+            , including usage analytics linked to your account ID — turn it off
+            anytime in You ▸ Settings.
           </Muted>
           {/* Typed-code referral fallback — the deferred-attribution path for fresh
               installs (the share message carries the code; iOS can't pass it

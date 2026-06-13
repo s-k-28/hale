@@ -3,7 +3,10 @@
  * build-corpus.mjs — turn the Scout→Fetch→Curate workflow output into the typed
  * knowledge/corpus.ts the RAG ingest pipeline reads.
  *
- * Usage:  node scripts/build-corpus.mjs <workflow-result.json>
+ * Usage:  node scripts/build-corpus.mjs <workflow-result.json> [--merge]
+ *
+ * --merge keeps the entries already in knowledge/corpus.ts (new entries win on
+ * a duplicate sourceUrl).
  *
  * Re-enforces the allowlist + topic enum as a final gate (hard rule: no valid
  * source = not ingested). See knowledge/README.md.
@@ -13,8 +16,14 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const ALLOWLIST = [
   'cdc.gov', 'smokefree.gov', 'nida.nih.gov', 'cancer.gov',
   'who.int', 'mayoclinic.org', 'cochranelibrary.com', 'ncbi.nlm.nih.gov',
+  'truthinitiative.org', 'cancer.org', 'lung.org', 'heart.org',
+  'nhs.uk', 'samhsa.gov', 'medlineplus.gov', 'fda.gov',
+  'clevelandclinic.org', 'hopkinsmedicine.org', 'health.harvard.edu', 'healthychildren.org',
 ];
-const TOPICS = ['mechanism', 'withdrawal', 'cravings', 'behavioral', 'relapse', 'nrt', 'teen'];
+const TOPICS = [
+  'mechanism', 'withdrawal', 'cravings', 'behavioral', 'relapse', 'nrt', 'teen',
+  'mood', 'vaping', 'lifestyle', 'benefits',
+];
 
 const onAllowlist = (url) => {
   try {
@@ -38,7 +47,18 @@ const end = raw.lastIndexOf('}');
 const parsed = JSON.parse(raw.slice(start, end + 1));
 // Workflow output is wrapped: { summary, logs, result: { entries } }.
 const data = parsed.result ?? parsed;
-const entriesIn = Array.isArray(data.entries) ? data.entries : [];
+let entriesIn = Array.isArray(data.entries) ? data.entries : [];
+
+if (process.argv.includes('--merge')) {
+  // Pull the existing entries out of the generated corpus.ts (a JSON literal)
+  // and prepend them; later (new) entries win on duplicate sourceUrl below.
+  const corpusTs = readFileSync(new URL('../knowledge/corpus.ts', import.meta.url), 'utf8');
+  const arrStart = corpusTs.indexOf('[', corpusTs.indexOf('] = [', corpusTs.indexOf('export const CORPUS')) + 3);
+  const arrEnd = corpusTs.lastIndexOf(']');
+  const existing = JSON.parse(corpusTs.slice(arrStart, arrEnd + 1));
+  const newUrls = new Set(entriesIn.map((e) => e.sourceUrl));
+  entriesIn = [...existing.filter((e) => !newUrls.has(e.sourceUrl)), ...entriesIn];
+}
 
 const seen = new Set();
 const entries = [];
