@@ -16,6 +16,7 @@ import {
 import { api } from '@convex/_generated/api';
 import { toast } from 'sonner-native';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import { buddyLink, buddyShareText, inviteShareParams } from '@/lib/links';
 import {
   Screen,
@@ -197,10 +198,14 @@ function PairedState({
           text: 'End pairing',
           style: 'destructive',
           onPress: () => {
+            // Gravity: the user confirmed a destructive action.
+            haptics.warn();
             unpair()
               .then((res) => {
                 if (res?.ended) {
                   track(Ev.BUDDY_UNPAIRED, { surface: 'squad' });
+                  // Neutral close — not celebratory, just done.
+                  haptics.tap();
                   toast.success('Pairing ended');
                 }
               })
@@ -217,7 +222,11 @@ function PairedState({
     setHeartBurst((n) => n + 1);
     track(Ev.NUDGE_SENT, { type: 'cheer', surface: 'squad' });
     cheer({ type: 'cheer' })
-      .then(() => toast.success("Support sent"))
+      .then(() => {
+        // The warm "support landed" beat — the outcome, not the tap.
+        haptics.success();
+        toast.success("Support sent");
+      })
       .catch(() => {
         setCheered(false); // revert the optimistic state so they can retry
         toast.error("Couldn't send support. Try again");
@@ -294,7 +303,12 @@ function PairedState({
 
       {/* Quiet escape hatch — one buddy at a time, so switching starts here. */}
       <Pressable
-        onPress={onUnpair}
+        onPress={() => {
+          // Light tap to open the confirm dialog. The destructive GRAVITY beat
+          // (warn) fires only on the in-Alert "End pairing" confirm, not here.
+          haptics.tap();
+          onUnpair();
+        }}
         accessibilityRole="button"
         accessibilityLabel={`End pairing with ${displayName}`}
         className="mt-4 items-center py-2 active:opacity-70"
@@ -393,7 +407,11 @@ function NavRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
-      onPress={onPress}
+      onPress={() => {
+        // Custom navigation row (not a UI primitive) → light tap.
+        haptics.tap();
+        onPress();
+      }}
       className="flex-row items-center rounded-2xl bg-surface/40 px-5 py-4 active:bg-surface"
     >
       {icon}

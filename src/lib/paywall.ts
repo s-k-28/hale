@@ -1,6 +1,7 @@
 import Purchases from 'react-native-purchases';
 import { env, has } from './config';
 import { track, Ev } from './analytics';
+import { haptics } from './haptics';
 
 /**
  * HALE+ hard paywall — direct StoreKit purchases via RevenueCat, never the
@@ -70,6 +71,8 @@ export async function purchasePlan(
     if (active) {
       track(Ev.PURCHASE_COMPLETED, { via: surface ?? 'paywall', result: 'PURCHASED' });
       track(Ev.SUBSCRIPTION_STARTED, { surface: surface ?? 'paywall', plan: offer.plan });
+      // The milestone/reward burst — they just unlocked HALE+.
+      haptics.celebrate();
       return 'purchased';
     }
     return 'failed';
@@ -88,7 +91,10 @@ export async function restorePurchases(): Promise<boolean> {
   if (!revenueCatConfigured()) return false;
   try {
     const customerInfo = await Purchases.restorePurchases();
-    return customerInfo.entitlements.active[env.revenueCatEntitlement] != null;
+    const active = customerInfo.entitlements.active[env.revenueCatEntitlement] != null;
+    // Familiar win — welcome back.
+    if (active) haptics.success();
+    return active;
   } catch {
     return false;
   }

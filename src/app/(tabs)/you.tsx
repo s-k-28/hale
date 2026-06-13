@@ -3,7 +3,7 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, Switch, View } from 
 import type { View as RNView } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
-import { BarChart3, BookOpenCheck, Bot, Check, ChevronRight, Crown, FileText, Flame, Gift, LifeBuoy, Share2, ShieldCheck, Trash2, UserX } from 'lucide-react-native';
+import { BarChart3, BookOpenCheck, Bot, Check, ChevronRight, Crown, FileText, Flame, Gift, LifeBuoy, Share2, ShieldCheck, Trash2, UserX, Vibrate } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { toast } from 'sonner-native';
 import { api } from '@convex/_generated/api';
@@ -13,8 +13,9 @@ import {
   reachedHealthMilestones,
 } from '@convex/model/plan';
 import { track, Ev, isAnalyticsEnabled, setAnalyticsEnabled } from '@/lib/analytics';
-import { PRIVACY_POLICY_URL } from '@/lib/links';
-import { APPLE_EULA_URL, SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/constants/legal';
+import { haptics, getHapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/links';
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/constants/legal';
 import { UNMUTE_CONFIRMATION } from '@/constants/communityCopy';
 import TransformationCard, { shareCard } from '@/components/TransformationCard';
 import {
@@ -125,6 +126,15 @@ function YouContent({
         : Math.round((reached.length / HEALTH_MILESTONES.length) * 100),
     [reached.length],
   );
+
+  const [hapticsOn, setHapticsOn] = useState(() => getHapticsEnabled());
+
+  const onToggleHaptics = (value: boolean) => {
+    setHapticsEnabled(value);
+    setHapticsOn(value);
+    // Fire a confirmation beat AFTER enabling so the user feels what they turned on.
+    if (value) haptics.select();
+  };
 
   const onShare = () => {
     void shareCard(cardRef, { day: wholeDays, source: 'profile' });
@@ -254,6 +264,10 @@ function YouContent({
         {!state.premium ? (
           <Pressable
             onPress={goPaywall}
+            // The premium upsell surface mirrors LockedFeature's gate → a Medium
+            // press (a primary, deliberate action), fired here since this is a
+            // custom Pressable, not a UI primitive.
+            onPressIn={() => haptics.press()}
             accessibilityRole="button"
             className="overflow-hidden rounded-3xl border border-stroke bg-surface active:opacity-90"
           >
@@ -335,12 +349,29 @@ function YouContent({
           />
           <YouLink
             icon={<FileText color={clean.accent} size={20} strokeWidth={2.2} />}
-            title="Terms of use"
-            sub="The agreement behind HALE+."
+            title="Terms of service"
+            sub="Subscriptions, referrals, and the ground rules."
             onPress={() => {
-              void WebBrowser.openBrowserAsync(APPLE_EULA_URL).catch(() => {});
+              void WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {
+                // No browser available — nothing sensible to do silently here.
+              });
             }}
           />
+          {/* Haptic feedback toggle — Switch inline with the YouLink row pattern. */}
+          <View className="flex-row items-center rounded-2xl border border-stroke bg-surface px-5 py-4">
+            <Vibrate color={clean.accent} size={20} strokeWidth={2.2} />
+            <View className="ml-3 flex-1">
+              <Body className="font-sora-semibold text-base text-fg">Haptic feedback</Body>
+              <Body className="mt-0.5 text-sm text-fg-2">Feel taps and milestones</Body>
+            </View>
+            <Switch
+              value={hapticsOn}
+              onValueChange={onToggleHaptics}
+              trackColor={{ false: clean.stroke, true: clean.accent }}
+              thumbColor={clean.fg}
+              ios_backgroundColor={clean.stroke}
+            />
+          </View>
 
           {/* Blocked members (1.2: manage the account-level block list). */}
           <BlockedMembers />
@@ -348,6 +379,7 @@ function YouContent({
           {/* Consent withdrawals (5.1.1(ii)) — both apply immediately. */}
           <AnalyticsToggle />
           <AiConsentToggle />
+
 
           {/* Destructive lane (coral) — Guideline 5.1.1(v): in-app account deletion,
               visible in Settings, not buried. */}
@@ -495,7 +527,11 @@ function YouLink({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
-      onPress={onPress}
+      onPress={() => {
+        // Custom settings/navigation row (not a UI primitive) → light tap.
+        haptics.tap();
+        onPress();
+      }}
       className="flex-row items-center rounded-2xl border border-stroke bg-surface px-5 py-4 active:bg-surface-2"
     >
       {icon}

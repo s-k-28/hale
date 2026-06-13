@@ -21,6 +21,7 @@ import { PostHogProvider } from 'posthog-react-native';
 import { env } from '@/lib/config';
 import { initRevenueCat } from '@/lib/revenuecat';
 import { initOneSignal } from '@/lib/onesignal';
+import { initHaptics } from '@/lib/haptics';
 import { initSentry } from '@/lib/sentry';
 import { posthog, initAnalyticsConsent } from '@/lib/analytics';
 import { Toaster } from 'sonner-native';
@@ -55,6 +56,9 @@ export default function RootLayout() {
     // Re-apply a stored analytics opt-out before any meaningful capture
     // (Guideline 5.1.1(ii): consent is withdrawable from You ▸ Settings).
     void initAnalyticsConsent();
+    // Hydrate the haptics preference here (not PushSync) so haptics respect the
+    // saved setting from the first touch — including pre-auth onboarding.
+    void initHaptics();
   }, []);
 
   useEffect(() => {

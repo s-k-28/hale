@@ -7,6 +7,7 @@ import { toast } from 'sonner-native';
 import { api } from '@convex/_generated/api';
 import { REPORT_CONFIRMATION, REPORT_REASONS } from '@/constants/communityCopy';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import {
   Screen,
   Button,
@@ -97,7 +98,11 @@ export default function Squads() {
       >
         {/* Header — back chevron to the Squad tab + loud wordmark. */}
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => {
+            // Custom back chrome (not IconBtn) → fire its own light tap.
+            haptics.tap();
+            router.back();
+          }}
           accessibilityRole="button"
           accessibilityLabel="Back"
           className="mb-4 h-10 w-10 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-80"
@@ -106,7 +111,7 @@ export default function Squads() {
         </Pressable>
 
         <Label className="text-accent">Quit together</Label>
-        <Heading className="mt-1 text-5xl leading-[0.9]">SQUADS</Heading>
+        <Heading className="mt-1 text-5xl leading-tight">Squads</Heading>
         <Body className="mt-2 text-base leading-6 text-fg-2">
           Pick a group going through the same thing. Start a 6-week challenge and stay clean
           together.
@@ -214,7 +219,11 @@ function SquadCard({
       {/* Tappable header + progress (the toggle). Kept separate from the detail
           so the inner Share button never collides with a nested Pressable. */}
       <Pressable
-        onPress={onToggle}
+        onPress={() => {
+          // Expand/collapse is a selection-style disclosure → selection tick.
+          haptics.select();
+          onToggle();
+        }}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
         accessibilityLabel={`${squad.name}, ${squad.memberCount} members`}
@@ -317,6 +326,8 @@ function CreateSquad() {
         challengeWeeks: startChallenge ? CHALLENGE_WEEKS : undefined,
       })) as { squadId: string; inviteCode: string };
       track(Ev.SQUAD_CREATED, { isPublic, startChallenge });
+      // Squad created successfully — outcome haptic before showing the code.
+      haptics.success();
       setCreatedCode(res.inviteCode);
       setName('');
     } catch {
@@ -400,7 +411,7 @@ function CreateSquad() {
             </View>
             <Switch
               value={isPublic}
-              onValueChange={setIsPublic}
+              onValueChange={(v) => { haptics.select(); setIsPublic(v); }}
               trackColor={{ false: clean.stroke, true: clean.accent }}
               thumbColor={clean.fg}
               ios_backgroundColor={clean.stroke}
@@ -422,7 +433,7 @@ function CreateSquad() {
             </View>
             <Switch
               value={startChallenge}
-              onValueChange={setStartChallenge}
+              onValueChange={(v) => { haptics.select(); setStartChallenge(v); }}
               trackColor={{ false: clean.stroke, true: clean.accent }}
               thumbColor={clean.fg}
               ios_backgroundColor={clean.stroke}
@@ -461,8 +472,11 @@ function JoinByCode() {
     try {
       await joinByCode({ code: code.trim().toUpperCase() });
       track(Ev.SQUAD_JOINED, { method: 'code' });
+      haptics.success();
       setCode('');
     } catch {
+      // Bad/unknown code — the system rejected it.
+      haptics.error();
       setError('That code didn’t work. Double-check it and try again.');
     } finally {
       setBusy(false);
@@ -569,6 +583,7 @@ function DiscoverRow({
     try {
       await joinByCode({ code: squad.inviteCode });
       track(Ev.SQUAD_JOINED, { method: 'discover', squadId: squad._id });
+      haptics.success();
       setDone(true);
     } catch {
       // Allow retry (e.g. already a member from another device).
@@ -619,7 +634,7 @@ function DiscoverRow({
         <Badge label="Joined" tone="soft" />
       ) : (
         <Pressable
-          onPress={onJoin}
+          onPress={() => { haptics.tap(); onJoin(); }}
           disabled={busy}
           accessibilityRole="button"
           accessibilityLabel={`Join ${squad.name}`}

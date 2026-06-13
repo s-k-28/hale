@@ -194,7 +194,11 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
               ) : null}
             </View>
 
-            {/* Hero: the day count — HUGE Sora numeral */}
+            {/* Hero: the day count — HUGE Sora numeral. The unit is a NESTED Text
+                run inside the numeral's Text, so the text engine itself lays both
+                on ONE shared baseline ("DAYS" sits on the numeral's foot) — sibling
+                flex `items-baseline` proved unreliable on iOS at mixed sizes.
+                Robust at 1/2/3+ digits; caption hugs the lockup as one block. */}
             <View>
               <Text
                 className="text-[11px] uppercase tracking-[5px] text-accent"
@@ -202,34 +206,35 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
               >
                 Nicotine-free
               </Text>
-              <View className="mt-1 flex-row items-end">
+              <Text
+                className="mt-2 text-fg"
+                style={{
+                  fontFamily: FONTS.display,
+                  fontSize: 132,
+                  // Tall numerals clip when lineHeight == fontSize; ~1.06x gives
+                  // the glyph tops room without stranding the unit/caption.
+                  lineHeight: 140,
+                  color: clean.fg,
+                  includeFontPadding: false,
+                }}
+              >
+                {dispDays}
                 <Text
-                  className="text-accent-ink"
                   style={{
                     fontFamily: FONTS.display,
-                    fontSize: 132,
-                    // Tall numerals clip when lineHeight == fontSize;
-                    // ~1.14x gives the glyph tops room (the "0"→"U" clip fix).
-                    lineHeight: 150,
-                    color: clean.fg,
-                  }}
-                >
-                  {dispDays}
-                </Text>
-                <Text
-                  className="mb-4 ml-3 text-accent"
-                  style={{
-                    fontFamily: FONTS.display,
+                    // Unit scaled ~0.26x; no lineHeight so it inherits the parent
+                    // run's baseline exactly.
                     fontSize: 34,
-                    lineHeight: 36,
                     color: clean.accent,
+                    includeFontPadding: false,
                   }}
                 >
+                  {' '}
                   {wholeDays === 1 ? 'DAY' : 'DAYS'}
                 </Text>
-              </View>
+              </Text>
               <Text
-                className="-mt-1 text-base text-fg"
+                className="mt-2 text-base text-fg"
                 style={{ fontFamily: FONTS.body, color: clean.fg }}
               >
                 {wholeDays === 1 ? 'and counting.' : 'clean and counting.'}

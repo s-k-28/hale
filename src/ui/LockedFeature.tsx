@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
 import { Pressable, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { Lock } from 'lucide-react-native';
 import { usePremium } from '@/hooks/usePremium';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import { clean } from '@/theme/clean';
 import { H2, Body } from './Text';
 import { Button } from './Button';
@@ -18,8 +18,12 @@ import { Button } from './Button';
  * module is involved (a missing BlurView used to throw and leak content).
  * Tapping fires paywall_feature_tapped { feature } and presents the paywall.
  *
- * `variant`: 'overlay' fills its parent (whole-screen gates); 'inline' is a
- * self-sized rounded card (a gated section inside a screen).
+ * Layout model (why the CTA can't clip): the lock chrome renders in NORMAL
+ * FLOW so the container grows to fit whichever is taller — the chrome or the
+ * wrapped children — while the children render ABSOLUTELY behind it (layout
+ * backing only, inert + dimmed + scrimmed). 'overlay' fills its parent (flex-1,
+ * whole-screen gates); 'inline' is a self-sized rounded card with a minHeight
+ * floor (a gated section inside a screen).
  */
 export function LockedFeature({
   feature,
@@ -38,7 +42,9 @@ export function LockedFeature({
   const { hasHALEPlus, loading } = usePremium();
 
   const open = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Interaction haptic is owned by the outer Pressable (haptics.press on
+    // press-in) — open() itself stays haptic-free so the inner Button doesn't
+    // double-fire.
     track(Ev.PAYWALL_FEATURE_TAPPED, { feature });
     // Hard paywall: always OUR Clean Dark screen (it owns PAYWALL_VIEWED and
     // the StoreKit purchase flow) — never the RC-rendered sheet.
@@ -48,22 +54,31 @@ export function LockedFeature({
   // Entitled (or still resolving — never flash a lock at a paying user): pass through.
   if (hasHALEPlus || loading) return <>{children}</>;
 
-  const rounded = variant === 'inline' ? styles.inlineRadius : undefined;
+  const overlay = variant === 'overlay';
+  const rounded = overlay ? undefined : styles.inlineRadius;
 
   return (
     <Pressable
       onPress={open}
+      // Interaction haptic on the whole locked surface (press-in, the variant
+      // default a primary Button would give). open() stays haptic-free, and the
+      // inner "Unlock HALE+" Button auto-fires its own — so the two paths never
+      // double-fire.
+      onPressIn={() => haptics.press()}
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${subtitle ?? ''}`.trim()}
-      className={variant === 'overlay' ? 'flex-1' : ''}
-      style={[styles.container, rounded]}
+      className={overlay ? 'flex-1' : ''}
+      style={[styles.container, overlay ? styles.overlayFloor : styles.inlineFloor, rounded]}
     >
-      {/* The locked premium content: rendered for layout (so 'overlay' gates
-          keep the screen's height) but inert and dimmed under an OPAQUE scrim.
-          The gate must never depend on a native blur module — an unavailable
-          BlurView used to throw 'Unimplemented component' and leak legible
-          premium content under the overlay copy. */}
-      <View pointerEvents="none" style={styles.contentLayer}>
+      {/* The locked premium content: rendered ABSOLUTELY for layout backing
+          (so 'overlay' gates keep the screen's height and the surface always
+          has texture under the chrome) but inert and dimmed under an OPAQUE
+          scrim. Because the chrome below drives the container's intrinsic
+          height, the CTA can never be clipped — even when the chrome is taller
+          than the children (the 'inline' widgets case). The gate must never
+          depend on a native blur module — an unavailable BlurView used to throw
+          'Unimplemented component' and leak legible premium content. */}
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.contentLayer]}>
         {children}
       </View>
 
@@ -74,7 +89,38 @@ export function LockedFeature({
         style={[StyleSheet.absoluteFill, styles.scrim, rounded]}
       />
 
-      {/* Centered unlock CTA. */}
+      {/* DESIGNED backdrop (zero content leak — pure decoration). A soft radial
+          accent bloom seats the lock group in light; a faint dot-grid texture
+          and a couple of large blurred-feeling accent rings give the empty gate
+          quiet-luxury depth instead of reading as a broken void. Scaled down for
+          'inline'. */}
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        {/* Large blurred-feeling rings (low-opacity strokes, big radius). */}
+        <View
+          style={[
+            styles.ring,
+            overlay ? styles.ringLgOverlay : styles.ringLgInline,
+          ]}
+        />
+        <View
+          style={[
+            styles.ring,
+            overlay ? styles.ringSmOverlay : styles.ringSmInline,
+          ]}
+        />
+        {/* Faint dot-grid texture, centered behind the lock group. */}
+        <View style={styles.dotGridWrap}>
+          <DotGrid overlay={overlay} />
+        </View>
+        {/* Soft radial accent glow (stacked translucent discs → fake radial). */}
+        <View style={styles.glowWrap} pointerEvents="none">
+          <View style={[styles.glow, overlay ? styles.glowOverlay : styles.glowInline]} />
+          <View style={[styles.glow, overlay ? styles.glowCoreOverlay : styles.glowCoreInline]} />
+        </View>
+      </View>
+
+      {/* Centered unlock chrome — IN NORMAL FLOW so the container grows to fit
+          it. The lock group sits in a clear focal hierarchy over the backdrop. */}
       <View pointerEvents="none" style={styles.cta}>
         <View style={styles.lockBadge}>
           <Lock size={20} color={clean.accentInk} strokeWidth={2.2} />
@@ -92,15 +138,59 @@ export function LockedFeature({
   );
 }
 
+/**
+ * A faint dot grid (decorative texture, zero content). Plain Views — no images,
+ * no deps. Dimmer + denser on the full-screen overlay, smaller for inline.
+ */
+function DotGrid({ overlay }: { overlay: boolean }) {
+  const cols = overlay ? 7 : 5;
+  const rows = overlay ? 7 : 4;
+  const gap = overlay ? 26 : 20;
+  const dot = 3;
+  return (
+    <View style={{ width: cols * gap, height: rows * gap }}>
+      {Array.from({ length: rows }).map((_, r) => (
+        <View key={r} style={{ flexDirection: 'row' }}>
+          {Array.from({ length: cols }).map((__, c) => (
+            <View
+              key={c}
+              style={{
+                width: gap,
+                height: gap,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <View
+                style={{
+                  width: dot,
+                  height: dot,
+                  borderRadius: dot / 2,
+                  backgroundColor: 'rgba(52,211,153,0.10)',
+                }}
+              />
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
     overflow: 'hidden',
-    // Must fit the absolutely-positioned CTA stack (badge 44 + title +
-    // 2-line subtitle + button 49 + padding ≈ 240pt): with 180, short
-    // children let overflow:hidden shear the badge and clip the Unlock
-    // button (ui-audit D10, You-tab widgets card).
+  },
+  // 'inline' is self-sized; the chrome (in normal flow) drives the real height
+  // so it can never clip. The floor covers degenerate short-children cases —
+  // sized to the full CTA stack (badge + title + 2-line subtitle + button).
+  inlineFloor: {
     minHeight: 248,
+  },
+  // 'overlay' fills its flex parent; the chrome centers inside that space.
+  overlayFloor: {
+    minHeight: 320,
   },
   inlineRadius: {
     borderRadius: 22,
@@ -117,15 +207,88 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(52,211,153,0.26)',
   },
-  cta: {
+  // --- Decorative backdrop (all pointer-events:none, zero content) ----------
+  ring: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(52,211,153,0.06)',
+    backgroundColor: 'rgba(52,211,153,0.015)',
+  },
+  ringLgOverlay: {
+    width: 460,
+    height: 460,
+    borderRadius: 230,
+    top: -150,
+    right: -170,
+  },
+  ringSmOverlay: {
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    bottom: -120,
+    left: -130,
+  },
+  ringLgInline: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    top: -80,
+    right: -80,
+  },
+  ringSmInline: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    bottom: -70,
+    left: -70,
+  },
+  dotGridWrap: {
+    position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    opacity: 0.55,
+  },
+  glowWrap: {
+    position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Stacked translucent discs approximate a soft radial accent bloom (no
+  // gradient/shadow dependency, captures + composites cleanly).
+  glow: {
+    position: 'absolute',
+  },
+  glowOverlay: {
+    width: 360,
+    height: 360,
+    borderRadius: 180,
+    backgroundColor: 'rgba(52,211,153,0.05)',
+  },
+  glowCoreOverlay: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(52,211,153,0.06)',
+  },
+  glowInline: {
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(52,211,153,0.05)',
+  },
+  glowCoreInline: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(52,211,153,0.06)',
+  },
+  // --- Lock chrome (normal flow → drives container height) ------------------
+  cta: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    flexGrow: 1,
   },
   lockBadge: {
     width: 44,

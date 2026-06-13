@@ -27,6 +27,7 @@ import { useMutation } from 'convex/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import {
   Screen,
   Button,
@@ -105,6 +106,9 @@ export default function CravingSos() {
   // Fire SOS-opened once on mount. Also emit first_sos ONCE per user (candidate
   // activation event for the q1 D30 retention-split), guarded by a device flag.
   useEffect(() => {
+    // The grounding "I've got you" thump on the app's most emotionally critical
+    // screen — once, on mount.
+    haptics.heavy();
     track(Ev.CRAVING_SOS_OPENED);
     AsyncStorage.getItem('hale:firstSos').then((seen) => {
       if (!seen) {
@@ -156,6 +160,8 @@ export default function CravingSos() {
             resolvedBy,
           });
           track(Ev.CRAVING_LOGGED, { outcome: 'survived', resolvedBy, intensity: vals.intensity });
+          // The brave thing landed — they survived it AND logged it.
+          haptics.success();
         }
         track(Ev.CRAVING_SURVIVED, { resolvedBy });
       } catch {
@@ -266,7 +272,11 @@ export default function CravingSos() {
             <Label className="text-coral">Craving SOS</Label>
           </View>
           <Pressable
-            onPress={close}
+            onPress={() => {
+              // Custom close chrome → light tap (dismissal).
+              haptics.tap();
+              close();
+            }}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Close"
@@ -321,7 +331,11 @@ export default function CravingSos() {
         </View>
 
         <Pressable
-          onPress={() => setView({ kind: 'slip-choose' })}
+          onPress={() => {
+            // Custom row → light tap (neutral; the slip flow stays anti-shame).
+            haptics.tap();
+            setView({ kind: 'slip-choose' });
+          }}
           accessibilityRole="button"
           className="mt-9 flex-row items-center justify-between rounded-2xl border border-stroke bg-surface px-5 py-4 active:opacity-70"
         >
@@ -376,7 +390,11 @@ function CravingLogCapture({
             return (
               <Pressable
                 key={n}
-                onPress={() => setIntensity(n)}
+                onPress={() => {
+                  // Custom selector cell → its own selection tick.
+                  haptics.select();
+                  setIntensity(n);
+                }}
                 accessibilityRole="button"
                 accessibilityLabel={`Intensity ${n}`}
                 className={`flex-1 items-center rounded-2xl border py-3.5 active:opacity-80 ${
@@ -430,7 +448,11 @@ function CravingLogCapture({
           className="mt-9"
         />
         <Pressable
-          onPress={onSkip}
+          onPress={() => {
+            // Custom skip link → light tap (dismissal).
+            haptics.tap();
+            onSkip();
+          }}
           accessibilityRole="button"
           className="mt-4 items-center py-2 active:opacity-70"
         >
@@ -452,7 +474,12 @@ function Chip({
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        // LOCAL chip (not the src/ui Chip, which self-fires) → selection tick.
+        // Used by both the craving-log capture and the kind-recovery trigger lists.
+        haptics.select();
+        onPress();
+      }}
       accessibilityRole="button"
       className={`rounded-full border px-4 py-2 active:opacity-70 ${
         selected ? 'border-accent-edge bg-accent/15' : 'border-stroke bg-surface'
@@ -484,7 +511,11 @@ function PrimaryOption({
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        // Custom row (not a UI primitive) → fire its own light tap.
+        haptics.tap();
+        onPress();
+      }}
       accessibilityRole="button"
       className="flex-row items-center gap-4 rounded-3xl bg-coral px-5 py-5 active:opacity-90"
     >
@@ -514,7 +545,11 @@ function Option({
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        // Custom row (not a UI primitive) → fire its own light tap.
+        haptics.tap();
+        onPress();
+      }}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!disabled }}
@@ -558,6 +593,22 @@ function RideItOut({
     return () => clearInterval(id);
   }, [remaining]);
 
+  // Quiet "still here with you" pulse at each whole-minute boundary still left
+  // (240/180/120/60). A Set guards each beat to fire exactly once as the second
+  // ticks across it.
+  const minuteBeatsRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (remaining > 0 && remaining < RIDE_SECONDS && remaining % 60 === 0 && !minuteBeatsRef.current.has(remaining)) {
+      minuteBeatsRef.current.add(remaining);
+      haptics.soft();
+    }
+  }, [remaining]);
+
+  // The reward when they ride the full timer out — fires once on the done flip.
+  useEffect(() => {
+    if (done) haptics.success();
+  }, [done]);
+
   const progress = 1 - remaining / RIDE_SECONDS;
   const reassurance = useMemo(() => {
     if (done) return "You rode it out. The urge passed, and you're still here.";
@@ -600,7 +651,16 @@ function RideItOut({
           />
         )}
 
-        <Pressable onPress={onSlip} accessibilityRole="button" className="mt-3 items-center py-2">
+        <Pressable
+          onPress={() => {
+            // NEUTRAL tap — anti-shame: a slip never gets warn()/error(). Just a
+            // quiet beat as we move into the slip flow.
+            haptics.tap();
+            onSlip();
+          }}
+          accessibilityRole="button"
+          className="mt-3 items-center py-2"
+        >
           <Body className="text-sm text-fg-2">I slipped</Body>
         </Pressable>
 
@@ -689,6 +749,16 @@ function BoxBreathing({
     return () => clearInterval(interval);
   }, []);
 
+  // Haptic breath beats, in step with the label: a Soft pulse on the inhale
+  // (phase 0), a Light pulse on the exhale (phase 2). The two holds (1, 3) are
+  // silent BY DESIGN — stillness is the point. Firing on the first inhale (the
+  // initial phase-0 render) is desirable; setPhase(0) above is a no-op when phase
+  // is already 0, so this effect runs once per real phase change, never twice.
+  useEffect(() => {
+    if (phase === 0) haptics.breath('in');
+    else if (phase === 2) haptics.breath('out');
+  }, [phase]);
+
   // Map a sawtooth scale (0.55→1 over a full cycle) into a true grow/hold/shrink/hold
   // visual by reshaping it per quarter — gives the box-breathing pulse.
   const circleStyle = useAnimatedStyle(() => {
@@ -724,7 +794,16 @@ function BoxBreathing({
 
         <Button label="I feel steadier, I'm good" variant="primary" onPress={onSurvived} />
 
-        <Pressable onPress={onSlip} accessibilityRole="button" className="mt-3 items-center py-2">
+        <Pressable
+          onPress={() => {
+            // NEUTRAL tap — anti-shame: a slip never gets warn()/error(). Just a
+            // quiet beat as we move into the slip flow.
+            haptics.tap();
+            onSlip();
+          }}
+          accessibilityRole="button"
+          className="mt-3 items-center py-2"
+        >
           <Body className="text-sm text-fg-2">I slipped</Body>
         </Pressable>
 
@@ -765,7 +844,12 @@ function SlipChoose({
         </Body>
 
         <Pressable
-          onPress={onLapse}
+          onPress={() => {
+            // NEUTRAL tap — anti-shame: a slip never gets warn()/error(), and no
+            // outcome haptic fires on the relapse mutation itself.
+            haptics.tap();
+            onLapse();
+          }}
           accessibilityRole="button"
           className="mt-9 rounded-3xl border border-accent-edge/40 bg-accent/10 px-5 py-5 active:opacity-80"
         >
@@ -781,7 +865,12 @@ function SlipChoose({
         </Pressable>
 
         <Pressable
-          onPress={onRelapse}
+          onPress={() => {
+            // NEUTRAL tap — anti-shame: no warn()/error() here, and the relapse
+            // mutation gets no outcome haptic. A fresh run is not a failure.
+            haptics.tap();
+            onRelapse();
+          }}
           accessibilityRole="button"
           className="mt-3 rounded-3xl border border-stroke bg-surface px-5 py-5 active:opacity-80"
         >
@@ -791,7 +880,15 @@ function SlipChoose({
           </Body>
         </Pressable>
 
-        <Pressable onPress={onCancel} accessibilityRole="button" className="mt-7 items-center py-2">
+        <Pressable
+          onPress={() => {
+            // Custom back-out link → light tap (dismissal). Anti-shame: never warn.
+            haptics.tap();
+            onCancel();
+          }}
+          accessibilityRole="button"
+          className="mt-7 items-center py-2"
+        >
           <Body className="text-sm text-fg-2">Actually, I'm okay. Go back</Body>
         </Pressable>
 
@@ -914,8 +1011,11 @@ function RecoverKindly({
           </View>
           <View className="border-t border-stroke px-5 py-4">
             <SageNote chip={false}>
-              You already proved you can do this for {bestStreak > 0 ? `${bestStreak} ` : 'a '}
-              {bestStreak === 1 ? 'day' : 'days'}. You can do it again, starting now.
+              {bestStreak >= 2
+                ? `You already proved you can do this for ${bestStreak} days. You can do it again, starting now.`
+                : bestStreak === 1
+                  ? 'You already proved you can do this for a day. You can do it again, starting now.'
+                  : "Starting is the hardest part, and you've already done it once. Do it again, right now."}
             </SageNote>
           </View>
         </Card>
@@ -946,7 +1046,12 @@ function RecoverKindly({
         </View>
 
         <Pressable
-          onPress={() => onDone(trigger)}
+          onPress={() => {
+            // Warm success — a new beginning, not a failure. Custom Pressable, so
+            // it fires its own outcome beat here.
+            haptics.success();
+            onDone(trigger);
+          }}
           accessibilityRole="button"
           className="mt-4 h-14 items-center justify-center rounded-2xl border border-stroke active:bg-surface"
         >
@@ -968,16 +1073,20 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <View className="flex-row items-center justify-between pt-2">
       <Pressable
-        onPress={onBack}
+        onPress={() => {
+          // Custom back chrome (not IconBtn) → fire its own light tap.
+          haptics.tap();
+          onBack();
+        }}
         hitSlop={12}
         accessibilityRole="button"
         accessibilityLabel="Back"
-        className="h-10 w-10 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-70"
+        className="h-11 w-11 items-center justify-center rounded-full border border-stroke bg-surface active:opacity-70"
       >
         <ChevronLeft color={clean.fg} size={20} strokeWidth={2.5} />
       </Pressable>
       <Label className="text-fg-2">{title}</Label>
-      <View className="h-10 w-10" />
+      <View className="h-11 w-11" />
     </View>
   );
 }

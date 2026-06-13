@@ -17,6 +17,7 @@ import { ArrowUp, Wind, MessageCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import { Body, Button, Display, Muted, H2 as Heading, Eyebrow as Label } from '@/ui';
 import { clean } from '@/theme/clean';
 import { PRIVACY_POLICY_URL } from '@/constants/legal';
@@ -60,6 +61,9 @@ export default function Coach() {
   // a dead-end (unlimited Sage is HALE+). Cleared on the next accepted message.
   const [capHit, setCapHit] = useState(false);
   const listRef = useRef<FlatList<SageMessage>>(null);
+  // Tracks the last-seen message id+role so we can detect a new sage reply arriving
+  // without firing on the initial transcript load.
+  const prevLastRef = useRef<{ id: string; role: string } | null | undefined>(undefined);
 
   // Hard paywall: every upsell routes to OUR paywall screen — never the RC
   // native sheet (same rule as LockedFeature).
@@ -83,9 +87,29 @@ export default function Coach() {
     }
   }, [messageCount]);
 
+  // Gentle reply-arrival beat: fires haptics.soft() when a new sage-role message
+  // becomes the last row. Initialize the ref on first non-undefined load without
+  // firing (prevLastRef === undefined = "not yet seen any messages").
+  useEffect(() => {
+    if (messages === undefined) return;
+    const last = messages.length > 0 ? messages[messages.length - 1] : null;
+    if (prevLastRef.current === undefined) {
+      // First load — stash without firing.
+      prevLastRef.current = last ? { id: last._id, role: last.role } : null;
+      return;
+    }
+    const prevId = prevLastRef.current?.id ?? null;
+    if (last && last.role === 'sage' && last._id !== prevId) {
+      haptics.soft();
+    }
+    prevLastRef.current = last ? { id: last._id, role: last.role } : null;
+  }, [messages]);
+
   const onSend = useCallback(async () => {
     const content = draft.trim();
     if (!content || sending) return;
+    // Send tap — the custom Pressable doesn't auto-fire interaction haptics.
+    haptics.tap();
     setSending(true);
     setDraft('');
     try {
@@ -107,6 +131,7 @@ export default function Coach() {
         setDraft((prev) => (prev.length > 0 ? prev : content));
         if (res.tier === 'free') {
           // Free cap → convert the limit into an upgrade moment (HALE+ = unlimited).
+          haptics.warn();
           setCapHit(true);
           toast.error('Daily Sage limit reached. Unlock unlimited with HALE+.');
         } else {
@@ -123,7 +148,8 @@ export default function Coach() {
         });
       }
     } catch {
-      // Restore the draft so a transient failure never loses what they typed.
+      // System failed — restore the draft so a transient failure never loses what they typed.
+      haptics.error();
       setDraft((prev) => (prev.length > 0 ? prev : content));
     } finally {
       setSending(false);
@@ -236,7 +262,12 @@ export default function Coach() {
         {/* Free-tier daily cap reached → unlock unlimited Sage with HALE+. */}
         {capHit ? (
           <Pressable
-            onPress={onUpgradeSage}
+            onPress={() => {
+              // Custom upsell row (not a UI primitive) → light tap on the way to
+              // the paywall.
+              haptics.tap();
+              onUpgradeSage();
+            }}
             accessibilityRole="button"
             accessibilityLabel="Unlock unlimited Sage with HALE+"
             className="mx-4 mb-1 flex-row items-center rounded-2xl border border-accent-edge/30 bg-accent/10 px-4 py-3 active:opacity-90"
@@ -353,8 +384,8 @@ function EmptyState() {
       <BreathingSage />
       <Display className="mt-6 text-center text-5xl text-fg">Hey,{'\n'}I&apos;m Sage</Display>
       <Body className="mt-4 max-w-[300px] text-center text-base leading-6 text-fg-2">
-        Here the second a craving hits. Tell me what&apos;s going on, no judgment,
-        just backup to ride it out. It peaks, then it passes.
+        I&apos;m here the second a craving hits. Tell me what&apos;s going on — no
+        judgment, just backup while you ride it out. It peaks, then it passes.
       </Body>
       <Label className="mt-8 text-center text-fg-2">Cravings pass · you don&apos;t quit on yourself</Label>
     </View>

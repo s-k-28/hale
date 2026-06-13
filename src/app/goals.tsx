@@ -12,12 +12,12 @@ import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { Check, ChevronLeft, Gift, Plus, Trash2, X } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { haptics } from '@/lib/haptics';
 import {
   Screen,
   Button,
   Display,
   Body,
-  Badge,
   H2 as Heading,
   Eyebrow as Label,
 } from '@/ui';
@@ -98,6 +98,8 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
     try {
       await setGoal({ label: label.trim(), targetAmount: targetNum });
       track(Ev.SAVINGS_GOAL_SET, { target_amount: targetNum });
+      // Goal saved — the outcome landed.
+      haptics.success();
       setLabel('');
       setAmount('');
     } catch (e) {
@@ -111,6 +113,8 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
     try {
       await deleteGoal({ goalId: id });
       track(Ev.GOAL_DELETED);
+      // Neutral dismissal beat.
+      haptics.tap();
     } catch {
       // best-effort; reactivity keeps the list honest
     }
@@ -128,10 +132,14 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header — back chip + loud wordmark. */}
-        <View className="mb-6 flex-row items-center justify-between">
+        {/* Header — back chip + wordmark. */}
+        <View className="mb-4 flex-row items-center">
           <Pressable
-            onPress={back}
+            onPress={() => {
+              // Custom back chrome (not IconBtn) → fire its own light tap.
+              haptics.tap();
+              back();
+            }}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Back"
@@ -142,7 +150,8 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
         </View>
 
         <View className="mb-7">
-          <Heading className="text-5xl leading-tight">Treat{'\n'}yourself</Heading>
+          <Label className="text-accent">Your savings</Label>
+          <Heading className="mt-1 text-5xl leading-tight">Treat yourself</Heading>
           <Body className="mt-3 text-base leading-relaxed text-fg-2">
             Every clean day buys back real money. Name what you&apos;re saving for,
             watch it fill.
@@ -192,6 +201,8 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
                 <Pressable
                   key={t}
                   onPress={() => {
+                    // Custom Pressable — fire selection haptic (Chip equivalent).
+                    haptics.select();
                     setAmount(String(t));
                     if (error) setError(null);
                   }}

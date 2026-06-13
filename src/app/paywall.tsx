@@ -11,8 +11,10 @@ import {
   type HalePlan,
   type PlanOffer,
 } from '@/lib/paywall';
+import * as WebBrowser from 'expo-web-browser';
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/links';
 import { track, Ev } from '@/lib/analytics';
-import { APPLE_EULA_URL, PRIVACY_POLICY_URL } from '@/constants/legal';
+import { haptics } from '@/lib/haptics';
 import {
   Button,
   Display,
@@ -113,6 +115,7 @@ export default function Paywall() {
       setBusy(false);
       setOffers(o);
       if (o === null) {
+        haptics.warn();
         setNotice(
           "Subscriptions aren't available right now. Check your connection and try again.",
         );
@@ -128,6 +131,7 @@ export default function Paywall() {
       track(Ev.TRIAL_STARTED, { trial_days: 14, trial_type: 'storekit' });
       dismiss();
     } else if (result === 'failed') {
+      haptics.error();
       setNotice("That didn't go through. You weren't charged. Try again.");
     }
     // cancelled → stay quietly.
@@ -135,6 +139,7 @@ export default function Paywall() {
 
   const onRestore = async () => {
     if (busy) return;
+    haptics.tap();
     setNotice(null);
     setBusy(true);
     const restored = await restorePurchases();
@@ -142,17 +147,24 @@ export default function Paywall() {
     if (restored) {
       dismiss();
     } else {
+      haptics.warn();
       setNotice('No previous purchases found for this Apple ID.');
     }
   };
 
   return (
     <HalePlusUpsell
-      onFreeVersion={dismiss}
+      onFreeVersion={() => {
+        haptics.tap();
+        dismiss();
+      }}
       onStart={onStart}
       onRestore={onRestore}
       plan={plan}
-      onPlan={setPlan}
+      onPlan={(p) => {
+        haptics.select();
+        setPlan(p);
+      }}
       offers={offers}
       busy={busy}
       notice={notice}
@@ -295,23 +307,28 @@ function HalePlusUpsell({
           >
             <Caption className="text-fg-3">Continue with the free version</Caption>
           </Pressable>
-          {/* Subscription compliance (3.1.2): Terms (Apple EULA) + privacy
-              policy reachable from the purchase surface itself. */}
-          <View className="flex-row items-center justify-center gap-2">
+          {/* Subscription legal (Guideline 3.1.2): functional Privacy + Terms
+              links on the purchase surface. Quiet by design. */}
+          <View className="mt-0.5 flex-row items-center gap-6">
             <Pressable
+              hitSlop={8}
               accessibilityRole="link"
-              onPress={() => Linking.openURL(APPLE_EULA_URL).catch(() => {})}
-              className="py-2 active:opacity-70"
+              onPress={() => {
+                haptics.select();
+                void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {});
+              }}
             >
-              <Caption className="text-fg-3">Terms of Use</Caption>
+              <Caption className="text-fg-3 underline">Privacy</Caption>
             </Pressable>
-            <Caption className="text-fg-3">·</Caption>
             <Pressable
+              hitSlop={8}
               accessibilityRole="link"
-              onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {})}
-              className="py-2 active:opacity-70"
+              onPress={() => {
+                haptics.select();
+                void WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {});
+              }}
             >
-              <Caption className="text-fg-3">Privacy Policy</Caption>
+              <Caption className="text-fg-3 underline">Terms</Caption>
             </Pressable>
           </View>
         </View>

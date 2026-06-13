@@ -5,6 +5,7 @@ import { useConvexAuth, useMutation, useQuery } from 'convex/react'
 import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
 import { track, Ev } from '@/lib/analytics'
+import { haptics } from '@/lib/haptics'
 import { setPendingBuddy } from '@/lib/pendingBuddy'
 import { Screen, H2, Lead, Button } from '@/ui'
 import { clean } from '@/theme/clean'
@@ -55,9 +56,13 @@ export default function AcceptInvite() {
         if (pair?.referralCompleted) track(Ev.REFERRAL_BUDDY_PAIRED, { referrer_id: refId })
         if (pair?.referrerReachedGoal) track(Ev.REFERRAL_COMPLETED, { referrer_id: refId })
         if (pair?.rewardGranted) track(Ev.REWARD_GRANTED, { referrer_id: refId, reward_days: 7 })
+        // Pairing success — the buddy bond just formed.
+        haptics.success()
         router.replace('/(tabs)/squad')
       } catch (e) {
         const msg = e instanceof Error ? e.message : ''
+        // System failed to pair — warn the user.
+        haptics.warn()
         setError(
           msg.includes('You already have a buddy')
             ? 'caller_paired'

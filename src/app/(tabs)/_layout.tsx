@@ -8,6 +8,7 @@ import { identifyUser, setCohortSnapshot } from '@/lib/analytics';
 import { identifyPurchaser } from '@/lib/revenuecat';
 import { quitStage } from '@convex/model/cohort';
 import { clean } from '@/theme/clean';
+import { haptics } from '@/lib/haptics';
 
 /**
  * Whole-app session sync for authed users. Lives in the tab layout so it stays
@@ -90,6 +91,7 @@ export default function TabsLayout() {
           title: 'Today',
           tabBarIcon: ({ color, size }) => <House color={color} size={size} strokeWidth={2} />,
         }}
+        listeners={{ tabPress: () => haptics.select() }}
       />
       <Tabs.Screen
         name="squad"
@@ -97,6 +99,7 @@ export default function TabsLayout() {
           title: 'Squad',
           tabBarIcon: ({ color, size }) => <Users color={color} size={size} strokeWidth={2} />,
         }}
+        listeners={{ tabPress: () => haptics.select() }}
       />
       <Tabs.Screen
         name="community"
@@ -111,6 +114,7 @@ export default function TabsLayout() {
           title: 'Coach',
           tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} strokeWidth={2} />,
         }}
+        listeners={{ tabPress: () => haptics.select() }}
       />
       <Tabs.Screen
         name="you"
@@ -118,6 +122,7 @@ export default function TabsLayout() {
           title: 'You',
           tabBarIcon: ({ color, size }) => <User color={color} size={size} strokeWidth={2} />,
         }}
+        listeners={{ tabPress: () => haptics.select() }}
       />
       </Tabs>
     </>
