@@ -6,7 +6,7 @@
  */
 import { PRIVACY_POLICY_URL as CANONICAL_PRIVACY_URL } from '@/lib/links';
 
-export const SUPPORT_EMAIL = 'support@haleapp.com';
+export const SUPPORT_EMAIL = 'johnpulavarthy@gmail.com';
 export const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}`;
 
 // Single source: src/lib/links.ts owns the policy host (it must stay in sync

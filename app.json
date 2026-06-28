@@ -16,7 +16,7 @@
       "icon": "./assets/images/icon.png",
       "supportsTablet": false,
       "associatedDomains": [
-        "applinks:go.haleapp.com"
+        "applinks:go.hale-app.com"
       ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -121,12 +121,12 @@
           "data": [
             {
               "scheme": "https",
-              "host": "go.haleapp.com",
+              "host": "go.hale-app.com",
               "pathPrefix": "/r/"
             },
             {
               "scheme": "https",
-              "host": "go.haleapp.com",
+              "host": "go.hale-app.com",
               "pathPrefix": "/u/"
             }
           ],

@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["TEAM_ID_HERE.com.haleapp.hale"],
+        "appIDs": ["TEAM_ID_HERE.com.ravipulavarthy.hale"],
         "components": [
           {
             "/": "/r/*",

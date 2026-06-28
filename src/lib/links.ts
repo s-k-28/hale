@@ -20,8 +20,10 @@
 
 import { Platform } from 'react-native';
 
-// TODO(launch): replace with the real owned domain before the store build.
-export const LINK_DOMAIN = 'go.haleapp.com';
+// Universal-link host on the owned domain (note the hyphen — see PRIVACY_POLICY_URL).
+// Requires the AASA file served at https://go.hale-app.com/.well-known/ and a
+// native rebuild (associatedDomains is a native entitlement).
+export const LINK_DOMAIN = 'go.hale-app.com';
 
 // Live at hale-app.com (verified 200). NOTE the hyphen: haleapp.com (no hyphen)
 // is a PARKED domain we don't own — it redirects to a domain-sale page.
