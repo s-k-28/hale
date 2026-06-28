@@ -3,6 +3,7 @@ import { mutation, query } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
 import { localDateOf, dayDiff } from './model/streak';
+import { handleForUser } from './model/anonHandles';
 
 /**
  * Opt-in weekly leagues (S4). Segmented by quit-STAGE (so a day-3 quitter never
@@ -205,8 +206,10 @@ export const myLeague = query({
     const opted = members.filter((m) => m.optedIn);
     const scored = await Promise.all(
       opted.map(async (m) => {
-        const member = await ctx.db.get(m.userId);
-        const name = member?.name?.trim() || 'Anonymous';
+        // Stage rivals are STRANGERS — show a stable pseudonym, never the real
+        // first name (App Store 1.2 / privacy). The client renders "You" for
+        // the viewer's own row, so self-identity is unaffected.
+        const name = handleForUser(m.userId);
         const score = await cleanCountForWeek(ctx, m.userId, weekDates);
         return { name, score, isMe: m.userId === userId };
       }),

@@ -23,14 +23,13 @@ import { Platform } from 'react-native';
 // TODO(launch): replace with the real owned domain before the store build.
 export const LINK_DOMAIN = 'go.haleapp.com';
 
-// TODO(launch): this page must be live before submission — the in-app link
-// (You tab) AND the App Store Connect privacy-policy field both point at it.
-export const PRIVACY_POLICY_URL = 'https://haleapp.com/privacy';
+// Live at hale-app.com (verified 200). NOTE the hyphen: haleapp.com (no hyphen)
+// is a PARKED domain we don't own — it redirects to a domain-sale page.
+export const PRIVACY_POLICY_URL = 'https://hale-app.com/privacy';
 
-// TODO(launch): this page must be live before submission — the in-app links
-// (You tab + paywall) point at it, and Apple Guideline 3.1.2 requires a working
-// Terms of Use link for the auto-renewable subscription.
-export const TERMS_URL = 'https://haleapp.com/terms';
+// Live at hale-app.com (verified 200). Apple Guideline 3.1.2 requires a working
+// Terms of Use link for the auto-renewable subscription. Same hyphen caveat.
+export const TERMS_URL = 'https://hale-app.com/terms';
 
 /** The shareable referral link: opens HALE if installed, web redirect if not. */
 export function referralLink(code: string): string {

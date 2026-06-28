@@ -40,3 +40,28 @@ export function generateAvatarSeed(rand: () => number): string {
     .toString(16)
     .padStart(6, '0');
 }
+
+/**
+ * STABLE pseudonym for a user id — the same id always yields the same
+ * "swift-otter-12". Used where a peer's identity is shown to STRANGERS (the
+ * leagues leaderboard) so we never leak a real first name (App Store 1.2 /
+ * privacy). Unlike the per-group anonProfiles handles, this needs no DB row and
+ * works for users who never opened the community. Fully deterministic (seeded
+ * from the id, no Math.random) so it is safe to call inside a Convex query.
+ */
+export function handleForUser(userId: string): string {
+  // xfnv1a hash of the id → 32-bit seed.
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < userId.length; i++) {
+    h = Math.imul(h ^ userId.charCodeAt(i), 16777619);
+  }
+  // mulberry32 PRNG as the rand source for generateHandle's three draws.
+  let a = h >>> 0;
+  const rand = () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  return generateHandle(rand);
+}
