@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.haleapp.hale",
+      "package_name": "com.ravipulavarthy.hale",
       "sha256_cert_fingerprints": ["EB:9E:57:52:E7:A3:CD:B3:5E:DC:3D:71:18:77:8E:E2:05:78:2B:5A:41:DC:45:3F:A0:7D:A3:3F:5D:D5:8A:F2"]
     }
   }
