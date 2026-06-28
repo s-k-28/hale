@@ -29,10 +29,11 @@ export const logCraving = mutation({
       ts: now,
       localHour: localHourOf(now, user.timezone),
       intensity,
-      trigger,
-      context,
+      // Cap free-text fields so an authenticated client can't bloat storage.
+      trigger: trigger?.slice(0, 200),
+      context: context?.slice(0, 500),
       outcome,
-      resolvedBy,
+      resolvedBy: resolvedBy?.slice(0, 50),
     });
     return { cravingId };
   },

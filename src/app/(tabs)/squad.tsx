@@ -8,9 +8,7 @@ import {
   Flame,
   Heart,
   HeartHandshake,
-  Share2,
   Trophy,
-  UserPlus,
   Users,
 } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
@@ -24,7 +22,6 @@ import {
   Display,
   Body,
   Card,
-  Badge,
   H2 as Heading,
   Eyebrow as Label,
 } from '@/ui';

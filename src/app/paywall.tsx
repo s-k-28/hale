@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Check, X, Bot, LineChart, Users } from 'lucide-react-native';
-import { useLocalSearchParams } from 'expo-router';
 import {
   loadPlanOffers,
   purchasePlan,

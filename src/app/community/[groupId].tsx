@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, usePaginatedQuery, useQuery } from 'convex/react';
 import { FlashList } from '@shopify/flash-list';
 import { ChevronLeft } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '@/lib/haptics';
 import { toast } from 'sonner-native';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
@@ -74,7 +74,7 @@ export default function GroupFeed() {
   const onToggleReaction = useCallback(
     (postId: Id<'communityPosts'>) => {
       // Tactile beat lands on the tap; the reactive feed reflects the truth.
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      haptics.tap();
       toggleReaction({ postId }).catch(() => {
         // Transient write failure — the query re-renders the real count.
       });

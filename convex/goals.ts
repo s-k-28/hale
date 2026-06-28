@@ -21,7 +21,7 @@ export const setGoal = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
 
-    const trimmed = label.trim();
+    const trimmed = label.trim().slice(0, 80);
     if (!trimmed) throw new Error('Give your goal a name');
     if (!Number.isFinite(targetAmount) || targetAmount <= 0)
       throw new Error('Target must be more than $0');

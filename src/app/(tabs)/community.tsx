@@ -7,7 +7,7 @@ import { ChevronRight, Globe, Users } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { toast } from 'sonner-native';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '@/lib/haptics';
 import { Screen, H1, H2 as Heading, Body, Eyebrow as Label } from '@/ui';
 import { RiseIn } from '@/components/motion';
 import { CommunityRulesGate } from '@/components/community/CommunityRulesGate';
@@ -59,12 +59,12 @@ export default function Community() {
     async (groupId: Id<'communityGroups'>) => {
       if (joiningId) return;
       setJoiningId(groupId);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      haptics.press();
       try {
         // The delightful beat: the server mints a pseudonym and we reveal it
         // immediately — the card flips to "Joined as {handle}" reactively too.
         const res = await joinGroup({ groupId });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        haptics.success();
         toast(`You're in as ${res.handle}`);
       } catch {
         toast.error("Couldn't join. Please try again");

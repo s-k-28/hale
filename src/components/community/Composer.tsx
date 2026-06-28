@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useMutation } from 'convex/react';
 import { Send } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '@/lib/haptics';
 import { toast } from 'sonner-native';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
@@ -86,7 +86,7 @@ export function Composer({
   const handleSend = async () => {
     if (!canSend) return;
     const body = trimmed;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptics.press();
     // Optimistic: clear right away — the dimmed pending row carries the copy
     // until the reactive feed picks the item up as status: 'pending'.
     setDraft('');

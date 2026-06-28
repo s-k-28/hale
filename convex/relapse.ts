@@ -156,7 +156,7 @@ export const noteRelapseTrigger = mutation({
       .order('desc')
       .first();
     if (closed && closed.endReason === 'relapse') {
-      await ctx.db.patch(closed._id, { endTrigger: trigger });
+      await ctx.db.patch(closed._id, { endTrigger: trigger.slice(0, 200) });
       return { ok: true };
     }
     return { ok: false };

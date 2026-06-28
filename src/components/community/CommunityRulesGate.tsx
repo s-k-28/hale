@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Linking, ScrollView, View } from 'react-native';
 import { useMutation, useQuery } from 'convex/react';
 import { ShieldCheck } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '@/lib/haptics';
 import { toast } from 'sonner-native';
 import { api } from '@convex/_generated/api';
 import { Screen, H1, Body, Eyebrow as Label, Button } from '@/ui';
@@ -37,7 +37,7 @@ export function CommunityRulesGate({ children }: { children: ReactNode }) {
   const onAgree = async () => {
     if (accepting) return;
     setAccepting(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    haptics.success();
     try {
       await acceptRules({});
       // Reactive: communityRulesStatus flips and the children render.

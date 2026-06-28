@@ -76,9 +76,16 @@ export const messages = query({
  * writing or scheduling (no LLM compute spent); the client fires sage_cap_hit.
  * Returns tier + dailyCount + capType so the client can enrich coach_message_sent.
  */
+// Hard cap on a single coach message. Sage is the cost-bearing path (Groq
+// tokens + Google embeddings); without a cap a client could send a multi-MB
+// body, bloating input tokens, the stored row, and the embedding call. ~2k
+// chars (≈400 words) is generous for a coaching message; trim beyond that.
+const SAGE_MAX_MESSAGE_CHARS = 2000;
+
 export const send = mutation({
   args: { content: v.string() },
-  handler: async (ctx, { content }) => {
+  handler: async (ctx, { content: rawContent }) => {
+    const content = rawContent.trim().slice(0, SAGE_MAX_MESSAGE_CHARS);
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
     const user = await ctx.db.get(userId);
