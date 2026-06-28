@@ -11,6 +11,15 @@ import { clean } from '@/theme/clean';
 import { haptics } from '@/lib/haptics';
 
 /**
+ * Community feed is gated OFF for the v1.0 App Store build. The tab is fully
+ * absent from the tab bar unless EXPO_PUBLIC_COMMUNITY_ENABLED === 'true'
+ * (set only in .env.local for development — never in production / eas.json).
+ * `href: null` removes the tab AND makes the route unreachable from the bar —
+ * not greyed out, not paywalled, just not there (App Store Guideline 1.2).
+ */
+const COMMUNITY_ENABLED = process.env.EXPO_PUBLIC_COMMUNITY_ENABLED === 'true';
+
+/**
  * Whole-app session sync for authed users. Lives in the tab layout so it stays
  * mounted across tabs (not just Today) and fires once todayState resolves the
  * user's id. Renders nothing. Each piece degrades to a no-op when its service
@@ -106,6 +115,8 @@ export default function TabsLayout() {
         options={{
           title: 'Community',
           tabBarIcon: ({ color, size }) => <HeartHandshake color={color} size={size} strokeWidth={2} />,
+          // Gated off for v1.0: null href = fully absent from the tab bar.
+          href: COMMUNITY_ENABLED ? undefined : null,
         }}
       />
       <Tabs.Screen
