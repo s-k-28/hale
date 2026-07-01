@@ -15,7 +15,8 @@
       "channel": "preview",
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://agreeable-mongoose-741.convex.cloud",
-        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://agreeable-mongoose-741.convex.site"
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://agreeable-mongoose-741.convex.site",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_DWGVewLMuBWXnziKvxqiglCNDwf"
       }
     },
     "production": {
@@ -23,7 +24,8 @@
       "channel": "production",
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://agreeable-mongoose-741.convex.cloud",
-        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://agreeable-mongoose-741.convex.site"
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://agreeable-mongoose-741.convex.site",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_DWGVewLMuBWXnziKvxqiglCNDwf"
       }
     }
   },
