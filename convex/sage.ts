@@ -16,7 +16,12 @@ import {
   SAGE_COST_PER_OUTPUT_TOKEN,
   SAGE_MAX_CONTEXT_TURNS,
 } from './model/sage';
-import { buildSageSystemPrompt, detectRouteFlag } from './model/sage.prompt';
+import {
+  buildSageSystemPrompt,
+  detectRouteFlag,
+  containsClinicalDosing,
+  medicalRedirectReply,
+} from './model/sage.prompt';
 import { searchKnowledge } from './sageKnowledge';
 import { CONTACTS } from '../knowledge/sources.config';
 import { moneySaved } from './model/plan';
@@ -198,6 +203,11 @@ export const generate = internalAction({
         );
       }
     }
+
+    // Output-side clinical backstop (model-independent): if the generated reply
+    // slipped a dose/medication specific past the persona rule + regex router,
+    // replace it with a route-to-clinician message before it ever persists.
+    if (containsClinicalDosing(content)) content = medicalRedirectReply(CONTACTS);
 
     await ctx.runMutation(internal.sage.writeReply, {
       userId,

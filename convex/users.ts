@@ -6,6 +6,16 @@ import { moneySaved, nextHealthMilestone } from './model/plan';
 import { trialStatus } from './model/trial';
 import { resolveEntitlement } from './model/entitlement';
 
+/** True if `tz` is a real IANA zone the runtime recognizes. */
+function isValidTimeZone(tz: string): boolean {
+  try {
+    Intl.DateTimeFormat('en-US', { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Called right after anonymous sign-in at the commitment step (Decision 2). */
 export const completeOnboarding = mutation({
   args: {
@@ -27,9 +37,14 @@ export const completeOnboarding = mutation({
     const existing = await ctx.db.get(userId);
     if (existing?.currentAttemptId) return { attemptId: existing.currentAttemptId, userId };
     const now = Date.now();
+    // Guard the client-supplied timezone: a bogus/rotating tz string would make
+    // local-date math (streaks, the Sage daily cap) inconsistent. Coerce an
+    // invalid zone to UTC rather than rejecting a legitimate onboarding.
+    const timezone = isValidTimeZone(args.timezone) ? args.timezone : 'UTC';
     const attemptId = await ctx.db.insert('quitAttempts', { userId, startDate: now, active: true });
     await ctx.db.patch(userId, {
       ...args,
+      timezone,
       currentAttemptId: attemptId,
       currentStreak: 0,
       longestStreak: 0,
