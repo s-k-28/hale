@@ -40,6 +40,16 @@ import { clean } from '@/theme/clean';
 const MS_PER_DAY = 86_400_000;
 const CHALLENGE_WEEKS = 6;
 
+/**
+ * Public squad DISCOVERY (stranger-visible, user-named squads) is gated OFF for
+ * v1.0. Public squad names are user-generated content shown to strangers with
+ * no pre-publish moderation — App Store Guideline 1.2 needs a filter/report/block
+ * on that, which we don't have yet. Off = squads are invite-code-only (private),
+ * so there is no stranger-visible UGC. Flip EXPO_PUBLIC_PUBLIC_SQUADS_ENABLED
+ * to "true" (dev only) to restore Discover + the public toggle.
+ */
+const PUBLIC_SQUADS_ENABLED = process.env.EXPO_PUBLIC_PUBLIC_SQUADS_ENABLED === 'true';
+
 /** Row shape the UI consumes from api.squads.mySquads (sanitized).
  *  Note: backend returns challengeEnd + challengeGoalDays (NOT challengeStart);
  *  the window start is derived as end - goalDays. */
@@ -134,14 +144,14 @@ export default function Squads() {
                 >
                   <CreateSquad />
                   <JoinByCode />
-                  <Discover squads={publicSquads} mySquads={mySquads} />
+                  {PUBLIC_SQUADS_ENABLED && <Discover squads={publicSquads} mySquads={mySquads} />}
                 </LockedFeature>
               </View>
             ) : (
               <>
                 <CreateSquad />
                 <JoinByCode />
-                <Discover squads={publicSquads} mySquads={mySquads} />
+                {PUBLIC_SQUADS_ENABLED && <Discover squads={publicSquads} mySquads={mySquads} />}
               </>
             )}
           </>
@@ -401,22 +411,24 @@ function CreateSquad() {
             className="mt-2 rounded-2xl border border-stroke bg-bg px-4 py-3.5 font-sora text-base text-fg"
           />
 
-          {/* Public toggle */}
-          <View className="mt-5 flex-row items-center justify-between">
-            <View className="flex-1 pr-4">
-              <Body className="font-sora-semibold text-base text-fg">Make it public</Body>
-              <Body className="mt-0.5 text-xs leading-4 text-fg-2">
-                Discoverable by anyone in the app. Off = invite-only.
-              </Body>
+          {/* Public toggle — gated off for v1.0 (squads are invite-only). */}
+          {PUBLIC_SQUADS_ENABLED && (
+            <View className="mt-5 flex-row items-center justify-between">
+              <View className="flex-1 pr-4">
+                <Body className="font-sora-semibold text-base text-fg">Make it public</Body>
+                <Body className="mt-0.5 text-xs leading-4 text-fg-2">
+                  Discoverable by anyone in the app. Off = invite-only.
+                </Body>
+              </View>
+              <Switch
+                value={isPublic}
+                onValueChange={(v) => { haptics.select(); setIsPublic(v); }}
+                trackColor={{ false: clean.stroke, true: clean.accent }}
+                thumbColor={clean.fg}
+                ios_backgroundColor={clean.stroke}
+              />
             </View>
-            <Switch
-              value={isPublic}
-              onValueChange={(v) => { haptics.select(); setIsPublic(v); }}
-              trackColor={{ false: clean.stroke, true: clean.accent }}
-              thumbColor={clean.fg}
-              ios_backgroundColor={clean.stroke}
-            />
-          </View>
+          )}
 
           {/* 6-week challenge toggle */}
           <View className="mt-5 flex-row items-center justify-between">
