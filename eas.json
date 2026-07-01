@@ -14,16 +14,16 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://REPLACE_ME.convex.cloud",
-        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://REPLACE_ME.convex.site"
+        "EXPO_PUBLIC_CONVEX_URL": "https://agreeable-mongoose-741.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://agreeable-mongoose-741.convex.site"
       }
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://REPLACE_ME.convex.cloud",
-        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://REPLACE_ME.convex.site"
+        "EXPO_PUBLIC_CONVEX_URL": "https://agreeable-mongoose-741.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://agreeable-mongoose-741.convex.site"
       }
     }
   },
