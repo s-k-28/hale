@@ -12,11 +12,19 @@
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://REPLACE_ME.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://REPLACE_ME.convex.site"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://REPLACE_ME.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://REPLACE_ME.convex.site"
+      }
     }
   },
   "submit": {
