@@ -3,6 +3,8 @@ import { v } from 'convex/values';
 import { mutation } from './_generated/server';
 import { localDateOf, computeStreakOnCheckIn } from './model/streak';
 import { quitStage } from './model/cohort';
+import { REFERRAL_ACTIVATION_STREAK } from './model/entitlement';
+import { completeReferralOnActivation } from './referrals';
 
 /**
  * Daily check-in (P2). Transactional: dedups by local date, advances the streak
@@ -58,6 +60,14 @@ export const checkIn = mutation({
       lastCheckInLocalDate: today,
       freezesRemaining: upd.freezesRemaining,
     });
+
+    // Anti-farm referral gate: if this user was referred and just reached the
+    // activation streak, complete their (deferred) referral now — the invitee
+    // has proven real engagement, so the referrer's reward can legitimately
+    // count them. No-op unless referred + paired + activated.
+    if (user.referredBy && upd.newStreak >= REFERRAL_ACTIVATION_STREAK) {
+      await completeReferralOnActivation(ctx, userId);
+    }
 
     // ── Activation instrumentation (P2) ──────────────────────────────────────
     // Detect the candidate activation events server-side (authoritative), write

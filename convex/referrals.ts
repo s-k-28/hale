@@ -1,10 +1,11 @@
 import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import {
   REFERRALS_REQUIRED,
+  REFERRAL_ACTIVATION_STREAK,
   rewardEndsFrom,
   referralRewardStatus,
 } from './model/entitlement';
@@ -83,45 +84,97 @@ export async function completeReferralForPair(
     .withIndex('by_pair', (q) => q.eq('referrerId', referrerId).eq('inviteeId', inviteeId))
     .unique();
 
-  const wasNewlyCompleted = !row || row.status !== 'completed';
+  // Record the PAIRING (pairedAt) — but the referral only COUNTS once the invitee
+  // is activated (see inviteeActivated). This is the anti-farm gate: pairing is
+  // trivial to fake with throwaway accounts, a multi-day streak is not. If the
+  // invitee isn't activated yet, we leave the row pending and it completes later
+  // via completeReferralOnActivation (from the check-in that tips their streak).
+  const activated = inviteeActivated(invitee);
+  const alreadyCompleted = row?.status === 'completed';
   if (row) {
-    if (row.status !== 'completed') {
-      await ctx.db.patch(row._id, { status: 'completed', pairedAt: now, countedAt: now });
+    if (!alreadyCompleted) {
+      await ctx.db.patch(row._id, {
+        pairedAt: row.pairedAt ?? now,
+        ...(activated ? { status: 'completed' as const, countedAt: now } : {}),
+      });
     }
   } else {
-    // Defensive: attribution row missing (shouldn't happen) — record completed.
+    // Defensive: attribution row missing (shouldn't happen) — record it, paired.
     await ctx.db.insert('referrals', {
       referrerId,
       inviteeId,
       code: '',
       installedAt: now,
       pairedAt: now,
-      status: 'completed',
-      countedAt: now,
+      status: activated ? ('completed' as const) : ('attributed' as const),
+      ...(activated ? { countedAt: now } : {}),
     });
   }
 
-  // Distinct completed count (rows are unique per (referrer, invitee) by construction).
+  if (!activated || alreadyCompleted) {
+    return { referralCompleted: false, referrerReachedGoal: false, rewardGranted: false };
+  }
+  const { referrerReachedGoal, rewardGranted } = await countAndMaybeReward(ctx, referrerId);
+  return { referralCompleted: true, referrerReachedGoal, rewardGranted };
+}
+
+/**
+ * Second completion trigger (the anti-farm counterpart to pairing): called from
+ * the daily check-in when the invitee's streak advances. If the invitee was
+ * referred, has already PAIRED, and has now reached the activation streak, the
+ * (previously deferred) referral completes and the referrer is rewarded.
+ * Idempotent + a no-op unless all three hold.
+ */
+export async function completeReferralOnActivation(
+  ctx: MutationCtx,
+  inviteeId: Id<'users'>,
+): Promise<void> {
+  const invitee = await ctx.db.get(inviteeId);
+  if (!invitee || !invitee.referredBy || !inviteeActivated(invitee)) return;
+  const referrerId = invitee.referredBy;
+  const row = await ctx.db
+    .query('referrals')
+    .withIndex('by_pair', (q) => q.eq('referrerId', referrerId).eq('inviteeId', inviteeId))
+    .unique();
+  // Must have paired first (pairedAt set) and not already counted.
+  if (!row || row.status === 'completed' || row.pairedAt == null) return;
+  await ctx.db.patch(row._id, { status: 'completed', countedAt: Date.now() });
+  await countAndMaybeReward(ctx, referrerId);
+}
+
+/** The anti-farm gate: an invitee "counts" only after real engagement — a clean
+ *  streak a disposable account can't instantly manufacture. */
+function inviteeActivated(invitee: Doc<'users'> | null): boolean {
+  return !!invitee && (invitee.currentStreak ?? 0) >= REFERRAL_ACTIVATION_STREAK;
+}
+
+/**
+ * Count a referrer's COMPLETED referrals and, if it tips them to REFERRALS_REQUIRED,
+ * grant the one-time 7-day HALE+ window (guarded by referralRewardGrantedAt).
+ * Shared by both completion triggers (pairing-when-already-active, and activation).
+ */
+async function countAndMaybeReward(
+  ctx: MutationCtx,
+  referrerId: Id<'users'>,
+): Promise<{ referrerReachedGoal: boolean; rewardGranted: boolean }> {
   const completed = await ctx.db
     .query('referrals')
     .withIndex('by_referrer', (q) => q.eq('referrerId', referrerId))
     .filter((q) => q.eq(q.field('status'), 'completed'))
     .collect();
-  const count = completed.length;
-  const referrerReachedGoal = count >= REFERRALS_REQUIRED;
+  const referrerReachedGoal = completed.length >= REFERRALS_REQUIRED;
 
   let rewardGranted = false;
   const referrer = await ctx.db.get(referrerId);
-  // Grant exactly once: referralRewardGrantedAt is the marker.
   if (referrerReachedGoal && referrer && referrer.referralRewardGrantedAt == null) {
+    const now = Date.now();
     await ctx.db.patch(referrerId, {
       referralRewardGrantedAt: now,
       referralRewardEndsAt: rewardEndsFrom(now),
     });
     rewardGranted = true;
   }
-
-  return { referralCompleted: wasNewlyCompleted, referrerReachedGoal, rewardGranted };
+  return { referrerReachedGoal, rewardGranted };
 }
 
 /** Idempotently materialize + return the authed user's own referral code. */

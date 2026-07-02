@@ -22,8 +22,16 @@
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Successful referrals (install + pair) required to unlock the reward. */
+/** Successful referrals (install + pair + activate) required to unlock the reward. */
 export const REFERRALS_REQUIRED = 3;
+/**
+ * Anti-farm activation gate: an invited user's referral only COUNTS once they
+ * reach this clean-streak length. Install + pairing are trivial to fake with
+ * throwaway anonymous accounts; a multi-day streak is not (it's time-gated and
+ * requires real daily engagement), so this stops a single person from minting
+ * free HALE+ by self-referring a handful of disposable accounts.
+ */
+export const REFERRAL_ACTIVATION_STREAK = 3;
 /** Length of the unlocked HALE+ reward window. */
 export const REFERRAL_REWARD_DAYS = 7;
 
