@@ -12,6 +12,7 @@ import { RNText } from './internal';
  */
 export function OptRow({
   label,
+  sub,
   on = false,
   icon,
   className = '',
@@ -19,6 +20,7 @@ export function OptRow({
   ...props
 }: PressableProps & {
   label: string;
+  sub?: string;
   on?: boolean;
   icon?: React.ReactNode;
   className?: string;
@@ -47,7 +49,10 @@ export function OptRow({
           {icon}
         </View>
       ) : null}
-      <RNText className="flex-1 font-sora-semibold text-[16px] text-fg">{label}</RNText>
+      <View className="flex-1">
+        <RNText className="font-sora-semibold text-[16px] text-fg">{label}</RNText>
+        {sub ? <RNText className="mt-0.5 font-sora text-[13px] text-fg-2">{sub}</RNText> : null}
+      </View>
       <View
         className="h-[23px] w-[23px] items-center justify-center rounded-pill border-2"
         style={{ borderColor: on ? clean.accent : clean.stroke2 }}

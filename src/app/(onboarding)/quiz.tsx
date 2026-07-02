@@ -69,11 +69,13 @@ import {
  * toughest time → motivation → name; then building → plan reveal → commit →
  * push opt-in → invite-a-buddy (the design's tail order).
  *
- * The savings inputs are SPLIT (decision 2026-06-10): we ask units/day and
- * $ per unit separately — exactly what the backend schema stores
- * (baselinePerDay × unitCost). All money math is a pure function of their
- * product, so the numbers match the old single monthly-spend input whenever
- * perDay × cost == monthly / 30 (locked by __tests__/plan.test.ts).
+ * The savings inputs are SPLIT (decision 2026-06-10): amount and cost are
+ * separate questions, stored as baselinePerDay × unitCost ($/unit). Since
+ * 2026-07-02 the QUESTIONS are product-shaped (vape frequency presets, pack
+ * language + pack price for cigarettes, tin price for pouches, whole-day
+ * spend for mixed) and normalize to that same stored pair — see PRODUCTS.
+ * All money math is a pure function of their product (model/plan.ts, locked
+ * by __tests__/plan.test.ts).
  *
  * Decision 2 (deferred sign-up): all answers live in LOCAL React state. We touch
  * the backend ONLY at commit — signIn('anonymous') THEN completeOnboarding.
@@ -83,8 +85,8 @@ type ProductType = 'vape' | 'pouch' | 'cig' | 'mixed';
 
 type Answers = {
   productType: ProductType | null;
-  perDay: number | null; // units per day (pods / pouches / cigarettes)
-  unitCost: number | null; // $ per unit
+  perDay: number | null; // units/day — can be fractional (a vape every 3 days ≈ 0.33)
+  unitCost: number | null; // $ as ENTERED (per vape / pack / tin / day) — normalized in `profile`
   triggers: string[];
   hardestHour: number | null;
   motivation: string;
@@ -104,19 +106,95 @@ const INITIAL: Answers = {
 /* lucide glyph type for option rows */
 type Glyph = (props: { color?: string; size?: number; strokeWidth?: number }) => ReactNode;
 
-/* ---- option sets (copy is per-product so the unit language stays honest) ---- */
+/* ---- option sets (copy is per-product so the unit language stays honest) ----
+ *
+ * Q2/Q3 ask what people ACTUALLY know about their own habit (decision
+ * 2026-07-02 — "pods per day" was meaningless to most vapers and smokers):
+ *   vape  → how often a device/pod runs out (presets, can be < 1/day) + $ per device
+ *   cig   → cigarettes/day in pack language (a few … two packs+)      + $ per PACK
+ *   pouch → pouches/day (users do know this)                          + $ per TIN
+ *   mixed → times/day they reach for nicotine                         + $ per DAY total
+ * Every path still normalizes to baselinePerDay × unitCost ($/unit) — the
+ * backend schema and model/plan.ts money math are untouched (see `profile`).
+ */
+
+type AmountOption = { label: string; sub?: string; value: number }; // value = units/day
 
 const PRODUCTS: {
   value: ProductType;
   label: string;
   Icon: Glyph;
-  unit: string;
-  unitPl: string;
+  /* Q2 — amount. Presets when the honest answer isn't a daily count. */
+  q2Title: string;
+  q2Options?: AmountOption[];
+  q2Eyebrow?: string; // free-number mode
+  q2Suffix?: string;
+  /* Q3 — cost, asked in the price people actually pay at the counter. */
+  q3Title: string;
+  q3Subtitle: string;
+  q3Eyebrow: string;
+  /* Normalizes the entered price to $/unit: divisor ('perDay' = the entered
+     value is a whole-day spend, divide by Q2's answer). */
+  costDivisor: number | 'perDay';
 }[] = [
-  { value: 'vape', label: 'Vape / e-cig', Icon: Wind, unit: 'pod', unitPl: 'pods' },
-  { value: 'pouch', label: 'Nicotine pouches', Icon: Package, unit: 'pouch', unitPl: 'pouches' },
-  { value: 'cig', label: 'Cigarettes', Icon: Cigarette, unit: 'cigarette', unitPl: 'cigarettes' },
-  { value: 'mixed', label: 'A mix of things', Icon: Shuffle, unit: 'unit', unitPl: 'units' },
+  {
+    value: 'vape',
+    label: 'Vape / e-cig',
+    Icon: Wind,
+    q2Title: 'How often do you go through a vape or pod?',
+    q2Options: [
+      { label: 'More than one a day', value: 1.5 },
+      { label: 'About one a day', value: 1 },
+      { label: 'One every 2–3 days', value: 0.4 },
+      { label: 'One or two a week', value: 0.2 },
+      { label: 'A few a month', value: 0.1 },
+    ],
+    q3Title: 'What does one usually cost you?',
+    q3Subtitle: 'Whatever you pay per vape or pod — disposables often run $15–25. Roughly is fine.',
+    q3Eyebrow: 'Cost per vape / pod',
+    costDivisor: 1,
+  },
+  {
+    value: 'pouch',
+    label: 'Nicotine pouches',
+    Icon: Package,
+    q2Title: 'How many pouches a day?',
+    q2Eyebrow: 'pouches per day',
+    q2Suffix: 'a day',
+    q3Title: 'What does a tin cost?',
+    q3Subtitle: 'Most tins hold about 15 pouches. Roughly is fine.',
+    q3Eyebrow: 'Cost per tin',
+    costDivisor: 15,
+  },
+  {
+    value: 'cig',
+    label: 'Cigarettes',
+    Icon: Cigarette,
+    q2Title: 'How much do you smoke a day?',
+    q2Options: [
+      { label: 'A few a day', sub: '1–5 cigarettes', value: 4 },
+      { label: 'Around half a pack', sub: 'about 10 a day', value: 10 },
+      { label: 'About a pack a day', sub: 'about 20', value: 20 },
+      { label: 'Around two packs', sub: 'about 40', value: 40 },
+      { label: 'More than two packs', sub: 'it adds up fast — that changes now', value: 60 },
+    ],
+    q3Title: 'What does a pack cost where you live?',
+    q3Subtitle: 'Prices swing a lot by state and brand. Ballpark is fine.',
+    q3Eyebrow: 'Cost per pack',
+    costDivisor: 20, // 20 cigarettes per pack
+  },
+  {
+    value: 'mixed',
+    label: 'A mix of things',
+    Icon: Shuffle,
+    q2Title: 'How many times a day do you reach for nicotine?',
+    q2Eyebrow: 'times per day',
+    q2Suffix: 'times a day',
+    q3Title: 'About how much do you spend on nicotine a day?',
+    q3Subtitle: "Across everything you use. This is what we'll turn into money back in your pocket.",
+    q3Eyebrow: 'Spend per day',
+    costDivisor: 'perDay',
+  },
 ];
 
 // Trigger labels per the design (Q4 tile grid) — 'Social' and 'Scrolling'
@@ -321,12 +399,21 @@ export default function Quiz() {
   }, [phase]);
 
   /* The "wow" numbers — PURE math, computed entirely client-side (Decision 2).
-     Split inputs (decision 2026-06-10): baselinePerDay and unitCost are stored
-     exactly as asked; every downstream number is their product (model/plan.ts). */
+     The stored pair stays baselinePerDay × unitCost ($/unit) exactly as the
+     schema and model/plan.ts expect; only the QUESTIONS changed (2026-07-02).
+     The entered price is normalized here: pack → /20, tin → /15, whole-day
+     spend (mixed) → /perDay. Semantics of existing user rows are unchanged. */
+  const perDayAnswer = answers.perDay ?? 0;
+  const enteredCost = answers.unitCost ?? 0;
   const profile: QuitProfile = {
     productType: (answers.productType ?? 'mixed') as ProductType,
-    baselinePerDay: answers.perDay ?? 0,
-    unitCost: answers.unitCost ?? 0,
+    baselinePerDay: perDayAnswer,
+    unitCost:
+      product.costDivisor === 'perDay'
+        ? perDayAnswer > 0
+          ? enteredCost / perDayAnswer
+          : 0
+        : enteredCost / product.costDivisor,
   };
   const annual = Math.round(projectedAnnualSavings(profile));
   const monthly = Math.round(annual / 12);
@@ -526,7 +613,16 @@ export default function Quiz() {
                   key={p.value}
                   label={p.label}
                   on={answers.productType === p.value}
-                  onPress={() => set('productType', p.value)}
+                  onPress={() => {
+                    // Q2/Q3 answers are product-shaped (a "one a week" preset or a
+                    // pack price makes no sense after switching products) — reset
+                    // them when the product changes so stale values can't leak in.
+                    if (answers.productType !== p.value) {
+                      setPerDayText('');
+                      setUnitCostText('');
+                      setAnswers((a) => ({ ...a, productType: p.value, perDay: null, unitCost: null }));
+                    }
+                  }}
                   icon={
                     <p.Icon
                       color={answers.productType === p.value ? clean.accentInk : clean.fg2}
@@ -542,37 +638,51 @@ export default function Quiz() {
           {step === 'perDay' && (
             <Question
               index={stepIndex}
-              title={`How many ${product.unitPl} a day?`}
+              title={product.q2Title}
               subtitle="Ballpark is fine. We use it to size your savings."
             >
-              <Eyebrow className="mb-3">{product.unitPl} per day</Eyebrow>
-              <UnderlineInput
-                autoFocus
-                filled={answers.perDay !== null && answers.perDay > 0}
-                value={perDayText}
-                onChangeText={(t) => {
-                  const digits = t.replace(/[^0-9]/g, '');
-                  setPerDayText(digits);
-                  const n = digits ? parseInt(digits, 10) : 0;
-                  set('perDay', n > 0 ? n : null);
-                }}
-                placeholder="0"
-                keyboardType="number-pad"
-                returnKeyType="done"
-                onSubmitEditing={() => canAdvance && goNext()}
-                suffix="a day"
-                accessibilityLabel={`${product.unitPl} per day`}
-              />
+              {product.q2Options ? (
+                /* Preset frequencies/amounts — the honest way to ask when the
+                   real answer isn't a neat daily count (vapes, cigarettes). */
+                <View style={{ gap: 10 }}>
+                  {product.q2Options.map((o) => (
+                    <OptRow
+                      key={o.label}
+                      label={o.label}
+                      sub={o.sub}
+                      on={answers.perDay === o.value}
+                      onPress={() => set('perDay', o.value)}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <>
+                  <Eyebrow className="mb-3">{product.q2Eyebrow}</Eyebrow>
+                  <UnderlineInput
+                    autoFocus
+                    filled={answers.perDay !== null && answers.perDay > 0}
+                    value={perDayText}
+                    onChangeText={(t) => {
+                      const digits = t.replace(/[^0-9]/g, '');
+                      setPerDayText(digits);
+                      const n = digits ? parseInt(digits, 10) : 0;
+                      set('perDay', n > 0 ? n : null);
+                    }}
+                    placeholder="0"
+                    keyboardType="number-pad"
+                    returnKeyType="done"
+                    onSubmitEditing={() => canAdvance && goNext()}
+                    suffix={product.q2Suffix}
+                    accessibilityLabel={product.q2Eyebrow}
+                  />
+                </>
+              )}
             </Question>
           )}
 
           {step === 'unitCost' && (
-            <Question
-              index={stepIndex}
-              title={`What does one ${product.unit} cost?`}
-              subtitle="Roughly. This is what we'll turn into money back in your pocket."
-            >
-              <Eyebrow className="mb-3">Cost per {product.unit}</Eyebrow>
+            <Question index={stepIndex} title={product.q3Title} subtitle={product.q3Subtitle}>
+              <Eyebrow className="mb-3">{product.q3Eyebrow}</Eyebrow>
               <UnderlineInput
                 autoFocus
                 filled={answers.unitCost !== null && answers.unitCost > 0}
@@ -588,8 +698,7 @@ export default function Quiz() {
                 returnKeyType="done"
                 onSubmitEditing={() => canAdvance && goNext()}
                 prefix="$"
-                suffix="each"
-                accessibilityLabel={`Cost per ${product.unit}`}
+                accessibilityLabel={product.q3Eyebrow}
               />
             </Question>
           )}
