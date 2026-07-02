@@ -253,7 +253,7 @@ const BURST_ORIGIN_Y = SCREEN_H * 0.46; // ≈ the floating card's centre
 const PARTICLE_COUNT = 60;
 const BURST_TOTAL_MS = 2200; // max delay (~180) + max lifetime (~2000)
 // Emerald is the focal accent; accent-2 + white + a dim grey give depth.
-const PARTICLE_PALETTE: Array<[number, number, number]> = [
+const PARTICLE_PALETTE: [number, number, number][] = [
   [52, 211, 153], // accent
   [52, 211, 153], // accent (weighted)
   [94, 227, 176], // accent-2

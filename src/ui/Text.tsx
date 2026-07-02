@@ -10,15 +10,17 @@ import { twMerge } from 'tailwind-merge';
 
 type P = TextProps & { className?: string };
 
-const make =
-  (base: string) =>
-  ({ className = '', ...props }: P) => (
-    // twMerge: NativeWind resolves conflicting classes by compiled insertion
-    // order, NOT string position — a caller's text-accent-ink could silently
-    // lose to a base text-fg-2 (ui-audit D3: unreadable gray-on-emerald chat
-    // bubbles). Merging dedupes conflicts so the caller's override always wins.
+const make = (base: string) => {
+  // twMerge: NativeWind resolves conflicting classes by compiled insertion
+  // order, NOT string position — a caller's text-accent-ink could silently
+  // lose to a base text-fg-2 (ui-audit D3: unreadable gray-on-emerald chat
+  // bubbles). Merging dedupes conflicts so the caller's override always wins.
+  const T = ({ className = '', ...props }: P) => (
     <RNText {...props} className={twMerge(base, className)} />
   );
+  T.displayName = 'Text';
+  return T;
+};
 
 /** 88pt display numeral / wordmark moments. */
 export const Hero = make('font-sora-bold text-hero text-fg');

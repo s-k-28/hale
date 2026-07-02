@@ -149,7 +149,7 @@ export const atRiskUsers = internalQuery({
   handler: async (ctx) => {
     const now = Date.now();
     const users = await ctx.db.query('users').collect();
-    const atRisk: Array<typeof users[number]['_id']> = [];
+    const atRisk: typeof users[number]['_id'][] = [];
     for (const user of users) {
       // Only people with an active quit + push linkage are eligible.
       if (!user.currentAttemptId || !user.timezone) continue;
@@ -172,7 +172,7 @@ export const proactiveDueUsers = internalQuery({
   handler: async (ctx) => {
     const now = Date.now();
     const users = await ctx.db.query('users').collect();
-    const due: Array<{ userId: typeof users[number]['_id']; hardestHour: number; localDate: string }> = [];
+    const due: { userId: typeof users[number]['_id']; hardestHour: number; localDate: string }[] = [];
     for (const user of users) {
       if (!user.currentAttemptId || !user.timezone) continue;
       if (user.hardestHour == null) continue;
@@ -204,7 +204,7 @@ export const markProactiveNudged = internalMutation({
 export const proactiveNudgeSweep = internalAction({
   args: {},
   handler: async (ctx): Promise<{ nudged: number }> => {
-    const due: Array<{ userId: Id<'users'>; hardestHour: number; localDate: string }> =
+    const due: { userId: Id<'users'>; hardestHour: number; localDate: string }[] =
       await ctx.runQuery(internal.pushes.proactiveDueUsers, {});
     for (const { userId, hardestHour, localDate } of due) {
       // Lock-screen copy stays GENERIC (Guideline 4.5.4 / 5.1.3): no

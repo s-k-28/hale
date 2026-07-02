@@ -111,7 +111,7 @@ export const trialEndingUsers = internalQuery({
   handler: async (ctx) => {
     const now = Date.now();
     const users = await ctx.db.query('users').collect();
-    const due: Array<Id<'users'>> = [];
+    const due: Id<'users'>[] = [];
     for (const user of users) {
       if (user.premium) continue; // already converted
       if (!user.email) continue; // can't reach an anonymous user
@@ -144,7 +144,7 @@ export const markTrialReminded = internalMutation({
 export const trialReminderSweep = internalAction({
   args: {},
   handler: async (ctx): Promise<{ reminded: number }> => {
-    const due: Array<Id<'users'>> = await ctx.runQuery(internal.email.trialEndingUsers, {});
+    const due: Id<'users'>[] = await ctx.runQuery(internal.email.trialEndingUsers, {});
     for (const userId of due) {
       await ctx.scheduler.runAfter(0, internal.email.sendTrialReminder, { userId });
       await ctx.runMutation(internal.email.markTrialReminded, { userId });

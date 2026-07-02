@@ -16,8 +16,7 @@ import {
   Badge,
   H2 as Heading,
   Eyebrow as Label,
-} from '@/ui';
-import { LockedFeature } from '@/ui';
+ LockedFeature } from '@/ui';
 import { clean } from '@/theme/clean';
 
 /**
