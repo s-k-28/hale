@@ -1,0 +1,4 @@
+app_identifier("com.ravipulavarthy.hale")
+apple_id("johnpulavarthy@gmail.com")
+# ASC app id 6781942293. Set team_id / itc_team_id via env or an App Store Connect
+# API key (recommended): fastlane app_store_connect_api_key. Do not commit secrets.

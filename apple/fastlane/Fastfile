@@ -1,0 +1,22 @@
+default_platform(:ios)
+
+# HALE native — TestFlight pipeline. Requires: signing set up in Xcode (or match),
+# an App Store Connect API key, and the Sentry+OneSignal packages re-added (see
+# docs/SWIFT_PHASE6_RELEASE.md). Run: bundle exec fastlane beta
+platform :ios do
+  desc "Regenerate project, build, and upload to TestFlight"
+  lane :beta do
+    sh("cd .. && xcodegen generate")
+    increment_build_number(xcodeproj: "../Hale.xcodeproj") rescue nil
+    build_app(
+      project: "../Hale.xcodeproj",
+      scheme: "Hale",
+      export_method: "app-store",
+      configuration: "Release"
+    )
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      app_identifier: "com.ravipulavarthy.hale"
+    )
+  end
+end

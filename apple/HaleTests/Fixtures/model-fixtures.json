@@ -1,0 +1,977 @@
+{
+  "dailySpend": [
+    {
+      "baselinePerDay": 1,
+      "unitCost": 8,
+      "expected": 8
+    },
+    {
+      "baselinePerDay": 10,
+      "unitCost": 0.5,
+      "expected": 5
+    },
+    {
+      "baselinePerDay": 0.75,
+      "unitCost": 12,
+      "expected": 9
+    },
+    {
+      "baselinePerDay": 40,
+      "unitCost": 5,
+      "expected": 100
+    },
+    {
+      "baselinePerDay": 0,
+      "unitCost": 8,
+      "expected": 0
+    }
+  ],
+  "moneySaved": [
+    {
+      "baselinePerDay": 1,
+      "unitCost": 8,
+      "ms": 0,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 1,
+      "unitCost": 8,
+      "ms": 3600000,
+      "expected": 0.3333333333333333
+    },
+    {
+      "baselinePerDay": 1,
+      "unitCost": 8,
+      "ms": 43200000,
+      "expected": 4
+    },
+    {
+      "baselinePerDay": 1,
+      "unitCost": 8,
+      "ms": 86400000,
+      "expected": 8
+    },
+    {
+      "baselinePerDay": 1,
+      "unitCost": 8,
+      "ms": 259200000,
+      "expected": 24
+    },
+    {
+      "baselinePerDay": 1,
+      "unitCost": 8,
+      "ms": 604800000,
+      "expected": 56
+    },
+    {
+      "baselinePerDay": 1,
+      "unitCost": 8,
+      "ms": 2592000000,
+      "expected": 240
+    },
+    {
+      "baselinePerDay": 1,
+      "unitCost": 8,
+      "ms": 31536000000,
+      "expected": 2920
+    },
+    {
+      "baselinePerDay": 1,
+      "unitCost": 8,
+      "ms": 86400000000,
+      "expected": 8000
+    },
+    {
+      "baselinePerDay": 10,
+      "unitCost": 0.5,
+      "ms": 0,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 10,
+      "unitCost": 0.5,
+      "ms": 3600000,
+      "expected": 0.20833333333333331
+    },
+    {
+      "baselinePerDay": 10,
+      "unitCost": 0.5,
+      "ms": 43200000,
+      "expected": 2.5
+    },
+    {
+      "baselinePerDay": 10,
+      "unitCost": 0.5,
+      "ms": 86400000,
+      "expected": 5
+    },
+    {
+      "baselinePerDay": 10,
+      "unitCost": 0.5,
+      "ms": 259200000,
+      "expected": 15
+    },
+    {
+      "baselinePerDay": 10,
+      "unitCost": 0.5,
+      "ms": 604800000,
+      "expected": 35
+    },
+    {
+      "baselinePerDay": 10,
+      "unitCost": 0.5,
+      "ms": 2592000000,
+      "expected": 150
+    },
+    {
+      "baselinePerDay": 10,
+      "unitCost": 0.5,
+      "ms": 31536000000,
+      "expected": 1825
+    },
+    {
+      "baselinePerDay": 10,
+      "unitCost": 0.5,
+      "ms": 86400000000,
+      "expected": 5000
+    },
+    {
+      "baselinePerDay": 0.75,
+      "unitCost": 12,
+      "ms": 0,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 0.75,
+      "unitCost": 12,
+      "ms": 3600000,
+      "expected": 0.375
+    },
+    {
+      "baselinePerDay": 0.75,
+      "unitCost": 12,
+      "ms": 43200000,
+      "expected": 4.5
+    },
+    {
+      "baselinePerDay": 0.75,
+      "unitCost": 12,
+      "ms": 86400000,
+      "expected": 9
+    },
+    {
+      "baselinePerDay": 0.75,
+      "unitCost": 12,
+      "ms": 259200000,
+      "expected": 27
+    },
+    {
+      "baselinePerDay": 0.75,
+      "unitCost": 12,
+      "ms": 604800000,
+      "expected": 63
+    },
+    {
+      "baselinePerDay": 0.75,
+      "unitCost": 12,
+      "ms": 2592000000,
+      "expected": 270
+    },
+    {
+      "baselinePerDay": 0.75,
+      "unitCost": 12,
+      "ms": 31536000000,
+      "expected": 3285
+    },
+    {
+      "baselinePerDay": 0.75,
+      "unitCost": 12,
+      "ms": 86400000000,
+      "expected": 9000
+    },
+    {
+      "baselinePerDay": 40,
+      "unitCost": 5,
+      "ms": 0,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 40,
+      "unitCost": 5,
+      "ms": 3600000,
+      "expected": 4.166666666666666
+    },
+    {
+      "baselinePerDay": 40,
+      "unitCost": 5,
+      "ms": 43200000,
+      "expected": 50
+    },
+    {
+      "baselinePerDay": 40,
+      "unitCost": 5,
+      "ms": 86400000,
+      "expected": 100
+    },
+    {
+      "baselinePerDay": 40,
+      "unitCost": 5,
+      "ms": 259200000,
+      "expected": 300
+    },
+    {
+      "baselinePerDay": 40,
+      "unitCost": 5,
+      "ms": 604800000,
+      "expected": 700
+    },
+    {
+      "baselinePerDay": 40,
+      "unitCost": 5,
+      "ms": 2592000000,
+      "expected": 3000
+    },
+    {
+      "baselinePerDay": 40,
+      "unitCost": 5,
+      "ms": 31536000000,
+      "expected": 36500
+    },
+    {
+      "baselinePerDay": 40,
+      "unitCost": 5,
+      "ms": 86400000000,
+      "expected": 100000
+    },
+    {
+      "baselinePerDay": 0,
+      "unitCost": 8,
+      "ms": 0,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 0,
+      "unitCost": 8,
+      "ms": 3600000,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 0,
+      "unitCost": 8,
+      "ms": 43200000,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 0,
+      "unitCost": 8,
+      "ms": 86400000,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 0,
+      "unitCost": 8,
+      "ms": 259200000,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 0,
+      "unitCost": 8,
+      "ms": 604800000,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 0,
+      "unitCost": 8,
+      "ms": 2592000000,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 0,
+      "unitCost": 8,
+      "ms": 31536000000,
+      "expected": 0
+    },
+    {
+      "baselinePerDay": 0,
+      "unitCost": 8,
+      "ms": 86400000000,
+      "expected": 0
+    }
+  ],
+  "projectedAnnualSavings": [
+    {
+      "productType": "vape",
+      "baselinePerDay": 1,
+      "unitCost": 8,
+      "expected": 2920
+    },
+    {
+      "productType": "pouch",
+      "baselinePerDay": 10,
+      "unitCost": 0.5,
+      "expected": 1825
+    },
+    {
+      "productType": "cig",
+      "baselinePerDay": 0.75,
+      "unitCost": 12,
+      "expected": 3285
+    },
+    {
+      "productType": "mixed",
+      "baselinePerDay": 40,
+      "unitCost": 5,
+      "expected": 36500
+    },
+    {
+      "productType": "vape",
+      "baselinePerDay": 0,
+      "unitCost": 8,
+      "expected": 0
+    }
+  ],
+  "nextHealthMilestone": [
+    {
+      "quitStart": 1750000000000,
+      "now": 1750000720000,
+      "expectedHours": 0.33
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750003600000,
+      "expectedHours": 8
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750028800000,
+      "expectedHours": 24
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750086400000,
+      "expectedHours": 48
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750172800000,
+      "expectedHours": 72
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750259200000,
+      "expectedHours": 168
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750604800000,
+      "expectedHours": 336
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1752592000000,
+      "expectedHours": 2160
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1757776000000,
+      "expectedHours": 8760
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1781536000000,
+      "expectedHours": null
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1784560000000,
+      "expectedHours": null
+    }
+  ],
+  "reachedCount": [
+    {
+      "quitStart": 1750000000000,
+      "now": 1750000720000,
+      "expected": 0
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750003600000,
+      "expected": 1
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750028800000,
+      "expected": 2
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750086400000,
+      "expected": 3
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750172800000,
+      "expected": 4
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750259200000,
+      "expected": 5
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750604800000,
+      "expected": 6
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1752592000000,
+      "expected": 8
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1757776000000,
+      "expected": 9
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1781536000000,
+      "expected": 10
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1784560000000,
+      "expected": 10
+    }
+  ],
+  "recoveryFraction": [
+    {
+      "quitStart": 1750000000000,
+      "now": 1750000720000,
+      "expected": 0
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750003600000,
+      "expected": 0.1
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750028800000,
+      "expected": 0.2
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750086400000,
+      "expected": 0.3
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750172800000,
+      "expected": 0.4
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750259200000,
+      "expected": 0.5
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750604800000,
+      "expected": 0.6
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1752592000000,
+      "expected": 0.8
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1757776000000,
+      "expected": 0.9
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1781536000000,
+      "expected": 1
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1784560000000,
+      "expected": 1
+    }
+  ],
+  "localDateOf": [
+    {
+      "epochMs": 1750000000000,
+      "tz": "UTC",
+      "expected": "2025-06-15"
+    },
+    {
+      "epochMs": 1741501800000,
+      "tz": "UTC",
+      "expected": "2025-03-09"
+    },
+    {
+      "epochMs": 1762065000000,
+      "tz": "UTC",
+      "expected": "2025-11-02"
+    },
+    {
+      "epochMs": 1735707540000,
+      "tz": "UTC",
+      "expected": "2025-01-01"
+    },
+    {
+      "epochMs": 1752605100000,
+      "tz": "UTC",
+      "expected": "2025-07-15"
+    },
+    {
+      "epochMs": 1750000000000,
+      "tz": "America/New_York",
+      "expected": "2025-06-15"
+    },
+    {
+      "epochMs": 1741501800000,
+      "tz": "America/New_York",
+      "expected": "2025-03-09"
+    },
+    {
+      "epochMs": 1762065000000,
+      "tz": "America/New_York",
+      "expected": "2025-11-02"
+    },
+    {
+      "epochMs": 1735707540000,
+      "tz": "America/New_York",
+      "expected": "2024-12-31"
+    },
+    {
+      "epochMs": 1752605100000,
+      "tz": "America/New_York",
+      "expected": "2025-07-15"
+    },
+    {
+      "epochMs": 1750000000000,
+      "tz": "America/Los_Angeles",
+      "expected": "2025-06-15"
+    },
+    {
+      "epochMs": 1741501800000,
+      "tz": "America/Los_Angeles",
+      "expected": "2025-03-08"
+    },
+    {
+      "epochMs": 1762065000000,
+      "tz": "America/Los_Angeles",
+      "expected": "2025-11-01"
+    },
+    {
+      "epochMs": 1735707540000,
+      "tz": "America/Los_Angeles",
+      "expected": "2024-12-31"
+    },
+    {
+      "epochMs": 1752605100000,
+      "tz": "America/Los_Angeles",
+      "expected": "2025-07-15"
+    },
+    {
+      "epochMs": 1750000000000,
+      "tz": "Asia/Kolkata",
+      "expected": "2025-06-15"
+    },
+    {
+      "epochMs": 1741501800000,
+      "tz": "Asia/Kolkata",
+      "expected": "2025-03-09"
+    },
+    {
+      "epochMs": 1762065000000,
+      "tz": "Asia/Kolkata",
+      "expected": "2025-11-02"
+    },
+    {
+      "epochMs": 1735707540000,
+      "tz": "Asia/Kolkata",
+      "expected": "2025-01-01"
+    },
+    {
+      "epochMs": 1752605100000,
+      "tz": "Asia/Kolkata",
+      "expected": "2025-07-16"
+    },
+    {
+      "epochMs": 1750000000000,
+      "tz": "Australia/Eucla",
+      "expected": "2025-06-15"
+    },
+    {
+      "epochMs": 1741501800000,
+      "tz": "Australia/Eucla",
+      "expected": "2025-03-09"
+    },
+    {
+      "epochMs": 1762065000000,
+      "tz": "Australia/Eucla",
+      "expected": "2025-11-02"
+    },
+    {
+      "epochMs": 1735707540000,
+      "tz": "Australia/Eucla",
+      "expected": "2025-01-01"
+    },
+    {
+      "epochMs": 1752605100000,
+      "tz": "Australia/Eucla",
+      "expected": "2025-07-16"
+    }
+  ],
+  "localHourOf": [
+    {
+      "epochMs": 1750000000000,
+      "tz": "UTC",
+      "expected": 15
+    },
+    {
+      "epochMs": 1741501800000,
+      "tz": "UTC",
+      "expected": 6
+    },
+    {
+      "epochMs": 1762065000000,
+      "tz": "UTC",
+      "expected": 6
+    },
+    {
+      "epochMs": 1735707540000,
+      "tz": "UTC",
+      "expected": 4
+    },
+    {
+      "epochMs": 1752605100000,
+      "tz": "UTC",
+      "expected": 18
+    },
+    {
+      "epochMs": 1750000000000,
+      "tz": "America/New_York",
+      "expected": 11
+    },
+    {
+      "epochMs": 1741501800000,
+      "tz": "America/New_York",
+      "expected": 1
+    },
+    {
+      "epochMs": 1762065000000,
+      "tz": "America/New_York",
+      "expected": 1
+    },
+    {
+      "epochMs": 1735707540000,
+      "tz": "America/New_York",
+      "expected": 23
+    },
+    {
+      "epochMs": 1752605100000,
+      "tz": "America/New_York",
+      "expected": 14
+    },
+    {
+      "epochMs": 1750000000000,
+      "tz": "America/Los_Angeles",
+      "expected": 8
+    },
+    {
+      "epochMs": 1741501800000,
+      "tz": "America/Los_Angeles",
+      "expected": 22
+    },
+    {
+      "epochMs": 1762065000000,
+      "tz": "America/Los_Angeles",
+      "expected": 23
+    },
+    {
+      "epochMs": 1735707540000,
+      "tz": "America/Los_Angeles",
+      "expected": 20
+    },
+    {
+      "epochMs": 1752605100000,
+      "tz": "America/Los_Angeles",
+      "expected": 11
+    },
+    {
+      "epochMs": 1750000000000,
+      "tz": "Asia/Kolkata",
+      "expected": 20
+    },
+    {
+      "epochMs": 1741501800000,
+      "tz": "Asia/Kolkata",
+      "expected": 12
+    },
+    {
+      "epochMs": 1762065000000,
+      "tz": "Asia/Kolkata",
+      "expected": 12
+    },
+    {
+      "epochMs": 1735707540000,
+      "tz": "Asia/Kolkata",
+      "expected": 10
+    },
+    {
+      "epochMs": 1752605100000,
+      "tz": "Asia/Kolkata",
+      "expected": 0
+    },
+    {
+      "epochMs": 1750000000000,
+      "tz": "Australia/Eucla",
+      "expected": 23
+    },
+    {
+      "epochMs": 1741501800000,
+      "tz": "Australia/Eucla",
+      "expected": 15
+    },
+    {
+      "epochMs": 1762065000000,
+      "tz": "Australia/Eucla",
+      "expected": 15
+    },
+    {
+      "epochMs": 1735707540000,
+      "tz": "Australia/Eucla",
+      "expected": 13
+    },
+    {
+      "epochMs": 1752605100000,
+      "tz": "Australia/Eucla",
+      "expected": 3
+    }
+  ],
+  "dayDiff": [
+    {
+      "from": "2025-06-10",
+      "to": "2025-06-11",
+      "expected": 1
+    },
+    {
+      "from": "2025-06-10",
+      "to": "2025-06-10",
+      "expected": 0
+    },
+    {
+      "from": "2025-06-10",
+      "to": "2025-06-20",
+      "expected": 10
+    },
+    {
+      "from": "2025-02-28",
+      "to": "2025-03-01",
+      "expected": 1
+    },
+    {
+      "from": "2024-02-28",
+      "to": "2024-03-01",
+      "expected": 2
+    },
+    {
+      "from": "2025-06-20",
+      "to": "2025-06-10",
+      "expected": -10
+    }
+  ],
+  "computeStreak": [
+    {
+      "last": null,
+      "today": "2025-06-10",
+      "currentStreak": 0,
+      "freezes": 2,
+      "expectedNew": 1,
+      "expectedUsedFreeze": false,
+      "expectedFreezes": 2
+    },
+    {
+      "last": "2025-06-10",
+      "today": "2025-06-10",
+      "currentStreak": 5,
+      "freezes": 2,
+      "expectedNew": 5,
+      "expectedUsedFreeze": false,
+      "expectedFreezes": 2
+    },
+    {
+      "last": "2025-06-10",
+      "today": "2025-06-11",
+      "currentStreak": 5,
+      "freezes": 2,
+      "expectedNew": 6,
+      "expectedUsedFreeze": false,
+      "expectedFreezes": 2
+    },
+    {
+      "last": "2025-06-10",
+      "today": "2025-06-12",
+      "currentStreak": 5,
+      "freezes": 2,
+      "expectedNew": 6,
+      "expectedUsedFreeze": true,
+      "expectedFreezes": 1
+    },
+    {
+      "last": "2025-06-10",
+      "today": "2025-06-12",
+      "currentStreak": 5,
+      "freezes": 0,
+      "expectedNew": 1,
+      "expectedUsedFreeze": false,
+      "expectedFreezes": 0
+    },
+    {
+      "last": "2025-06-10",
+      "today": "2025-06-20",
+      "currentStreak": 5,
+      "freezes": 2,
+      "expectedNew": 1,
+      "expectedUsedFreeze": false,
+      "expectedFreezes": 2
+    }
+  ],
+  "quitStage": [
+    {
+      "quitStart": 1750000000000,
+      "now": 1750000000000,
+      "expected": "d0_7"
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750432000000,
+      "expected": "d0_7"
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1750691200000,
+      "expected": "d8_30"
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1752592000000,
+      "expected": "d8_30"
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1752678400000,
+      "expected": "d31_90"
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1757776000000,
+      "expected": "d31_90"
+    },
+    {
+      "quitStart": 1750000000000,
+      "now": 1767280000000,
+      "expected": "d90plus"
+    }
+  ],
+  "referralReward": [
+    {
+      "now": 1750000000000,
+      "endsAt": null,
+      "active": false,
+      "days": 0
+    },
+    {
+      "now": 1750000000000,
+      "endsAt": 1750259200000,
+      "active": true,
+      "days": 3
+    },
+    {
+      "now": 1750000000000,
+      "endsAt": 1749913600000,
+      "active": false,
+      "days": 0
+    },
+    {
+      "now": 1750000000000,
+      "endsAt": null,
+      "active": false,
+      "days": 0
+    },
+    {
+      "now": 1750000000000,
+      "endsAt": 1750432000000,
+      "active": true,
+      "days": 5
+    },
+    {
+      "now": 1750000000000,
+      "endsAt": 1750000000001,
+      "active": true,
+      "days": 1
+    }
+  ],
+  "entitlement": [
+    {
+      "premium": true,
+      "endsAt": null,
+      "now": 1750000000000,
+      "has": true,
+      "source": "paid",
+      "rewardActive": false,
+      "days": 0
+    },
+    {
+      "premium": false,
+      "endsAt": 1750259200000,
+      "now": 1750000000000,
+      "has": true,
+      "source": "referral_reward",
+      "rewardActive": true,
+      "days": 3
+    },
+    {
+      "premium": false,
+      "endsAt": 1749913600000,
+      "now": 1750000000000,
+      "has": false,
+      "source": "none",
+      "rewardActive": false,
+      "days": 0
+    },
+    {
+      "premium": null,
+      "endsAt": null,
+      "now": 1750000000000,
+      "has": false,
+      "source": "none",
+      "rewardActive": false,
+      "days": 0
+    },
+    {
+      "premium": true,
+      "endsAt": 1750432000000,
+      "now": 1750000000000,
+      "has": true,
+      "source": "paid",
+      "rewardActive": true,
+      "days": 5
+    },
+    {
+      "premium": false,
+      "endsAt": 1750000000001,
+      "now": 1750000000000,
+      "has": true,
+      "source": "referral_reward",
+      "rewardActive": true,
+      "days": 1
+    }
+  ]
+}

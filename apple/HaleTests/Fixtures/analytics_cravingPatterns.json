@@ -1,0 +1,127 @@
+{
+  "byHour": [
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 0
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 1
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 2
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 3
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 4
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 5
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 6
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 7
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 8
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 9
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 10
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 11
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 12
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 13
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 14
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 15
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 16
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 17
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 18
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 19
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 20
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 21
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 22
+    },
+    {
+      "avgIntensity": 0,
+      "count": 0,
+      "hour": 23
+    }
+  ],
+  "peakHour": null,
+  "topTrigger": null,
+  "total": 0
+}

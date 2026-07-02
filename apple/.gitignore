@@ -1,0 +1,4 @@
+.build-xcode/
+Hale.xcodeproj/
+*.xcuserstate
+vendor/

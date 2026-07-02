@@ -1,0 +1,24 @@
+{
+  "currentMoneySaved": 0.0000033564814814814815,
+  "currentStreak": 0,
+  "entitlementSource": "none",
+  "freezesRemaining": 2,
+  "hardestHour": 21,
+  "hasHALEPlus": false,
+  "lastCheckInLocalDate": null,
+  "lifetimeMoneySaved": 0.0000033564814814814815,
+  "longestStreak": 0,
+  "nextMilestone": {
+    "hours": 0.33,
+    "label": "Heart rate typically starts to settle"
+  },
+  "premium": false,
+  "quitStart": 1782981634120,
+  "referralRewardActive": false,
+  "rewardDaysRemaining": 0,
+  "timezone": "America/New_York",
+  "trialActive": false,
+  "trialDaysRemaining": 0,
+  "trialEndsAt": null,
+  "userId": "mh7aavkqqazq5n4rc4qr6ckjp989ra2x"
+}
