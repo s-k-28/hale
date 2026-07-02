@@ -15,9 +15,6 @@
       "buildNumber": "8",
       "icon": "./assets/images/icon.png",
       "supportsTablet": false,
-      "associatedDomains": [
-        "applinks:go.hale-app.com"
-      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -113,29 +110,7 @@
         "foregroundImage": "./assets/images/adaptive-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            {
-              "scheme": "https",
-              "host": "go.hale-app.com",
-              "pathPrefix": "/r/"
-            },
-            {
-              "scheme": "https",
-              "host": "go.hale-app.com",
-              "pathPrefix": "/u/"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
-      ]
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",

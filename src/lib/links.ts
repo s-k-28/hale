@@ -1,29 +1,27 @@
 /**
- * Shareable HALE links — the https universal-link layer over the hale:// scheme.
+ * Shareable HALE links — v1 ships CODE-FIRST sharing, universal links deferred.
  *
- * WHY https and not hale://: a custom-scheme link is dead on a phone without
- * HALE installed (not even tappable in most messengers), and the referral
- * loop's entire audience is people WITHOUT the app. The https link opens the
- * app directly when installed (Universal Links / App Links) and falls back to
- * the web redirect page → App Store when not. The 6-char code rides inside the
- * share TEXT too, so a fresh installer can finish attribution by typing it at
- * onboarding ("Have an invite code?") — that's the $0, no-SDK, no-privacy-prompt
- * answer to iOS having no first-party deferred deep linking.
+ * WHY: the universal-link host (go.hale-app.com) is not stood up yet — no DNS,
+ * no AASA — so an https://go.hale-app.com/r/CODE share would be a dead end for
+ * every recipient (App Review Guideline 2.1: broken functionality). Until the
+ * web/ kit is deployed, every share carries the App Store link (works for the
+ * no-app case) plus the 6-char code in plain text; the fresh installer types
+ * the code on the welcome screen (InviteCodeEntry), which runs the identical
+ * attributeInstall → pairWith redemption a tapped deep link would have.
  *
- * ⚠️ LINK_DOMAIN must stay in sync with THREE places (see web/README.md):
- *   1. app.json → ios.associatedDomains ("applinks:<domain>")
- *   2. app.json → android.intentFilters[].data.host
- *   3. the deployed web/ static site (AASA + assetlinks + redirect page)
- * Changing it requires a new EAS build — associated domains is a native
- * entitlement, not JS.
+ * Re-enabling universal links later requires ALL of (see web/README.md):
+ *   1. go.hale-app.com DNS + deployed web/ kit (AASA with real Team ID)
+ *   2. app.json → ios.associatedDomains ("applinks:go.hale-app.com")
+ *   3. app.json → android.intentFilters[].data.host
+ *   4. restoring referralLink()/buddyLink() here (git history has them)
+ * Associated domains is a native entitlement — it needs a new EAS build.
  */
 
 import { Platform } from 'react-native';
 
-// Universal-link host on the owned domain (note the hyphen — see PRIVACY_POLICY_URL).
-// Requires the AASA file served at https://go.hale-app.com/.well-known/ and a
-// native rebuild (associatedDomains is a native entitlement).
-export const LINK_DOMAIN = 'go.hale-app.com';
+// HALE on the App Store (ASC app id 6781942293). Resolves once the app is
+// live; the code-entry path never depends on it.
+export const APP_STORE_URL = 'https://apps.apple.com/app/id6781942293';
 
 // Live at hale-app.com (verified 200). NOTE the hyphen: haleapp.com (no hyphen)
 // is a PARKED domain we don't own — it redirects to a domain-sale page.
@@ -32,16 +30,6 @@ export const PRIVACY_POLICY_URL = 'https://hale-app.com/privacy';
 // Live at hale-app.com (verified 200). Apple Guideline 3.1.2 requires a working
 // Terms of Use link for the auto-renewable subscription. Same hyphen caveat.
 export const TERMS_URL = 'https://hale-app.com/terms';
-
-/** The shareable referral link: opens HALE if installed, web redirect if not. */
-export function referralLink(code: string): string {
-  return `https://${LINK_DOMAIN}/r/${code}`;
-}
-
-/** The shareable buddy-invite link (same flow, keyed by user id not code). */
-export function buddyLink(userId: string): string {
-  return `https://${LINK_DOMAIN}/u/${userId}`;
-}
 
 /**
  * RN Share params for an invite. iOS renders `url` as its own item and does
@@ -52,15 +40,18 @@ export function inviteShareParams(text: string, url: string): { message: string;
   return Platform.OS === 'ios' ? { message: text, url } : { message: `${text} ${url}` };
 }
 
-/** Referral share text — the typed code rides along as the through-install fallback. */
+/** Referral share text — the typed code IS the attribution path for v1. */
 export function referralShareText(code: string): string {
   return (
     `I'm quitting nicotine with HALE. Be my accountability buddy, and we'll keep each other ` +
-    `on streak. Join me (invite code ${code})`
+    `on streak. Get it on the App Store and enter my invite code ${code} when you join.`
   );
 }
 
-/** Plain buddy-invite share text (no referral code attached). */
-export function buddyShareText(): string {
-  return `I'm quitting nicotine with HALE. Be my accountability buddy? We'll keep each other on streak.`;
+/** Buddy-invite share text — same typed-code door (code entry also pairs us). */
+export function buddyShareText(code: string): string {
+  return (
+    `I'm quitting nicotine with HALE. Be my accountability buddy? We'll keep each other on ` +
+    `streak. Get it on the App Store and enter my invite code ${code} when you join.`
+  );
 }

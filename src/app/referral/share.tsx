@@ -5,7 +5,7 @@ import { useMutation } from 'convex/react'
 import { ChevronLeft } from 'lucide-react-native'
 import { api } from '@convex/_generated/api'
 import { track, Ev } from '@/lib/analytics'
-import { referralLink, referralShareText, inviteShareParams } from '@/lib/links'
+import { APP_STORE_URL, referralShareText, inviteShareParams } from '@/lib/links'
 import { Screen, IconBtn, H1, Lead, Button, Card2, Eyebrow, Body, Display } from '@/ui'
 import { clean } from '@/theme/clean'
 
@@ -49,7 +49,7 @@ export default function ReferralShare() {
     }
     track(Ev.REFERRAL_LINK_SHARED, { surface: from === 'onboarding' ? 'share_onboarding' : 'share_screen' })
     try {
-      await Share.share(inviteShareParams(referralShareText(c), referralLink(c)))
+      await Share.share(inviteShareParams(referralShareText(c), APP_STORE_URL))
     } catch {
       // Share dismissed — no-op.
     }
@@ -66,8 +66,8 @@ export default function ReferralShare() {
       <View className="flex-1 px-gutter pt-4">
         <H1>Send your invite</H1>
         <Lead className="mt-3">
-          Here's exactly what your friend gets. Your link opens HALE if they have it, and the
-          code works the moment they install.
+          Here's exactly what your friend gets. The link takes them to the App Store, and your
+          code pairs you up the moment they join.
         </Lead>
 
         <Card2 pad className="mt-7">

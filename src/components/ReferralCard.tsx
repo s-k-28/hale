@@ -6,7 +6,7 @@ import { toast } from 'sonner-native';
 import { Gift, Check, Clock } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
-import { referralLink, referralShareText, inviteShareParams } from '@/lib/links';
+import { APP_STORE_URL, referralShareText, inviteShareParams } from '@/lib/links';
 import { Card, Button, Body, Muted as Caption, H2 as Heading, Eyebrow as Label } from '@/ui';
 import { clean } from '@/theme/clean';
 
@@ -28,8 +28,8 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
   const getOrCreateCode = useMutation(api.referrals.getOrCreateMyCode);
 
   // Materialize the code + the share link (idempotent) once we're authed.
-  // The link is the https universal link (src/lib/links.ts) — it survives the
-  // no-app-installed case, which a hale:// scheme link does not.
+  // v1 shares the App Store link + typed code (universal links deferred until
+  // go.hale-app.com is live — see src/lib/links.ts).
   // A failed fetch is NOT terminal: the share button stays enabled and retries
   // the fetch inline, so a network blip never leaves a dead button.
   const [link, setLink] = useState<{ url: string; code: string } | null>(null);
@@ -38,7 +38,7 @@ export function ReferralCard({ surface = 'squad_tab' }: { surface?: string }) {
     if (linkRef.current) return linkRef.current;
     try {
       const { code } = await getOrCreateCode();
-      const next = { url: referralLink(code), code };
+      const next = { url: APP_STORE_URL, code };
       linkRef.current = next;
       setLink(next);
       return next;

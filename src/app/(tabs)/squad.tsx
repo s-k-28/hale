@@ -15,7 +15,7 @@ import { api } from '@convex/_generated/api';
 import { toast } from 'sonner-native';
 import { track, Ev } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
-import { buddyLink, buddyShareText, inviteShareParams } from '@/lib/links';
+import { APP_STORE_URL, buddyShareText, inviteShareParams } from '@/lib/links';
 import {
   Screen,
   Button,
@@ -59,7 +59,6 @@ function lastSeenLabel(localDate: string | null): string {
 
 export default function Squad() {
   const data = useQuery(api.buddies.myBuddy);
-  const invite = useMutation(api.buddies.invite);
 
   const loading = data === undefined;
   const buddy = data?.buddy ?? null;
@@ -87,7 +86,7 @@ export default function Squad() {
             sharedStreak={sharedStreak}
           />
         ) : (
-          <SoloState invite={invite} />
+          <SoloState />
         )}
 
         {/* Refer friends → unlock 7 days of HALE+ (install + buddy-pair trigger). */}
@@ -101,23 +100,26 @@ export default function Squad() {
 
 /* ── SOLO — no buddy yet: invite CTA ─────────────────────────────── */
 
-function SoloState({ invite }: { invite: ReturnType<typeof useMutation> }) {
+function SoloState() {
+  const getOrCreateCode = useMutation(api.referrals.getOrCreateMyCode);
   const [sharing, setSharing] = useState(false);
 
+  // v1 buddy invite rides the referral code: code entry at the friend's
+  // onboarding runs attributeInstall → pairWith, so the same 6-char code both
+  // attributes the install and pairs us (universal links deferred — links.ts).
   const onInvite = useCallback(async () => {
     if (sharing) return;
     setSharing(true);
     try {
-      const { userId } = await invite();
-      const link = buddyLink(userId);
-      track(Ev.BUDDY_INVITED, { method: 'share_sheet', invite_source: 'squad_tab', pairing_method: 'invite', link_id: userId });
-      await Share.share(inviteShareParams(buddyShareText(), link));
+      const { code } = await getOrCreateCode();
+      track(Ev.BUDDY_INVITED, { method: 'share_sheet', invite_source: 'squad_tab', pairing_method: 'code', link_id: code });
+      await Share.share(inviteShareParams(buddyShareText(code), APP_STORE_URL));
     } catch {
-      // Share dismissed or invite failed — silently allow a retry.
+      // Share dismissed or code fetch failed — silently allow a retry.
     } finally {
       setSharing(false);
     }
-  }, [invite, sharing]);
+  }, [getOrCreateCode, sharing]);
 
   return (
     <View className="mt-6">
