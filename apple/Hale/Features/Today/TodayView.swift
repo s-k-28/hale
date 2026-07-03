@@ -1,14 +1,18 @@
 import SwiftUI
+import Pow
 
-// Home dashboard — live clean-time counter ring, next-milestone strip, money/recovery
-// tiles, one-tap check-in, SOS card. (Buddy row + milestone celebration land in 4a follow-up.)
+// Home — the clean-time RING is the single hero. Everything else (next milestone,
+// money / recovery, SOS, buddy) is demoted into a calm, well-spaced stack below.
+// The check-in is the one primary action on the screen.
 struct TodayView: View {
     @Environment(AppState.self) private var app
     @State private var ringSurge = 0
     @State private var checking = false
     @State private var showSOS = false
     @State private var buddy = LiveQuery<MyBuddy?>(Fn.myBuddy)
+    @State private var nudges = LiveQuery<[Nudge]>(Fn.myNudges)
     @State private var celebrateDay: Int?
+    @State private var firedCounterViewed = false
 
     var body: some View {
         Group {
@@ -33,19 +37,25 @@ struct TodayView: View {
         if reached > Prefs.lastCelebratedLandmark { celebrateDay = reached }
     }
 
-    @ViewBuilder
-    private func buddyRow(_ b: MyBuddy) -> some View {
-        Card(pad: true) {
-            HStack(spacing: 12) {
-                Circle().fill(Tok.warmSoft).frame(width: 40, height: 40)
-                    .overlay(Text(String((b.buddy.name ?? "★").prefix(1))).font(.sora(.bold, 16)).foregroundStyle(Tok.warm))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(b.buddy.name ?? "Your buddy").font(.sora(.semibold, 15)).foregroundStyle(Tok.fg)
-                    Text(b.buddy.currentStreak > 0 ? "\(b.buddy.currentStreak)-day streak · cheer them on" : "Tap to check in on each other")
-                        .font(.sora(.regular, 13)).foregroundStyle(Tok.fg2)
-                }
-                Spacer()
-            }
+    // One-tap check-in → activation funnel events + error toast (today.tsx:200-222).
+    private func runCheckIn() async {
+        checking = true
+        defer { checking = false }
+        guard let r = await app.checkIn() else {
+            Toast.error("Couldn't check in. Check your connection and try again.")
+            return
+        }
+        guard !r.alreadyCheckedIn else { return }
+        ringSurge += 1; Haptics.success()
+        AnalyticsService.track(.checkinCompleted, ["streak": r.streak, "usedFreeze": r.usedFreeze])
+        if r.usedFreeze { AnalyticsService.track(.streakFreezeUsed, ["streak": r.streak]) }
+        if r.firstCheckIn == true {
+            AnalyticsService.track(.firstCheckIn, ["pairing_method": r.pairingMethod ?? "solo"])
+        }
+        if r.activatedPairedQuitter == true {
+            var p: [String: Any] = ["pairing_method": r.pairingMethod ?? "", "quit_stage": r.quitStage ?? ""]
+            if let h = r.hoursPairToCheckin { p["hours_pair_to_checkin"] = h }
+            AnalyticsService.track(.activatedPairedQuitter, p)
         }
     }
 
@@ -67,102 +77,190 @@ struct TodayView: View {
         let alreadyToday = today.lastCheckInLocalDate == Streak.localDateOf(nowMs, timezone: tz)
 
         return ZStack {
-            Tok.bg.ignoresSafeArea()
+            // emerald bloom sits under the ring — the screen's one hero glow
+            HaleBackdrop(bloom: UnitPoint(x: 0.5, y: 0.34))
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Txt.Eyebrow("Nicotine-free")
-                            Txt.H1("Today")
-                        }
-                        Spacer()
-                        if today.hasHALEPlus { Badge(label: "HALE+", tone: .soft) }
+                VStack(spacing: 0) {
+                    topBar(today)
+
+                    if let n = (nudges.value ?? []).first {
+                        nudgeInbox(n).padding(.top, 16)
                     }
 
-                    HStack {
-                        Spacer()
-                        Ring(progress: milestoneProgress, size: 272, stroke: 10, surge: ringSurge) {
-                            VStack(spacing: 2) {
-                                Txt.Eyebrow("Clean for")
-                                Txt.Display("\(days)", size: 66)
-                                Txt.Eyebrow(days == 1 ? "Day" : "Days", color: Tok.accent)
-                                HStack(spacing: 10) {
-                                    counter(hours, "H"); counter(mins, "M"); counter(secs, "S")
-                                }.padding(.top, 6)
-                            }
-                        }
-                        .overlay { if ringSurge > 0 { RingBurst().id(ringSurge).frame(width: 272, height: 272) } }
-                        Spacer()
-                    }
+                    // ── HERO: the ring, given room to breathe ──────────────────
+                    heroRing(days: days, hours: hours, mins: mins, secs: secs,
+                             progress: milestoneProgress)
+                        .padding(.top, 44)
 
-                    milestoneStrip(next: next, progress: milestoneProgress, cleanMs: cleanMs).riseIn(0)
+                    milestoneLine(next: next, progress: milestoneProgress, cleanMs: cleanMs)
+                        .padding(.top, 30)
 
-                    HStack(spacing: 12) {
-                        Tile(k: "Money saved", v: money(today.currentMoneySaved))
-                        Tile(k: "Typical recovery", v: recoveryPct == 0 ? "Day 1" : "\(recoveryPct)%", accent: true)
-                    }.riseIn(1)
-
+                    // ── the one primary action ─────────────────────────────────
                     HButton(label: alreadyToday ? "Checked in, clean today" : "Check in, clean today",
                             variant: .primary, loading: checking, disabled: alreadyToday) {
-                        Task {
-                            checking = true
-                            if await app.checkIn() { ringSurge += 1; Haptics.success() }
-                            checking = false
-                        }
+                        Task { await runCheckIn() }
                     }
+                    .changeEffect(.spray(origin: UnitPoint(x: 0.5, y: 0.3)) {
+                        Image(systemName: "leaf.fill").foregroundStyle(Tok.accent)
+                    }, value: ringSurge)
+                    .padding(.top, 34)
 
-                    sosCard.riseIn(2)
-                    if let b = buddy.value ?? nil { buddyRow(b).riseIn(3) }
+                    // ── demoted secondary stack ────────────────────────────────
+                    quietStats(money: money(today.currentMoneySaved),
+                               recovery: recoveryPct == 0 ? "Day 1" : "\(recoveryPct)%")
+                        .padding(.top, Tok.sectionLg)
+
+                    sosRow.padding(.top, Tok.section)
+
+                    if !buddy.loaded {
+                        buddyPlaceholder.padding(.top, Tok.section)
+                    } else if let b = buddy.value ?? nil {
+                        buddyRow(b).padding(.top, Tok.section)
+                    }
                 }
+                .frame(maxWidth: Tok.maxContent)
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, Tok.gutter)
-                .padding(.top, 8)
+                .padding(.top, Tok.screenTop)
                 .padding(.bottom, 40)
                 .onChange(of: days) { _, d in checkLandmark(d) }
-                .onAppear { checkLandmark(days) }
+                .onAppear {
+                    checkLandmark(days)
+                    if !firedCounterViewed { firedCounterViewed = true; AnalyticsService.track(.counterViewed) }
+                }
+            }
+            .scrollIndicators(.hidden)
+        }
+    }
+
+    // Minimal identity — quiet, doesn't compete with the ring.
+    private func topBar(_ today: TodayState) -> some View {
+        HStack {
+            Txt.Eyebrow("Nicotine-free")
+            Spacer()
+            if today.hasHALEPlus { Badge(label: "HALE+", tone: .soft) }
+        }
+    }
+
+    private func heroRing(days: Int, hours: Int, mins: Int, secs: Int, progress: Double) -> some View {
+        Ring(progress: progress, size: 256, stroke: 9, surge: ringSurge, breathes: true) {
+            VStack(spacing: 2) {
+                Txt.Eyebrow("Clean for")
+                Txt.Display("\(days)", size: 68).digitRoll(days)
+                Txt.Eyebrow(days == 1 ? "Day" : "Days", color: Tok.accent)
+                HStack(spacing: 12) {
+                    counter(hours, "H"); counter(mins, "M"); counter(secs, "S")
+                }
+                .padding(.top, 8)
             }
         }
+        .overlay { if ringSurge > 0 { RingBurst().id(ringSurge).frame(width: 256, height: 256) } }
+        .frame(maxWidth: .infinity)
     }
 
     private func counter(_ v: Int, _ unit: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 2) {
-            Text(String(format: "%02d", v)).font(.sora(.bold, 16)).monospacedDigit().foregroundStyle(Tok.fg)
-            Text(unit).font(.sora(.semibold, 11)).foregroundStyle(Tok.fg3)
+            Text(String(format: "%02d", v)).font(.sora(.bold, 15)).monospacedDigit().foregroundStyle(Tok.fg2)
+                .digitRoll(v)
+            Text(unit).font(.sora(.semibold, 10)).foregroundStyle(Tok.fg3)
         }
+    }
+
+    // Next milestone — one calm centered line + a slim track. No card chrome.
+    @ViewBuilder
+    private func milestoneLine(next: Plan.HealthMilestone?, progress: Double, cleanMs: Double) -> some View {
+        VStack(spacing: 10) {
+            if let n = next {
+                Txt.Eyebrow("Next milestone · \(countdown(hoursTarget: n.hours, cleanMs: cleanMs))", color: Tok.accent)
+                Txt.Body(n.label, color: Tok.fg).multilineTextAlignment(.center)
+                Track(progress: progress, tone: .accent).frame(maxWidth: 200)
+            } else {
+                Txt.Eyebrow("Fully recovered", color: Tok.accent)
+                Txt.Body("Every milestone reached. Your body has come a long way.")
+                    .multilineTextAlignment(.center).frame(maxWidth: 280)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // Money / recovery — demoted to two quiet stats separated by a hairline. No card.
+    private func quietStats(money: String, recovery: String) -> some View {
+        HStack(spacing: 0) {
+            quietStat("Money saved", money, accent: false)
+            Rectangle().fill(Tok.hairline).frame(width: 1, height: 34)
+            quietStat("Typical recovery", recovery, accent: true)
+        }
+    }
+    private func quietStat(_ label: String, _ value: String, accent: Bool) -> some View {
+        VStack(spacing: 6) {
+            Txt.Eyebrow(label)
+            Text(value).font(.sora(.bold, 22)).tracking(-0.4)
+                .foregroundStyle(accent ? Tok.accent : Tok.fg)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // SOS — kept reachable but demoted from a full card to a calm coral pill.
+    private var sosRow: some View {
+        Button { Haptics.heavy(); showSOS = true } label: {
+            HStack(spacing: 8) {
+                Icon(.sos, size: 15, color: Tok.coral)
+                Text("Feeling a craving? Craving SOS")
+                    .font(.sora(.semibold, 14)).foregroundStyle(Tok.coral)
+            }
+            .padding(.vertical, 13).padding(.horizontal, 20)
+            .background(Capsule().fill(Tok.coralSoft))
+            .overlay(Capsule().strokeBorder(Tok.coralEdge, lineWidth: 1))
+        }
+        .buttonStyle(PressScaleStyle(scale: 0.98))
+        .frame(maxWidth: .infinity)
+        .accessibilityLabel("Craving SOS — tap for help")
+    }
+
+    private var buddyPlaceholder: some View {
+        Card(pad: true) { SkeletonList(rows: 1) }
     }
 
     @ViewBuilder
-    private func milestoneStrip(next: Plan.HealthMilestone?, progress: Double, cleanMs: Double) -> some View {
+    private func buddyRow(_ b: MyBuddy) -> some View {
         Card(pad: true) {
-            VStack(alignment: .leading, spacing: 10) {
-                Txt.Eyebrow(next == nil ? "Fully recovered" : "Next milestone", color: Tok.accent)
-                if let n = next {
-                    Txt.H3(countdown(hoursTarget: n.hours, cleanMs: cleanMs))
-                    Txt.Body(n.label)
-                    Track(progress: progress, tone: .accent)
-                } else {
-                    Txt.Body("Every milestone reached. Your body has come a long way.")
+            HStack(spacing: 12) {
+                Circle().fill(Tok.warmSoft).frame(width: 40, height: 40)
+                    .overlay(Text(String((b.buddy.name ?? "★").prefix(1))).font(.sora(.bold, 16)).foregroundStyle(Tok.warm))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(b.buddy.name ?? "Your buddy").font(.sora(.semibold, 15)).foregroundStyle(Tok.fg)
+                    Text(b.buddy.currentStreak > 0 ? "\(b.buddy.currentStreak)-day streak · cheer them on" : "Tap to check in on each other")
+                        .font(.sora(.regular, 13)).foregroundStyle(Tok.fg2)
                 }
+                Spacer()
             }
         }
     }
 
-    private var sosCard: some View {
-        Button { Haptics.heavy(); showSOS = true } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "cross.case.fill").font(.system(size: 20)).foregroundStyle(Tok.coral)
+    // Friend-sourced nudge inbox (S2). Newest nudge; tap → nudge_opened + markRead.
+    private func nudgeInbox(_ n: Nudge) -> some View {
+        Button {
+            Haptics.tap()
+            AnalyticsService.track(.nudgeOpened, ["type": n.type])
+            Task { await app.markNudgeRead(n.id) }
+        } label: {
+            HStack(spacing: 10) {
+                Icon(.flame, size: 16, color: Tok.warm)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Craving SOS").font(.sora(.semibold, 16)).foregroundStyle(Tok.fg)
-                    Text("Tap for help — it passes in minutes").font(.sora(.regular, 13)).foregroundStyle(Tok.fg2)
+                    Text(n.title).font(.sora(.bold, 14)).foregroundStyle(Tok.fg)
+                    Text(n.body).font(.sora(.regular, 13)).foregroundStyle(Tok.fg2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer()
+                Spacer(minLength: 0)
             }
-            .padding(18)
-            .frame(maxWidth: .infinity)
-            .background(Tok.coralSoft)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(Tok.warmSoft)
             .clipShape(RoundedRectangle(cornerRadius: Tok.R.tile, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: Tok.R.tile, style: .continuous).strokeBorder(Tok.coralEdge, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: Tok.R.tile, style: .continuous).strokeBorder(Tok.warmEdge, lineWidth: 1))
         }
         .buttonStyle(PressScaleStyle(scale: 0.98))
+        .accessibilityLabel("Open buddy nudge: \(n.title)")
     }
 
     private func money(_ v: Double) -> String {

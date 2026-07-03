@@ -30,6 +30,15 @@ enum Haptics {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) { press() }
     }
 
+    // Milestone crescendo — celebrate() plus a rising tail (medium → heavy) timed
+    // to the hero-number spring landing.
+    static func crescendo() {
+        guard enabled else { return }
+        celebrate()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.50) { press() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.72) { heavy() }
+    }
+
     private static func impact(_ s: UIImpactFeedbackGenerator.FeedbackStyle) {
         guard enabled else { return }
         UIImpactFeedbackGenerator(style: s).impactOccurred()

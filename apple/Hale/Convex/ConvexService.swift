@@ -108,6 +108,11 @@ final class ConvexService {
         client.subscribe(to: name, with: args, yielding: T.self)
     }
 
+    // Convex websocket connection state (for the "Reconnecting…" indicator).
+    func watchConnection() -> AnyPublisher<WebSocketState, Never> {
+        client.watchWebSocketState()
+    }
+
     @discardableResult
     func mutation<T: Decodable>(_ name: String, args: [String: ConvexEncodable?]? = nil, as: T.Type = T.self) async throws -> T {
         try await client.mutation(name, with: args)

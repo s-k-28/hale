@@ -10,23 +10,27 @@ struct DeleteAccountView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Txt.Eyebrow("Account", color: Tok.coral)
-                Txt.H1("Delete account")
-                Txt.Body("This permanently erases your account, streak, and all data. It can't be undone.")
+                Txt.H1("Delete your\naccount")
+                Txt.Body("This permanently erases your quit history, check-ins, cravings, Sage conversations, goals, squads you own, and your buddy pairing. It cannot be undone.")
+                Txt.Muted("Deleting your account does not cancel an App Store subscription. Manage that in Settings, then Apple ID, then Subscriptions.")
                 Spacer(minLength: 40)
                 if !armed {
                     HButton(label: "Delete my account", variant: .coral) { Haptics.warn(); armed = true }
                 } else {
-                    Txt.Body("Are you sure? Everything will be gone.", color: Tok.coral)
-                    HButton(label: "Yes, delete everything", variant: .coral, loading: busy) {
-                        busy = true; Task { await app.deleteAccount() }
+                    Txt.Body("Last check: this is permanent and immediate. There's no way to recover your account after this.", color: Tok.coral)
+                    HButton(label: "Yes, permanently delete everything", variant: .coral, loading: busy) {
+                        guard !busy else { return }
+                        busy = true
+                        AnalyticsService.track(.accountDeleted)
+                        Task { await app.deleteAccount() }
                     }
-                    HButton(label: "Keep my account", variant: .secondary) { armed = false }
+                    HButton(label: "Keep my account", variant: .secondary, disabled: busy) { armed = false }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Tok.gutter).padding(.vertical, 20)
         }
-        .background(Tok.bg.ignoresSafeArea())
+        .background(HaleBackdrop())
         .navigationTitle("Delete account").navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -54,10 +58,22 @@ struct DisclaimersView: View {
                         }
                     }
                 }
+                Card(pad: true) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Txt.H3("Not medical advice")
+                        Txt.Body("HALE supports your quit; it does not diagnose or treat. For medical questions about quitting nicotine — including NRT or medication — talk to a doctor, pharmacist, or a free quitline at 1-800-QUIT-NOW.")
+                        Button("Call 1-800-QUIT-NOW") { open("tel:18007848669") }
+                            .font(.sora(.semibold, 14)).foregroundStyle(Tok.accent)
+                    }
+                }
+                Txt.Muted("If you're in crisis or thinking about self-harm, call or text 988 (Suicide & Crisis Lifeline, US).")
+                Button("Call or text 988") { open("tel:988") }
+                    .font(.sora(.semibold, 14)).foregroundStyle(Tok.coral)
             }
             .padding(.horizontal, Tok.gutter).padding(.vertical, 20)
         }
-        .background(Tok.bg.ignoresSafeArea())
+        .background(HaleBackdrop())
         .navigationTitle("Sources").navigationBarTitleDisplayMode(.inline)
     }
+    private func open(_ s: String) { if let u = URL(string: s) { UIApplication.shared.open(u) } }
 }

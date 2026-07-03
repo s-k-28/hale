@@ -10,8 +10,9 @@ enum Tok {
     static let surface   = Color(hex: 0x151B18)             // card
     static let surface2  = Color(hex: 0x1C2420)             // elevated / input
     static let surface3  = Color(hex: 0x25302A)             // pressed / hover
-    static let stroke    = Color.rgba(255, 255, 255, 0.07)  // hairline borders
-    static let stroke2   = Color.rgba(255, 255, 255, 0.13)
+    static let stroke    = Color.rgba(255, 255, 255, 0.06)  // hairline borders (quiet)
+    static let stroke2   = Color.rgba(255, 255, 255, 0.12)  // stronger divider / control edge
+    static let hairline  = Color.rgba(255, 255, 255, 0.05)  // dividers between rows — barely there
     static let hi        = Color.rgba(255, 255, 255, 0.04)  // top inner highlight on cards
 
     // MARK: Text
@@ -53,6 +54,14 @@ enum Tok {
         static let md:    CGFloat = 12   // r-md (Tailwind default rounded-xl)
     }
 
-    // MARK: Spacing
-    static let gutter: CGFloat = 24      // standard horizontal screen padding
+    // MARK: Spacing & rhythm
+    // One rhythm every screen inherits: a consistent gutter, larger breathing
+    // room between sections, generous top padding, and a comfortable max content
+    // width so nothing sprawls on big devices. (Restraint > density.)
+    static let gutter:     CGFloat = 24   // standard horizontal screen padding
+    static let section:    CGFloat = 28   // space between major sections in a screen
+    static let sectionLg:  CGFloat = 32   // hero → first section (extra air)
+    static let screenTop:  CGFloat = 20   // generous top padding under the safe area
+    static let maxContent: CGFloat = 440  // comfortable reading width (clamps on iPad)
+    static let cardPad:    CGFloat = 20   // default card inner padding
 }

@@ -1,24 +1,17 @@
 import SwiftUI
 
-// Cycle-1 stubs — replaced by full screens in the next 4a passes. Each renders with
-// the design system so navigation + tab bar are exercisable now.
-
-private struct Stub: View {
-    let eyebrow: String, title: String, note: String
+// Community is flag-gated off for v1 (no stranger-visible UGC until moderation
+// ships). When viewed, it's a designed "on the way" moment, not a bare stub.
+struct CommunityTabView: View {
     var body: some View {
-        Screen {
-            VStack(alignment: .leading, spacing: 12) {
-                Spacer()
-                Txt.Eyebrow(eyebrow, color: Tok.accent)
-                Txt.H1(title)
-                Txt.Body(note)
-                Spacer()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Tok.gutter)
+        ZStack {
+            HaleBackdrop()
+            BrandEmptyState(
+                glyph: .buddy, tone: Tok.warm,
+                title: "Community is\non the way",
+                message: "Soon you'll find groups for exactly what you're quitting — anonymous, moderated, and always on your side. For now, your buddy and squad have your back.",
+                eyebrow: "Coming soon")
         }
     }
 }
-
-struct CommunityTabView: View { var body: some View { Stub(eyebrow: "Community", title: "Community", note: "Flag-gated off in v1.") } }
 

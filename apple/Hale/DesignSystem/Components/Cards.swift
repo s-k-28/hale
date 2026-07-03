@@ -22,7 +22,7 @@ struct Card<Content: View>: View {
     var pad: Bool = false
     @ViewBuilder var content: Content
     var body: some View {
-        content.modifier(CardSurface(radius: Tok.R.panel, bg: Tok.surface, border: Tok.stroke, pad: pad, padAmount: 20))
+        content.modifier(CardSurface(radius: Tok.R.panel, bg: Tok.surface, border: Tok.stroke, pad: pad, padAmount: Tok.cardPad))
     }
 }
 struct Card2<Content: View>: View {
@@ -35,15 +35,21 @@ struct Card2<Content: View>: View {
 struct CardHero<Content: View>: View {
     var pad: Bool = false
     @ViewBuilder var content: Content
-    var body: some View {   // the one accent-edged card
-        content.modifier(CardSurface(radius: Tok.R.panel, bg: Tok.surface, border: Tok.accentEdge, pad: pad, padAmount: 20))
+    var body: some View {   // the one accent-edged card — real glass since iOS 26
+        content
+            .padding(pad ? Tok.cardPad : 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassEffect(.regular.tint(Tok.accentSoft),
+                         in: .rect(cornerRadius: Tok.R.panel, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Tok.R.panel, style: .continuous)
+                .strokeBorder(Tok.accentEdge, lineWidth: 1))
     }
 }
 struct CardInk<Content: View>: View {
     var pad: Bool = false
     @ViewBuilder var content: Content
     var body: some View {
-        content.modifier(CardSurface(radius: Tok.R.panel, bg: Tok.bg2, border: Tok.stroke, pad: pad, padAmount: 20))
+        content.modifier(CardSurface(radius: Tok.R.panel, bg: Tok.bg2, border: Tok.stroke, pad: pad, padAmount: Tok.cardPad))
     }
 }
 

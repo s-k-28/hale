@@ -1,8 +1,10 @@
 import SwiftUI
 import UIKit
 
-// The viral share card (never gated). Rendered to a PNG via ImageRenderer and
-// shared through the system sheet. 9:16-ish, stacked gradients, big day numeral.
+// The viral share card (never gated). Rendered to a PNG via ImageRenderer and shared
+// through the system sheet. 9:16, layered emerald gradients, a gradient-filled hero
+// numeral, money + recovery stat tiles, and the HALE wordmark. No glass/materials here
+// — ImageRenderer doesn't rasterize them reliably; everything is plain gradients/fills.
 struct TransformationCard: View {
     let days: Int
     let money: String
@@ -10,28 +12,102 @@ struct TransformationCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Txt.Eyebrow("HALE", color: Tok.accent)
-            Spacer()
-            Text("\(days)").font(.sora(.bold, 132)).tracking(-4).foregroundStyle(Tok.fg)
-            Txt.H2(days == 1 ? "day nicotine-free" : "days nicotine-free")
-            HStack(spacing: 12) {
-                Tile(k: "Saved", v: money, accent: true)
-                Tile(k: "Recovery", v: "\(recoveryPct)%")
-            }.padding(.top, 20)
-            Spacer()
-            Text("hale-app.com").font(.sora(.semibold, 13)).foregroundStyle(Tok.fg3)
-        }
-        .padding(28)
-        .frame(width: 340, height: 600, alignment: .leading)
-        .background(
-            ZStack {
-                Tok.bg
-                LinearGradient(colors: [Tok.accent.opacity(0.16), .clear], startPoint: .topLeading, endPoint: .center)
-                LinearGradient(colors: [.clear, Tok.accentDeep.opacity(0.10)], startPoint: .center, endPoint: .bottom)
+            // Wordmark
+            HStack(spacing: 7) {
+                Circle().fill(LinearGradient(colors: [Tok.accent2, Tok.accentDeep],
+                                             startPoint: .top, endPoint: .bottom))
+                    .frame(width: 9, height: 9)
+                Text("HALE").font(.sora(.extrabold, 15)).tracking(4).foregroundStyle(Tok.fg)
+                Spacer()
+                Text("NICOTINE-FREE").font(.sora(.semibold, 11)).tracking(1.5).foregroundStyle(Tok.accent)
             }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+
+            Spacer()
+
+            // Hero numeral
+            Text("\(days)")
+                .font(.sora(.bold, 128)).tracking(-5)
+                .foregroundStyle(LinearGradient(colors: [Tok.fg, Tok.accent2],
+                                                startPoint: .top, endPoint: .bottom))
+                .shadow(color: Tok.accentGlow, radius: 24, y: 6)
+                .padding(.bottom, -6)
+            Text(days == 1 ? "day nicotine-free" : "days nicotine-free")
+                .font(.sora(.semibold, 22)).foregroundStyle(Tok.fg)
+
+            // Recovery progress bar
+            VStack(alignment: .leading, spacing: 7) {
+                HStack {
+                    Text("Recovery").font(.sora(.medium, 12)).foregroundStyle(Tok.fg2)
+                    Spacer()
+                    Text("\(recoveryPct)%").font(.sora(.bold, 12)).foregroundStyle(Tok.accent)
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Tok.track)
+                        Capsule()
+                            .fill(LinearGradient(colors: [Tok.accentDeep, Tok.accent2],
+                                                 startPoint: .leading, endPoint: .trailing))
+                            .frame(width: max(6, geo.size.width * CGFloat(min(100, max(0, recoveryPct))) / 100))
+                    }
+                }
+                .frame(height: 8)
+            }
+            .padding(.top, 22)
+
+            // Stat tiles
+            HStack(spacing: 12) {
+                statTile(label: "Money saved", value: money, accent: true)
+                statTile(label: "Clean days", value: "\(days)", accent: false)
+            }
+            .padding(.top, 16)
+
+            Spacer()
+
+            // Footer
+            HStack {
+                Text("Quit for good with HALE").font(.sora(.medium, 12)).foregroundStyle(Tok.fg3)
+                Spacer()
+                Text("hale-app.com").font(.sora(.semibold, 12)).foregroundStyle(Tok.fg3)
+            }
+        }
+        .padding(30)
+        .frame(width: 360, height: 640, alignment: .leading)
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Tok.R.xl2, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Tok.R.xl2, style: .continuous)
+                .strokeBorder(Tok.stroke2, lineWidth: 1))
         .environment(\.colorScheme, .dark)
+    }
+
+    private func statTile(label: String, value: String, accent: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label).font(.sora(.medium, 12)).foregroundStyle(Tok.fg2)
+            Text(value).font(.sora(.bold, 24)).foregroundStyle(accent ? Tok.accent : Tok.fg)
+                .minimumScaleFactor(0.6).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(accent ? Tok.accentSoft : Tok.surface2,
+                    in: RoundedRectangle(cornerRadius: Tok.R.tile, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Tok.R.tile, style: .continuous)
+                .strokeBorder(accent ? Tok.accentEdge : Tok.stroke, lineWidth: 1))
+    }
+
+    private var cardBackground: some View {
+        ZStack {
+            Tok.bg
+            // upper emerald glow behind the numeral
+            RadialGradient(colors: [Tok.accent.opacity(0.22), .clear],
+                           center: UnitPoint(x: 0.15, y: 0.34), startRadius: 8, endRadius: 420)
+            // bottom deep-emerald wash
+            LinearGradient(colors: [.clear, Tok.accentDeep.opacity(0.14)],
+                           startPoint: .center, endPoint: .bottom)
+            // top-leading tint for depth
+            LinearGradient(colors: [Tok.accent.opacity(0.10), .clear],
+                           startPoint: .topLeading, endPoint: .center)
+        }
     }
 }
 
@@ -49,6 +125,6 @@ enum ShareCard {
         while let presented = top.presentedViewController { top = presented }
         av.popoverPresentationController?.sourceView = top.view
         top.present(av, animated: true)
-        AnalyticsService.track(.referralShared, ["surface": "transformation_card"])
+        AnalyticsService.track(.cardShared, ["surface": "transformation_card"])
     }
 }

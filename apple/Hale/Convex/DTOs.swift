@@ -87,6 +87,49 @@ struct RelapseResult: Decodable {
     let bestStreak: Int?
 }
 
+// checkins.checkIn return (activation signals mirrored to PostHog).
+struct CheckInResult: Decodable {
+    let alreadyCheckedIn: Bool
+    let streak: Int
+    let usedFreeze: Bool
+    let firstCheckIn: Bool?
+    let activatedPairedQuitter: Bool?
+    let pairedSolo: String?
+    let quitStage: String?
+    let pairingMethod: String?
+    let hoursPairToCheckin: Int?
+}
+
+// buddies.pairWith return (referral funnel flags always present).
+struct PairResult: Decodable {
+    let linkId: String
+    let alreadyPaired: Bool
+    let referrerId: String?
+    let referralCompleted: Bool
+    let referrerReachedGoal: Bool
+    let rewardGranted: Bool
+}
+
+// buddies.requestMatch return (matched | no-match | already-paired variants).
+struct MatchResult: Decodable {
+    let matched: Bool
+    let alreadyPaired: Bool?
+    let poolSize: Int?
+    let reason: String?
+    let buddyUserId: String?
+    let referrerId: String?
+    let referralCompleted: Bool?
+    let referrerReachedGoal: Bool?
+    let rewardGranted: Bool?
+}
+
+// referrals.attributeInstall return.
+struct AttributionResult: Decodable {
+    let attributed: Bool
+    let referrerId: String?
+    let reason: String?
+}
+
 // MARK: nudges
 struct Nudge: Decodable, Identifiable {
     let id: String; let type: String; let ts: Double; let title: String; let body: String
@@ -154,6 +197,7 @@ struct Squad: Decodable, Identifiable {
         case id = "_id", name, isPublic, memberCount, role, inviteCode, challengeEnd, challengeGoalDays
     }
 }
+struct CreateSquadResult: Decodable { let squadId: String; let inviteCode: String }
 struct FeedEvent: Decodable, Identifiable {
     let id: String; let type: String; let ts: Double; let isMine: Bool
     enum CodingKeys: String, CodingKey { case id = "_id", type, ts, isMine }   // payload is v.any() — omitted

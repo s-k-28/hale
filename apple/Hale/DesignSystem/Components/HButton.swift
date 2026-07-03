@@ -25,29 +25,49 @@ struct HButton: View {
             fireHaptic()
             action()
         } label: {
-            ZStack {
-                if loading {
-                    ProgressView().tint(labelColor)
-                } else {
-                    HStack(spacing: 8) {
-                        if let icon { Image(systemName: icon).font(.system(size: fontSize, weight: .bold)) }
-                        Text(label).font(.sora(.bold, fontSize)).tracking(-0.16)
-                    }
-                    .foregroundStyle(labelColor)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: height)
-            .background(bg)
-            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: hasBorder ? 1 : 0)
-            )
-            .shadow(color: glowColor, radius: glowRadius, x: 0, y: glowY)
+            chrome
         }
         .buttonStyle(SpringPress())
         .disabled(off)
+    }
+
+    // Secondary rides on interactive Liquid Glass; primary/coral/warm stay solid
+    // brand lanes (the emerald CTA is the identity — glass would dilute it).
+    private var isGlass: Bool { variant == .secondary && !disabled }
+
+    @ViewBuilder
+    private var chrome: some View {
+        let core = ZStack {
+            if loading {
+                ProgressView().tint(labelColor)
+            } else {
+                HStack(spacing: 8) {
+                    if let icon { Image(systemName: icon).font(.system(size: fontSize, weight: .bold)) }
+                    Text(label).font(.sora(.bold, fontSize)).tracking(-0.16)
+                }
+                .foregroundStyle(labelColor)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
+
+        if isGlass {
+            core
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: radius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .strokeBorder(Tok.stroke, lineWidth: 1)
+                )
+        } else {
+            core
+                .background(bg)
+                .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .strokeBorder(borderColor, lineWidth: hasBorder ? 1 : 0)
+                )
+                .shadow(color: glowColor, radius: glowRadius, x: 0, y: glowY)
+        }
     }
 
     private func fireHaptic() {
@@ -87,10 +107,11 @@ struct HButton: View {
     }
     private var borderColor: Color { hasBorder ? Tok.stroke2 : .clear }
 
+    // Softer, wider glow reads as calm depth rather than a heavy halo.
     private var showGlow: Bool { variant == .primary && !off }
-    private var glowColor: Color { showGlow ? Tok.accent.opacity(0.35) : .clear }
-    private var glowRadius: CGFloat { showGlow ? 15 : 0 }
-    private var glowY: CGFloat { showGlow ? 8 : 0 }
+    private var glowColor: Color { showGlow ? Tok.accent.opacity(0.26) : .clear }
+    private var glowRadius: CGFloat { showGlow ? 18 : 0 }
+    private var glowY: CGFloat { showGlow ? 6 : 0 }
 }
 
 // Button press: scale → 0.98 on the inline spring from Button.tsx.

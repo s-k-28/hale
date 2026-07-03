@@ -34,6 +34,84 @@ extension View {
     }
 }
 
+// Breathing — a slow sine oscillation of scale + opacity, the "alive" idle for
+// glows (Today ring aura, SOS coral field). Static under Reduce Motion.
+struct Breathing: ViewModifier {
+    var period: Double = 3.2
+    var scaleRange: ClosedRange<CGFloat> = 0.96...1.04
+    var opacityRange: ClosedRange<Double> = 0.65...1.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        if reduceMotion {
+            content.opacity((opacityRange.lowerBound + opacityRange.upperBound) / 2)
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { tl in
+                let t = tl.date.timeIntervalSinceReferenceDate
+                let wave = (sin(t * 2 * .pi / period) + 1) / 2   // 0…1
+                content
+                    .scaleEffect(scaleRange.lowerBound + (scaleRange.upperBound - scaleRange.lowerBound) * CGFloat(wave))
+                    .opacity(opacityRange.lowerBound + (opacityRange.upperBound - opacityRange.lowerBound) * wave)
+            }
+        }
+    }
+}
+
+extension View {
+    func breathing(period: Double = 3.2,
+                   scale: ClosedRange<CGFloat> = 0.96...1.04,
+                   opacity: ClosedRange<Double> = 0.65...1.0) -> some View {
+        modifier(Breathing(period: period, scaleRange: scale, opacityRange: opacity))
+    }
+
+    /// Rolling-odometer digits (H/M/S counters, streak numbers): pair with a
+    /// monospacedDigit font. Animates each numeral change with a snappy spring.
+    func digitRoll<V: Equatable>(_ value: V) -> some View {
+        self
+            .contentTransition(.numericText())
+            .animation(.snappy(duration: 0.35), value: value)
+    }
+}
+
+// Sheen — a specular band that sweeps across the view every few seconds (Paywall
+// CTA). Masked to the content's rounded shape; off under Reduce Motion.
+struct Sheen: ViewModifier {
+    var radius: CGFloat = Tok.R.tile
+    var interval: Double = 3.6      // full cycle incl. rest
+    var travel: Double = 1.1        // sweep portion of the cycle, seconds
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if !reduceMotion {
+                TimelineView(.animation(minimumInterval: 1.0 / 60)) { tl in
+                    GeometryReader { geo in
+                        let t = tl.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: interval)
+                        let p = t / travel   // 0…1 during the sweep, >1 while resting
+                        if p <= 1 {
+                            LinearGradient(
+                                colors: [.clear, .white.opacity(0.28), .clear],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                            .frame(width: geo.size.width * 0.45)
+                            .offset(x: -geo.size.width * 0.45 + (geo.size.width * 1.45) * p)
+                            .blendMode(.plusLighter)
+                        }
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+                .allowsHitTesting(false)
+            }
+        }
+    }
+}
+
+extension View {
+    func sheen(radius: CGFloat = Tok.R.tile, interval: Double = 3.6) -> some View {
+        modifier(Sheen(radius: radius, interval: interval))
+    }
+}
+
 // Immediate press-scale for Chip/IconBtn/OptRow (RN `active:scale-[x]`), with an
 // optional haptic fired on press-in.
 struct PressScaleStyle: ButtonStyle {

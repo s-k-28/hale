@@ -38,8 +38,13 @@ struct LockedFeature<Content: View>: View {
             content
         } else {
             ZStack {
-                content.opacity(0.35).allowsHitTesting(false)              // backing layer
-                Tok.bg.opacity(0.97)                                       // scrim
+                // The real feature shows through refractive Liquid Glass — the
+                // "it's right there" tease replaces the old near-opaque scrim.
+                content.allowsHitTesting(false)
+                Rectangle()
+                    .fill(.clear)
+                    .glassEffect(.regular.tint(Tok.bg.opacity(0.45)),
+                                 in: .rect(cornerRadius: radius, style: .continuous))
                 backdrop.allowsHitTesting(false)
                 chrome
             }

@@ -17,7 +17,7 @@ enum SentryService {
             options.sendDefaultPii = false
             options.beforeBreadcrumb = { crumb in
                 let dropped: Set<String> = ["http", "xhr", "fetch", "console", "network"]
-                if let cat = crumb.category, dropped.contains(cat) { return nil }
+                if dropped.contains(crumb.category) { return nil }
                 return crumb
             }
             options.beforeSend = { event in

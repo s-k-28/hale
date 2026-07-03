@@ -2,3 +2,4 @@
 Hale.xcodeproj/
 *.xcuserstate
 vendor/
+.build-verify/

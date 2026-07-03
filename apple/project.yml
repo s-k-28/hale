@@ -2,20 +2,27 @@ name: Hale
 options:
   bundleIdPrefix: com.ravipulavarthy
   deploymentTarget:
-    iOS: "17.0"
+    iOS: "26.0"   # Liquid Glass baseline — glassEffect/GlassEffectContainer used ungated
   createIntermediateGroups: true
 settings:
   base:
     SWIFT_VERSION: "5.9"
     TARGETED_DEVICE_FAMILY: "1"          # iPhone only (supportsTablet: false)
-    CODE_SIGNING_ALLOWED: "NO"            # simulator builds — no team needed
-    CODE_SIGNING_REQUIRED: "NO"
     ENABLE_USER_SCRIPT_SANDBOXING: "YES"
-# Sentry + OneSignal temporarily omitted: their SPM packages download binary
-# XCFrameworks from github.com release assets, which triggers a keychain ACL prompt
-# on this machine that can't be answered headless. Their wrapper code is guarded by
-# #if canImport(...) so it activates automatically once the packages are re-added
-# (after clicking "Always Allow" on the keychain prompt once).
+    # --- Code signing ---------------------------------------------------------
+    # Automatic signing with the Apple Developer team that owns the bundle id
+    # (com.ravipulavarthy.hale), the App Group group.com.ravipulavarthy.hale.onesignal,
+    # and the Push Notifications capability. Set DEVELOPMENT_TEAM to that team's
+    # 10-character Team ID (Apple Developer ▸ Membership ▸ Team ID). Leaving it
+    # blank is fine for simulator builds; a device archive/TestFlight upload
+    # requires it (or pick the team in Xcode ▸ Signing & Capabilities, which
+    # writes it back here on next `xcodegen generate` only if committed).
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: "CPRVLR97XJ"        # Ravi Pulavarthy team (from local Apple Development cert OU)
+    # Simulator SDK never signs, so the headless build recipe never prompts and
+    # stays green with no team; device SDK signs automatically per the above.
+    "CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]": "NO"
+    "CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]": "NO"
 packages:
   ConvexMobile:
     url: https://github.com/get-convex/convex-swift
@@ -26,12 +33,25 @@ packages:
   PostHog:
     url: https://github.com/PostHog/posthog-ios
     from: "3.0.0"
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    from: "8.0.0"
+  OneSignal:
+    url: https://github.com/OneSignal/OneSignal-iOS-SDK
+    from: "5.0.0"
+  Pow:
+    url: https://github.com/movingparts-io/Pow
+    from: "1.0.0"
+  Lottie:
+    url: https://github.com/airbnb/lottie-ios
+    from: "4.4.0"
 targets:
   Hale:
     type: application
     platform: iOS
     sources:
       - path: Hale
+      - path: HaleShared          # snapshot + App Group store + Live Activity attributes
     dependencies:
       - package: ConvexMobile
         product: ConvexMobile
@@ -39,7 +59,16 @@ targets:
         product: RevenueCat
       - package: PostHog
         product: PostHog
+      - package: Sentry
+        product: Sentry
+      - package: OneSignal
+        product: OneSignalFramework
+      - package: Pow
+        product: Pow
+      - package: Lottie
+        product: Lottie
       - target: OneSignalNotificationServiceExtension
+      - target: HaleWidgets       # WidgetKit + Live Activity extension (auto-embedded)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ravipulavarthy.hale
@@ -60,6 +89,11 @@ targets:
     platform: iOS
     sources:
       - path: OneSignalNotificationServiceExtension
+    dependencies:
+      # Rich-push handler. OneSignalExtension transitively links OneSignalCore
+      # + OneSignalOutcomes, which is all the NSE needs.
+      - package: OneSignal
+        product: OneSignalExtension
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ravipulavarthy.hale.OneSignalNotificationServiceExtension
@@ -68,6 +102,21 @@ targets:
         MARKETING_VERSION: "2.0"
         CURRENT_PROJECT_VERSION: "10"
         CODE_SIGN_ENTITLEMENTS: OneSignalNotificationServiceExtension/NSE.entitlements
+  HaleWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: HaleWidgets
+      - path: HaleShared            # same snapshot/store/attributes as the app
+      - path: Hale/Resources/Fonts  # bundle Sora so widget type stays on-brand
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ravipulavarthy.hale.HaleWidgets
+        INFOPLIST_FILE: HaleWidgets/Info.plist
+        GENERATE_INFOPLIST_FILE: "NO"
+        MARKETING_VERSION: "2.0"
+        CURRENT_PROJECT_VERSION: "10"
+        CODE_SIGN_ENTITLEMENTS: HaleWidgets/HaleWidgets.entitlements
   HaleTests:
     type: bundle.unit-test
     platform: iOS

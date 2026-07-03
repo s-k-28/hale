@@ -4,18 +4,33 @@ import SwiftUI
 // full-screen covers presented from within.
 struct RootRouter: View {
     @State private var app = AppState()
+    @State private var splashDone = false
 
     var body: some View {
         ZStack {
-            Tok.bg.ignoresSafeArea()
+            HaleBackdrop()
             switch app.phase {
             case .loading:    LoadingView()
             case .onboarding: OnboardingFlow()
             case .app:        MainTabs()
             }
         }
+        .overlay(alignment: .top) {
+            ReconnectBanner(reconnecting: app.reconnecting)
+                .padding(.top, 4)
+                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: app.reconnecting)
+        }
+        .overlay { if !splashDone { SplashView().transition(.opacity) } }
+        .toastHost()
         .environment(app)
-        .task { await app.boot() }
+        .task {
+            let start = Date()
+            await app.boot()
+            // Let the intro breathe for a beat even when resume is instant.
+            let elapsed = Date().timeIntervalSince(start)
+            if elapsed < 1.1 { try? await Task.sleep(for: .seconds(1.1 - elapsed)) }
+            withAnimation(.easeOut(duration: 0.55)) { splashDone = true }
+        }
         .onOpenURL { app.handleDeepLink($0) }
         .animation(.easeInOut(duration: 0.25), value: app.phase)
     }
@@ -26,7 +41,7 @@ extension AppState.Phase: Equatable {}
 struct LoadingView: View {
     var body: some View {
         ZStack {
-            Tok.bg.ignoresSafeArea()
+            HaleBackdrop()
             ProgressView().tint(Tok.accent)
         }
     }
@@ -35,14 +50,8 @@ struct LoadingView: View {
 struct MainTabs: View {
     @State private var selection = Int(ProcessInfo.processInfo.environment["HALE_TAB"] ?? "0") ?? 0
 
-    init() {
-        let a = UITabBarAppearance()
-        a.configureWithOpaqueBackground()
-        a.backgroundColor = UIColor(Tok.bg)
-        a.shadowColor = UIColor(Tok.stroke)
-        UITabBar.appearance().standardAppearance = a
-        UITabBar.appearance().scrollEdgeAppearance = a
-    }
+    // No UITabBarAppearance override: on iOS 26 the bar auto-adopts Liquid
+    // Glass — content refracts beneath it, and the emerald tint rides on top.
 
     var body: some View {
         TabView(selection: $selection) {
@@ -60,5 +69,9 @@ struct MainTabs: View {
                 .tag(4).tabItem { Label("You", systemImage: "person.fill") }
         }
         .tint(Tok.accent)
+        // iOS 26 Liquid Glass bar: shrink to a compact pill while scrolling so
+        // content owns the screen, re-expand on scroll-up.
+        .tabBarMinimizeBehavior(.onScrollDown)
+        .onChange(of: selection) { _, _ in Haptics.select() }
     }
 }

@@ -8,7 +8,7 @@ struct GalleryView: View {
     // scroll to a section anchor for gate-review captures.
     var body: some View {
         ZStack {
-            Tok.bg.ignoresSafeArea()
+            HaleBackdrop()
             ScrollViewReader { proxy in
                 ScrollView { GalleryContent() }
                     .onAppear {

@@ -8,14 +8,26 @@ struct ReferralView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: Tok.section) {
                 Txt.Eyebrow("Earn free HALE+", color: Tok.warm)
-                if let p = progress.value ?? nil {
+                if !progress.loaded {
+                    SkeletonList(rows: 2)
+                } else if let p = progress.value ?? nil {
                     if p.rewardActive {
-                        CardHero(pad: true) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Txt.H2("HALE+ unlocked")
-                                Txt.Body("\(p.rewardDaysRemaining) days of full access left. You brought \(p.completedCount) friends onto HALE.")
+                        VStack(spacing: 18) {
+                            // Celebratory reward focal — warm gift glow (Lottie,
+                            // gift-medallion fallback). This is the payoff moment.
+                            LoopingLottie(name: "reward-unlocked") {
+                                Medallion(glyph: .gift, tone: Tok.warm, size: 92)
+                            }
+                            .frame(width: 180, height: 180)
+                            .riseIn(0, distance: 16)
+                            CardHero(pad: true) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Badge(label: "Reward unlocked", tone: .warm)
+                                    Txt.H2("7 days of HALE+,\non your friends.")
+                                    Txt.Body("Full analytics, unlimited Sage, every tool — free because you brought your people with you. \(p.rewardDaysRemaining) days left.")
+                                }
                             }
                         }
                     } else {
@@ -23,23 +35,55 @@ struct ReferralView: View {
                         Card(pad: true) {
                             VStack(alignment: .leading, spacing: 10) {
                                 Txt.Body("Invite \(p.target) friends who join HALE and pair up with a buddy.")
-                                Track(progress: Double(p.completedCount) / Double(max(1, p.target)), tone: .warm)
-                                Txt.Muted("\(p.completedCount) of \(p.target) joined & paired")
+                                HStack(spacing: 6) {
+                                    ForEach(0..<max(1, p.target), id: \.self) { i in
+                                        Capsule().fill(i < p.completedCount ? Tok.warm : Tok.track).frame(height: 8)
+                                    }
+                                }
+                                Txt.Muted(p.completedCount >= p.target
+                                          ? "Complete!"
+                                          : "\(p.completedCount) of \(p.target) joined & paired · \(max(0, p.target - p.completedCount)) to go")
+                            }
+                        }
+                        if !p.invitees.isEmpty {
+                            Card(pad: true) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Txt.Eyebrow("Your invites")
+                                    ForEach(Array(p.invitees.enumerated()), id: \.offset) { _, inv in
+                                        HStack {
+                                            Text(inv.name ?? "Friend").font(.sora(.semibold, 14)).foregroundStyle(Tok.fg)
+                                            Spacer()
+                                            Text(inv.status == "paired" ? "Paired" : "Joined")
+                                                .font(.sora(.medium, 12)).foregroundStyle(inv.status == "paired" ? Tok.warm : Tok.fg3)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                     if let c = code {
-                        ShareLink(item: "Quit nicotine with me on HALE. Use my invite code: \(c)") {
+                        ShareLink(item: Links.appStore, message: Text(Links.referralShareText(code: c))) {
                             HButtonLabel(label: "Share my invite link")
-                        }.simultaneousGesture(TapGesture().onEnded { AnalyticsService.track(.referralShared, ["surface": "referral_hub"]) })
+                        }.simultaneousGesture(TapGesture().onEnded { AnalyticsService.track(.referralLinkShared, ["surface": "referral_hub"]) })
+                        Txt.Muted("Your code: \(c)")
                     }
                 } else {
-                    ProgressView().tint(Tok.accent)
+                    BrandEmptyState(
+                        glyph: .gift, tone: Tok.warm,
+                        title: "Bring your\npeople with you",
+                        message: "Share your code — you'll unlock 7 days of HALE+ when 3 friends join and pair up.")
+                        .padding(.vertical, 8)
+                    if let c = code {
+                        ShareLink(item: Links.appStore, message: Text(Links.referralShareText(code: c))) {
+                            HButtonLabel(label: "Share my invite link")
+                        }.simultaneousGesture(TapGesture().onEnded { AnalyticsService.track(.referralLinkShared, ["surface": "referral_hub"]) })
+                    }
                 }
             }
-            .padding(.horizontal, Tok.gutter).padding(.vertical, 20)
+            .frame(maxWidth: Tok.maxContent).frame(maxWidth: .infinity)
+            .padding(.horizontal, Tok.gutter).padding(.top, Tok.screenTop).padding(.bottom, 40)
         }
-        .background(Tok.bg.ignoresSafeArea())
+        .background(HaleBackdrop())
         .navigationTitle("Invite").navigationBarTitleDisplayMode(.inline)
         .task { code = await app.getOrCreateMyCode() }
     }

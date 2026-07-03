@@ -1,22 +1,69 @@
 default_platform(:ios)
 
-# HALE native — TestFlight pipeline. Requires: signing set up in Xcode (or match),
-# an App Store Connect API key, and the Sentry+OneSignal packages re-added (see
-# docs/SWIFT_PHASE6_RELEASE.md). Run: bundle exec fastlane beta
+# HALE native — TestFlight pipeline. Run: bundle exec fastlane beta
+#
+# Requires:
+#   • Signing set up in Xcode (Automatic + DEVELOPMENT_TEAM in project.yml), or match.
+#   • An App Store Connect API key, provided via env (recommended — no secrets in repo):
+#       ASC_KEY_ID, ASC_ISSUER_ID, and ASC_KEY_P8 (the .p8 contents) OR ASC_KEY_PATH.
+#   • Sentry + OneSignal packages present (they are, as of Phase 6).
+#
+# Build number: XcodeGen regenerates the pbxproj on every run from project.yml's
+# CURRENT_PROJECT_VERSION, so `increment_build_number` against the project would be
+# clobbered and is unreliable. Instead we ask TestFlight for the highest build already
+# uploaded and pass one past it via xcargs — so the upload always supersedes the live
+# App Store build even though the RN production app auto-increments independently.
 platform :ios do
-  desc "Regenerate project, build, and upload to TestFlight"
+  desc "Regenerate project, build Release, and upload to TestFlight"
   lane :beta do
     sh("cd .. && xcodegen generate")
-    increment_build_number(xcodeproj: "../Hale.xcodeproj") rescue nil
+
+    api_key = asc_api_key
+
+    next_build = compute_next_build_number(api_key)
+    xcargs = next_build ? "CURRENT_PROJECT_VERSION=#{next_build}" : nil
+    UI.message("Building HALE with build number #{next_build || '(project default)'}")
+
     build_app(
       project: "../Hale.xcodeproj",
       scheme: "Hale",
       export_method: "app-store",
-      configuration: "Release"
+      configuration: "Release",
+      xcargs: xcargs
     )
+
     upload_to_testflight(
-      skip_waiting_for_build_processing: true,
-      app_identifier: "com.ravipulavarthy.hale"
+      api_key: api_key,
+      app_identifier: "com.ravipulavarthy.hale",
+      skip_waiting_for_build_processing: true
     )
   end
+end
+
+# Load an ASC API key from env if provided; returns nil so lanes still run under
+# an interactive Apple ID login when the key isn't configured.
+def asc_api_key
+  return nil unless ENV["ASC_KEY_ID"] && ENV["ASC_ISSUER_ID"] && (ENV["ASC_KEY_P8"] || ENV["ASC_KEY_PATH"])
+  app_store_connect_api_key(
+    key_id: ENV["ASC_KEY_ID"],
+    issuer_id: ENV["ASC_ISSUER_ID"],
+    key_content: ENV["ASC_KEY_P8"],
+    key_filepath: ENV["ASC_KEY_PATH"],
+    is_key_content_base64: false,
+    in_house: false
+  )
+end
+
+# Highest build already on TestFlight (across all versions) + 1. Falls back to nil
+# if ASC can't be queried (no key / offline) so the build uses the project default.
+def compute_next_build_number(api_key)
+  latest = latest_testflight_build_number(
+    api_key: api_key,
+    app_identifier: "com.ravipulavarthy.hale",
+    initial_build_number: 9 # current App Store build; never go below this
+  )
+  latest.to_i + 1
+rescue => e
+  UI.important("Could not read latest TestFlight build (#{e.message}); using project default build number.")
+  nil
 end

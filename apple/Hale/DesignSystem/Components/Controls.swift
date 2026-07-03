@@ -23,6 +23,8 @@ struct Chip: View {
 
 struct IconBtn: View {
     let systemName: String
+    /// VoiceOver label. Defaults to a humanized name from the SF Symbol.
+    var label: String? = nil
     var action: () -> Void = {}
     var body: some View {
         Button(action: action) {
@@ -35,6 +37,18 @@ struct IconBtn: View {
                 .overlay(Circle().strokeBorder(Tok.stroke, lineWidth: 1))
         }
         .buttonStyle(PressScaleStyle(scale: 0.94, haptic: { Haptics.tap() }))
+        .accessibilityLabel(label ?? Self.defaultLabel(systemName))
+    }
+
+    private static func defaultLabel(_ symbol: String) -> String {
+        switch symbol {
+        case "xmark": return "Close"
+        case "chevron.left": return "Back"
+        case "chevron.right": return "Open"
+        case "chevron.down": return "Collapse"
+        case "chevron.up": return "Expand"
+        default: return symbol.replacingOccurrences(of: ".", with: " ")
+        }
     }
 }
 
@@ -79,7 +93,7 @@ struct OptRow: View {
             .clipShape(RoundedRectangle(cornerRadius: Tok.R.tile, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: Tok.R.tile, style: .continuous)
-                    .strokeBorder(on ? Tok.accentEdge : Tok.stroke, lineWidth: on ? 1.5 : 1)
+                    .strokeBorder(on ? Tok.accentEdge : Tok.stroke, lineWidth: 1)
             )
         }
         .buttonStyle(PressScaleStyle(scale: 0.99, haptic: { Haptics.select() }))

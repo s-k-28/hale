@@ -14,7 +14,7 @@ struct SOSView: View {
 
     var body: some View {
         ZStack {
-            Tok.bg.ignoresSafeArea()
+            HaleBackdrop()
             switch step {
             case .home:       home
             case .ride:       RideItOut { resolvedBy = "timer"; step = .log } onSlip: { step = .slipChoose }
@@ -24,13 +24,24 @@ struct SOSView: View {
             case .recover:    RecoverKindly(result: recovered, onDone: close, onSage: sageAndClose)
             }
         }
-        .onAppear { Haptics.heavy(); AnalyticsService.track(.sosOpened) }
+        .onAppear {
+            Haptics.heavy()
+            AnalyticsService.track(.cravingSosOpened)
+            if !Prefs.firstSos { Prefs.firstSos = true; AnalyticsService.track(.firstSos) }
+        }
     }
 
     private func close() { dismiss() }
     private func sageAndClose() { dismiss() /* Coach tab focus handled by root in a later pass */ }
 
     private var home: some View {
+        ZStack(alignment: .top) {
+            CoralGlow()   // breathing coral field — the room feels alive, not alarming
+            homeContent
+        }
+    }
+
+    private var homeContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 HStack(spacing: 8) { Circle().fill(Tok.coral).frame(width: 8, height: 8); Txt.Eyebrow("Craving SOS", color: Tok.coral) }
@@ -40,7 +51,7 @@ struct SOSView: View {
             Spacer()
             Txt.H1("You're not\nin danger.")
             Txt.Display("This passes.", size: 44, color: Tok.coral)
-            Txt.Body("A craving peaks in a few minutes, then fades — whether or not you act on it. Pick one:")
+            Txt.Body("A craving peaks in a few minutes, then fades — whether or not you act on it. Let's get you to the other side. Pick one:")
             Spacer()
             option("Ride it out", "A 5-minute timer. It peaks, then fades.", "timer", coral: true) { step = .ride }
             option("Breathe", "Box breathing — slow it all down.", "wind") { step = .breathe }
@@ -117,13 +128,32 @@ struct SOSView: View {
         slipBusy = true
         Task {
             let res = await app.logRelapse(kind: kind)
-            AnalyticsService.track(.relapseLogged, ["kind": kind])
+            var p: [String: Any] = ["kind": kind]
+            if kind == "relapse" {
+                if let s = res?.streakAtRelapse { p["streak_at_relapse"] = s }
+                if let l = res?.lapsesBeforeRelapse { p["lapses_before_relapse"] = l }
+            }
+            AnalyticsService.track(.relapseLogged, p)
+            slipBusy = false
             if kind == "relapse" { recovered = res; step = .recover } else { close() }
         }
     }
 }
 
 // MARK: sub-views
+
+// Breathing coral radial field (RN Skia CoralGlow, 2.6s cycle) — anchored high
+// so the glow halos the headline, never the CTAs.
+private struct CoralGlow: View {
+    var body: some View {
+        RadialGradient(colors: [Tok.coral.opacity(0.13), .clear],
+                       center: UnitPoint(x: 0.5, y: 0.28),
+                       startRadius: 20, endRadius: 340)
+            .breathing(period: 2.6, scale: 0.97...1.03, opacity: 0.6...1.0)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+    }
+}
 
 private struct RideItOut: View {
     var onSurvived: () -> Void
@@ -133,10 +163,11 @@ private struct RideItOut: View {
     var body: some View {
         VStack(spacing: 18) {
             Spacer()
-            Ring(progress: Double(total - remaining) / Double(total), size: 264, stroke: 12) {
+            Ring(progress: Double(total - remaining) / Double(total), size: 264, stroke: 12, tone: .coral, breathes: true) {
                 VStack(spacing: 4) {
                     Txt.Eyebrow(remaining <= 0 ? "Made it" : "It crests, then fades", color: Tok.coral)
                     Txt.Display(clock(remaining), size: 52)
+                        .digitRoll(remaining)
                 }
             }
             Txt.Body(reassurance).multilineTextAlignment(.center).padding(.horizontal, Tok.gutter)
@@ -167,21 +198,59 @@ private struct RideItOut: View {
     private func clock(_ s: Int) -> String { s <= 0 ? "0:00" : String(format: "%d:%02d", s / 60, s % 60) }
 }
 
+// Box breathing, clock-synced 4-4-4-4: the whole scene derives from one
+// TimelineView clock (no dispatch chains to drift). The circle inflates over
+// the inhale, holds, deflates over the exhale, holds — with a coral progress
+// arc tracing each 4s phase, a 4→1 countdown, and breath haptics on the turns.
 private struct BoxBreathing: View {
     var onSurvived: () -> Void
     var onSlip: () -> Void
-    @State private var phase = 0
-    @State private var scale: CGFloat = 0.6
+    @State private var start = Date()
     private let labels = ["Breathe in", "Hold", "Breathe out", "Hold"]
+
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
-            ZStack {
-                Circle().fill(Tok.coralSoft).frame(width: 220, height: 220).scaleEffect(scale)
-                Circle().strokeBorder(Tok.coralEdge, lineWidth: 2).frame(width: 220, height: 220).scaleEffect(scale)
-                Txt.H2(labels[phase])
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { tl in
+                let elapsed = max(0, tl.date.timeIntervalSince(start))
+                let cycle = elapsed.truncatingRemainder(dividingBy: 16)
+                let phase = min(3, Int(cycle / 4))
+                let inPhase = cycle - Double(phase) * 4          // 0…4 within phase
+                let f = inPhase / 4                              // 0…1 within phase
+                // eased breath position: 0.6…1.0 through in/hold-high/out/hold-low
+                let breathe: CGFloat = switch phase {
+                case 0: 0.6 + 0.4 * CGFloat(easeInOut(f))
+                case 1: 1.0
+                case 2: 1.0 - 0.4 * CGFloat(easeInOut(f))
+                default: 0.6
+                }
+                let count = 4 - Int(inPhase)                     // 4,3,2,1
+
+                ZStack {
+                    Circle().fill(Tok.coralSoft).frame(width: 220, height: 220).scaleEffect(breathe)
+                    Circle().strokeBorder(Tok.coralEdge, lineWidth: 2).frame(width: 220, height: 220).scaleEffect(breathe)
+                    // phase progress arc
+                    Circle()
+                        .trim(from: 0, to: CGFloat(max(f, 0.003)))
+                        .stroke(Tok.coral, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 252, height: 252)
+                        .opacity(0.8)
+                    VStack(spacing: 6) {
+                        Txt.H2(labels[phase])
+                            .contentTransition(.opacity)
+                        Txt.Display("\(count)", size: 44, color: Tok.coral)
+                            .digitRoll(count)
+                    }
+                }
+                .onChange(of: phase) { _, p in
+                    switch p {
+                    case 0: Haptics.breath(.inhale)
+                    case 2: Haptics.breath(.exhale)
+                    default: Haptics.soft()
+                    }
+                }
             }
-            .animation(.easeInOut(duration: 4), value: scale)
             Txt.Body("In for four, hold for four, out for four, hold for four. Let your shoulders drop.")
                 .multilineTextAlignment(.center).padding(.horizontal, Tok.gutter)
             Spacer()
@@ -190,13 +259,10 @@ private struct BoxBreathing: View {
             Disclaimer()
         }
         .padding(.horizontal, Tok.gutter).padding(.bottom, 24)
-        .onAppear { cycle() }
+        .onAppear { start = .now; Haptics.breath(.inhale) }
     }
-    private func cycle() {
-        if phase == 0 { scale = 1.0; Haptics.breath(.inhale) }
-        else if phase == 2 { scale = 0.6; Haptics.breath(.exhale) }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { phase = (phase + 1) % 4; cycle() }
-    }
+
+    private func easeInOut(_ t: Double) -> Double { t < 0.5 ? 2 * t * t : 1 - pow(-2 * t + 2, 2) / 2 }
 }
 
 private struct CravingLog: View {
@@ -205,14 +271,16 @@ private struct CravingLog: View {
     @Environment(AppState.self) private var app
     @State private var intensity: Int?
     @State private var trigger: String?
-    private let triggers = ["Stress", "Boredom", "After a meal", "Coffee", "Alcohol", "Driving", "Social", "Phone"]
+    @State private var context: String?
+    private let triggers = ["Stress", "Boredom", "After a meal", "Coffee", "Alcohol", "Driving", "Social", "Phone", "Just woke up", "Work break"]
+    private let contexts = ["Home", "Work", "Car", "Out", "With people", "Alone"]
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Txt.Eyebrow("You made it", color: Tok.accent)
                 Txt.H1("That craving\njust passed.")
                 Txt.Body("Naming it teaches HALE your triggers, so we get ahead of the next one.")
-                Txt.Eyebrow("Intensity")
+                Txt.Eyebrow("How strong was it?")
                 HStack(spacing: 8) {
                     ForEach(1...5, id: \.self) { i in
                         Button { Haptics.select(); intensity = i } label: {
@@ -221,14 +289,23 @@ private struct CravingLog: View {
                                 .frame(maxWidth: .infinity).frame(height: 48)
                                 .background(intensity == i ? Tok.accent : Tok.surface2)
                                 .clipShape(RoundedRectangle(cornerRadius: Tok.R.inset, style: .continuous))
+                                .accessibilityLabel("Intensity \(i)")
                         }
                     }
                 }
-                Txt.Eyebrow("Trigger")
+                HStack {
+                    Txt.Muted("Barely there"); Spacer(); Txt.Muted("Intense")
+                }
+                Txt.Eyebrow("What set it off?")
                 FlowChips(items: triggers, selected: trigger) { trigger = ($0 == trigger) ? nil : $0 }
+                Txt.Eyebrow("Where were you?")
+                FlowChips(items: contexts, selected: context) { context = ($0 == context) ? nil : $0 }
                 HButton(label: "Save & finish", variant: .primary, disabled: intensity == nil) {
                     Task {
-                        if let i = intensity { await app.logCraving(intensity: i, trigger: trigger, context: nil, resolvedBy: resolvedBy) }
+                        if let i = intensity {
+                            await app.logCraving(intensity: i, trigger: trigger, context: context, resolvedBy: resolvedBy)
+                            AnalyticsService.track(.cravingLogged, ["outcome": "survived", "resolvedBy": resolvedBy, "intensity": i])
+                        }
                         AnalyticsService.track(.cravingSurvived, ["resolvedBy": resolvedBy]); onDone()
                     }
                 }
@@ -264,9 +341,19 @@ private struct RecoverKindly: View {
                     : "Starting is the hardest part, and you've already done it once. Do it again, right now.", chip: false)
                 Txt.Eyebrow("What pulled you back?")
                 FlowChips(items: triggers, selected: trigger) { trigger = ($0 == trigger) ? nil : $0 }
-                HButton(label: "Reflect with Sage", variant: .primary) { onSage() }
+                HButton(label: "Reflect with Sage", variant: .primary) {
+                    AnalyticsService.track(.relapseRecovered, trigger.map { ["trigger": $0] } ?? [:])
+                    onSage()
+                }
                 HButton(label: "Start my fresh run", variant: .secondary) {
-                    Task { if let t = trigger { await app.noteRelapseTrigger(t) }; Haptics.success(); onDone() }
+                    Task {
+                        if let t = trigger {
+                            await app.noteRelapseTrigger(t)
+                            AnalyticsService.track(.relapseTriggerNamed, ["trigger": t])
+                        }
+                        AnalyticsService.track(.relapseRecovered, trigger.map { ["trigger": $0] } ?? [:])
+                        Haptics.success(); onDone()
+                    }
                 }
                 Disclaimer()
             }
