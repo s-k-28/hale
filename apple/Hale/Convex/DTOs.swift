@@ -30,6 +30,12 @@ struct TodayState: Decodable, Equatable {
 
 struct AiConsent: Decodable { let consented: Bool }
 struct CommunityRules: Decodable { let accepted: Bool }
+struct AccountStatus: Decodable, Equatable {
+    let signedIn: Bool
+    let isAnonymous: Bool
+    let email: String?
+    let name: String?
+}
 struct OnboardResult: Decodable { let attemptId: String; let userId: String }
 struct LinkResult: Decodable { let linked: Bool; let changed: Bool }
 

@@ -27,11 +27,12 @@ struct DeleteAccountView: View {
                     HButton(label: "Keep my account", variant: .secondary, disabled: busy) { armed = false }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: Tok.maxContent, alignment: .leading)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, Tok.gutter).padding(.vertical, 20)
         }
         .background(HaleBackdrop())
-        .navigationTitle("Delete account").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("").navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -70,10 +71,12 @@ struct DisclaimersView: View {
                 Button("Call or text 988") { open("tel:988") }
                     .font(.sora(.semibold, 14)).foregroundStyle(Tok.coral)
             }
+            .frame(maxWidth: Tok.maxContent, alignment: .leading)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, Tok.gutter).padding(.vertical, 20)
         }
         .background(HaleBackdrop())
-        .navigationTitle("Sources").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("").navigationBarTitleDisplayMode(.inline)
     }
     private func open(_ s: String) { if let u = URL(string: s) { UIApplication.shared.open(u) } }
 }

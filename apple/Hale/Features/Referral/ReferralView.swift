@@ -84,7 +84,7 @@ struct ReferralView: View {
             .padding(.horizontal, Tok.gutter).padding(.top, Tok.screenTop).padding(.bottom, 40)
         }
         .background(HaleBackdrop())
-        .navigationTitle("Invite").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("").navigationBarTitleDisplayMode(.inline)
         .task { code = await app.getOrCreateMyCode() }
     }
 }

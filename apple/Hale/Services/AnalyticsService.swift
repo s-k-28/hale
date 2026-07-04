@@ -80,6 +80,9 @@ enum Ev: String {
     case referralBuddyPaired = "referral_buddy_paired"
     case referralCompleted = "referral_completed"
     case rewardGranted = "reward_granted"
+    // Account sign-in / "save your progress"
+    case savePromptShown = "save_prompt_shown"
+    case accountLinked = "account_linked"
     // Buddy-activation (P1)
     case inviteOffered = "invite_offered"
     case soloBridgeTaken = "solo_bridge_taken"

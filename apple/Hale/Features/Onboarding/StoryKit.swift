@@ -233,6 +233,56 @@ struct RevealBurst: View {
     }
 }
 
+// MARK: - Metal shader effects (OnboardingShaders.metal)
+
+/// A subtle, continuous emerald caustic played over its content via a Metal
+/// `colorEffect` (`ShaderLibrary.emeraldAurora`) — the reveal/commit money cards
+/// come alive with flowing light at the story's peak. Off under Reduce Motion.
+struct AuroraShimmer: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var active: Bool
+    func body(content: Content) -> some View {
+        if active && !reduceMotion {
+            TimelineView(.animation) { tl in
+                let t = tl.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600)
+                content.visualEffect { view, proxy in
+                    view.colorEffect(ShaderLibrary.emeraldAurora(.float2(proxy.size), .float(t)))
+                }
+            }
+        } else {
+            content
+        }
+    }
+}
+
+/// A gentle Metal heat-haze displacement (`distortionEffect` → `hazeDistort`):
+/// the haze literally shimmers, then eases to nothing as the plan resolves.
+struct HazeDistort: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var amount: CGFloat
+    func body(content: Content) -> some View {
+        if amount > 0.1 && !reduceMotion {
+            TimelineView(.animation) { tl in
+                let t = tl.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600)
+                content.visualEffect { view, _ in
+                    view.distortionEffect(
+                        ShaderLibrary.hazeDistort(.float(t), .float(Float(amount))),
+                        maxSampleOffset: CGSize(width: amount, height: amount))
+                }
+            }
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// Living emerald light over money cards at the story's peak (Metal colorEffect).
+    func auroraShimmer(_ active: Bool = true) -> some View { modifier(AuroraShimmer(active: active)) }
+    /// Heat-haze shimmer, `amount` = max displacement in points (Metal distortionEffect).
+    func hazeDistort(_ amount: CGFloat) -> some View { modifier(HazeDistort(amount: amount)) }
+}
+
 // MARK: - Floating glass CTA dock (Liquid Glass, iOS 26 baseline)
 
 /// The story scenes float their CTA on Liquid Glass so the atmosphere keeps

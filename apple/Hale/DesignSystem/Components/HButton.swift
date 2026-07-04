@@ -31,9 +31,12 @@ struct HButton: View {
         .disabled(off)
     }
 
-    // Secondary rides on interactive Liquid Glass; primary/coral/warm stay solid
-    // brand lanes (the emerald CTA is the identity — glass would dilute it).
+    // Secondary rides on interactive Liquid Glass. Primary now rides TINTED
+    // interactive glass — the emerald identity is kept via .tint(), but the one
+    // hero CTA per screen gains the iOS 26 press-deform + specular under the finger
+    // (the press itself becomes the reward). Coral/warm stay solid.
     private var isGlass: Bool { variant == .secondary && !disabled }
+    private var isPrimaryGlass: Bool { variant == .primary && !off }
 
     @ViewBuilder
     private var chrome: some View {
@@ -58,6 +61,11 @@ struct HButton: View {
                     RoundedRectangle(cornerRadius: radius, style: .continuous)
                         .strokeBorder(Tok.stroke, lineWidth: 1)
                 )
+        } else if isPrimaryGlass {
+            core
+                .glassEffect(.regular.tint(Tok.accent).interactive(),
+                             in: .rect(cornerRadius: radius, style: .continuous))
+                .shadow(color: glowColor, radius: glowRadius, x: 0, y: glowY)
         } else {
             core
                 .background(bg)

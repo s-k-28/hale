@@ -57,13 +57,15 @@ struct LeaguesView: View {
                         message: "Check back once this week's league opens — you'll be matched with people at your stage.")
                         .padding(.top, 12)
                 } else {
-                    ProgressView().tint(Tok.accent)
+                    // Match the skeleton loading pattern used across the other
+                    // live-query screens (Goals / Squads / Referral) — no bare spinner.
+                    SkeletonList(rows: 3)
                 }
             }
             .frame(maxWidth: Tok.maxContent).frame(maxWidth: .infinity)
             .padding(.horizontal, Tok.gutter).padding(.top, Tok.screenTop).padding(.bottom, 40)
         }
         .background(HaleBackdrop())
-        .navigationTitle("League").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("").navigationBarTitleDisplayMode(.inline)
     }
 }

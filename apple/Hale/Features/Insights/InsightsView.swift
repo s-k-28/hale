@@ -37,7 +37,7 @@ struct InsightsView: View {
             .padding(.horizontal, Tok.gutter).padding(.top, Tok.screenTop).padding(.bottom, 40)
         }
         .background(HaleBackdrop())
-        .navigationTitle("Insights").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("").navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(isPresented: $showPaywall) { PaywallView(from: "insights") }
         .onAppear {
             if !firedViewed { firedViewed = true; AnalyticsService.track(.analyticsViewed, ["locked": !premium]) }

@@ -100,6 +100,26 @@ final class ConvexService {
         return false
     }
 
+    /// Sign in / link a permanent provider (Apple, Google) using a verified ID
+    /// token. Routed through the AUTHENTICATED client so the current anonymous
+    /// identity is sent along — the backend links the new account to that user
+    /// (preserving streak/data). On success we store the returned permanent
+    /// tokens and re-adopt them via loginFromCache, so the session continues as
+    /// the same user with a non-expiring account.
+    @discardableResult
+    func signIn(provider: String, params: [String: ConvexEncodable?]) async -> Bool {
+        do {
+            let resp: SignInResponse = try await client.action(
+                Fn.signIn, with: ["provider": provider, "params": params])
+            guard let t = resp.tokens else { return false }
+            TokenStore.setPair(jwt: t.token, refresh: t.refreshToken)
+            if case .success = await client.loginFromCache() { return true }
+            return false
+        } catch {
+            return false
+        }
+    }
+
     func signOut() async { await client.logout() }
 
     // Typed live subscription → Combine publisher (consume with .values in a .task).

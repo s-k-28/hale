@@ -42,7 +42,12 @@ struct SOSView: View {
     }
 
     private var homeContent: some View {
-        VStack(alignment: .leading, spacing: 14) {
+      // Crisis screen: never clip the options. Fills the height so the Spacers
+      // still distribute when it fits, and scrolls on SE / large Dynamic Type /
+      // landscape instead of pushing the SOS choices off-screen.
+      GeometryReader { proxy in
+        ScrollView {
+          VStack(alignment: .leading, spacing: 14) {
             HStack {
                 HStack(spacing: 8) { Circle().fill(Tok.coral).frame(width: 8, height: 8); Txt.Eyebrow("Craving SOS", color: Tok.coral) }
                 Spacer()
@@ -51,6 +56,7 @@ struct SOSView: View {
             Spacer()
             Txt.H1("You're not\nin danger.")
             Txt.Display("This passes.", size: 44, color: Tok.coral)
+                .lineLimit(1).minimumScaleFactor(0.5)
             Txt.Body("A craving peaks in a few minutes, then fades — whether or not you act on it. Let's get you to the other side. Pick one:")
             Spacer()
             option("Ride it out", "A 5-minute timer. It peaks, then fades.", "timer", coral: true) { step = .ride }
@@ -59,9 +65,13 @@ struct SOSView: View {
             Button("I slipped — it's okay, let's keep going") { Haptics.tap(); step = .slipChoose }
                 .font(.sora(.medium, 14)).foregroundStyle(Tok.fg3).padding(.top, 4)
             Disclaimer()
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.horizontal, Tok.gutter).padding(.bottom, 24)
+          .frame(minHeight: proxy.size.height, alignment: .top)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Tok.gutter).padding(.bottom, 24)
+        .scrollIndicators(.hidden)
+      }
     }
 
     private func option(_ title: String, _ sub: String, _ icon: String, coral: Bool = false, _ tap: @escaping () -> Void) -> some View {
@@ -84,11 +94,14 @@ struct SOSView: View {
     }
 
     private var slipChoose: some View {
-        VStack(alignment: .leading, spacing: 14) {
+      GeometryReader { proxy in
+        ScrollView {
+          VStack(alignment: .leading, spacing: 14) {
             HStack { Spacer(); IconBtn(systemName: "xmark") { step = .home } }
             Spacer()
             Txt.H1("Slips are part\nof quitting.")
             Txt.Display("Not the end.", size: 40, color: Tok.accent)
+                .lineLimit(1).minimumScaleFactor(0.5)
             Txt.Body("Be honest with yourself — it's the only way the data helps you. Which one fits?")
             Spacer()
             slipCard("Just a slip", "One moment, and I'm back on track. Your streak is protected.", badge: "Streak safe", accent: true) {
@@ -100,9 +113,13 @@ struct SOSView: View {
             Button("Actually, I'm okay. Go back") { Haptics.tap(); step = .home }
                 .font(.sora(.medium, 14)).foregroundStyle(Tok.fg3)
             Disclaimer()
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.horizontal, Tok.gutter).padding(.bottom, 24)
+          .frame(minHeight: proxy.size.height, alignment: .top)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Tok.gutter).padding(.bottom, 24)
+        .scrollIndicators(.hidden)
+      }
     }
 
     private func slipCard(_ title: String, _ body: String, badge: String?, accent: Bool, _ tap: @escaping () -> Void) -> some View {
@@ -142,16 +159,21 @@ struct SOSView: View {
 
 // MARK: sub-views
 
-// Breathing coral radial field (RN Skia CoralGlow, 2.6s cycle) — anchored high
-// so the glow halos the headline, never the CTAs.
+// Calming coral field — a slow drifting Metal aura (haleAura) layered over the
+// original breathing radial base. Anchored high so it halos the headline and
+// fades before the CTAs; deliberately low-intensity so it soothes, never alarms.
+// ShaderAura self-substitutes a static radial under Reduce Motion.
 private struct CoralGlow: View {
     var body: some View {
-        RadialGradient(colors: [Tok.coral.opacity(0.13), .clear],
-                       center: UnitPoint(x: 0.5, y: 0.28),
-                       startRadius: 20, endRadius: 340)
-            .breathing(period: 2.6, scale: 0.97...1.03, opacity: 0.6...1.0)
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
+        ZStack {
+            RadialGradient(colors: [Tok.coral.opacity(0.10), .clear],
+                           center: UnitPoint(x: 0.5, y: 0.28),
+                           startRadius: 20, endRadius: 340)
+                .breathing(period: 2.6, scale: 0.97...1.03, opacity: 0.6...1.0)
+            ShaderAura(tint: Tok.coral, intensity: 0.55, speed: 0.8)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 }
 

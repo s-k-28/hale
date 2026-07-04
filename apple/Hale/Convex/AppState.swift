@@ -124,6 +124,27 @@ final class AppState {
         return ok
     }
 
+    // Link/sign in with a permanent account. Called with a verified ID token from
+    // Sign in with Apple / Google. When the user is currently anonymous the
+    // backend links the account to their existing user, so streak/data carry over
+    // (the user _id never changes). Re-runs syncSession so RC/analytics identity
+    // stays aligned with the (unchanged) user id.
+    @discardableResult
+    func linkWithApple(idToken: String, name: String?) async -> Bool {
+        var params: [String: ConvexEncodable?] = ["idToken": idToken]
+        if let name, !name.isEmpty { params["name"] = name }
+        let ok = await convex.signIn(provider: "apple", params: params)
+        if ok { authed = true; syncSession() }
+        return ok
+    }
+
+    @discardableResult
+    func linkWithGoogle(idToken: String) async -> Bool {
+        let ok = await convex.signIn(provider: "google", params: ["idToken": idToken])
+        if ok { authed = true; syncSession() }
+        return ok
+    }
+
     // Quiz commit (after signInAnonymously). todayState sub then flips phase → .app.
     func completeOnboarding(timezone: String, productType: String, baselinePerDay: Double,
                             unitCost: Double, triggers: [String], hardestHour: Double,

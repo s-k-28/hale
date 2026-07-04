@@ -24,6 +24,8 @@ struct ScreenGalleryView: View {
             case "referral":    nav { ReferralView() }
             case "delete":      nav { DeleteAccountView() }
             case "disclaimers": nav { DisclaimersView() }
+            case "ring":        RingShowcase()          // Today hero ring + shimmer shader
+            case "milestone":   MilestoneCelebration(day: 30) {}  // emerald aura shader
             default:            RootRouter()
             }
         }
@@ -32,5 +34,32 @@ struct ScreenGalleryView: View {
 
     private func nav<V: View>(@ViewBuilder _ content: () -> V) -> some View {
         NavigationStack { content() }
+    }
+}
+
+// Backend-free isolation of the Today hero ring so the shimmer shader (and
+// breathing aura) can be screenshotted without a live session.
+private struct RingShowcase: View {
+    var body: some View {
+        ZStack {
+            HaleBackdrop(bloom: UnitPoint(x: 0.5, y: 0.34))
+            Ring(progress: 0.62, size: 256, stroke: 9, breathes: true, shimmer: true) {
+                VStack(spacing: 2) {
+                    Txt.Eyebrow("Clean for")
+                    Txt.Display("30", size: 68)
+                    Txt.Eyebrow("Days", color: Tok.accent)
+                    HStack(spacing: 12) {
+                        unit(14, "H"); unit(52, "M"); unit(9, "S")
+                    }
+                    .padding(.top, 8)
+                }
+            }
+        }
+    }
+    private func unit(_ v: Int, _ u: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 2) {
+            Text(String(format: "%02d", v)).font(.sora(.bold, 15)).monospacedDigit().foregroundStyle(Tok.fg2)
+            Text(u).font(.sora(.semibold, 10)).foregroundStyle(Tok.fg3)
+        }
     }
 }

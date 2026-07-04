@@ -16,7 +16,9 @@ struct PaywallView: View {
         ZStack {
             // bloom haloes the "Go all in." headline
             HaleBackdrop(bloom: UnitPoint(x: 0.30, y: 0.22))
-            VStack(alignment: .leading, spacing: 18) {
+            GeometryReader { proxy in
+              ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
                 HStack {
                     Spacer()
                     IconBtn(systemName: "xmark") { dismiss() }
@@ -50,8 +52,15 @@ struct PaywallView: View {
                 .font(.sora(.medium, 14)).foregroundStyle(Tok.fg2)
                 .lineLimit(1).minimumScaleFactor(0.8)   // shrink, don't ellipsize
                 .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal, Tok.gutter).padding(.bottom, 24).padding(.top, 8)
+                // Fill height so the Spacers still distribute the layout when it
+                // fits; scroll instead of clipping when it doesn't (iPhone SE,
+                // large Dynamic Type, landscape).
+                .frame(minHeight: proxy.size.height, alignment: .top)
+              }
+              .scrollIndicators(.hidden)
             }
-            .padding(.horizontal, Tok.gutter).padding(.bottom, 24).padding(.top, 8)
         }
         .task {
             AnalyticsService.track(.paywallViewed, ["surface": from])

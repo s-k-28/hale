@@ -75,6 +75,6 @@ struct GoalsView: View {
             .padding(.horizontal, Tok.gutter).padding(.top, Tok.screenTop).padding(.bottom, 40)
         }
         .background(HaleBackdrop())
-        .navigationTitle("Goals").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("").navigationBarTitleDisplayMode(.inline)
     }
 }

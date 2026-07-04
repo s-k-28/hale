@@ -10,6 +10,7 @@ struct YouView: View {
     @State private var showPaywall = false
     @State private var aiConsent = LiveQuery<AiConsent>(Fn.aiConsentStatus)
     @State private var aiOn = false
+    @State private var account = LiveQuery<AccountStatus>(Fn.accountStatus)
 
     var body: some View {
       NavigationStack {
@@ -22,6 +23,7 @@ struct YouView: View {
                         lifetimeStats(today)
                         shareMoment(today)
                         premiumMoment(today)
+                        accountSection
                         milestoneHistory(today)
                         settings
                         links
@@ -137,6 +139,41 @@ struct YouView: View {
                         }
                     }
                     Txt.Muted("Commonly reported recovery timeline — supportive, not medical advice.")
+                }
+            }
+        }
+    }
+
+    // Account — anonymous users get "Save your progress" (Apple / Google);
+    // signed-in users see their status. Deferred signup stays the default.
+    @ViewBuilder private var accountSection: some View {
+        let isAnon = account.value?.isAnonymous ?? true
+        if isAnon {
+            Card(pad: true) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Txt.Eyebrow("Your account", color: Tok.accent)
+                    Txt.H3("Save your progress")
+                    Txt.Body("Add a free account so your streak is safe on a new phone — or if this one is ever lost.")
+                    AccountLinkButtons {
+                        AnalyticsService.track(.accountLinked, ["linked": true, "surface": "settings"])
+                    }
+                    .padding(.top, 2)
+                }
+            }
+        } else {
+            Card(pad: true) {
+                HStack(spacing: 12) {
+                    Icon(.shield, size: 18, color: Tok.accent)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Txt.H3("Signed in")
+                        if let email = account.value?.email, !email.isEmpty {
+                            Text(email).font(.sora(.regular, 13)).foregroundStyle(Tok.fg2)
+                        } else {
+                            Text("Your progress is saved to your account.")
+                                .font(.sora(.regular, 13)).foregroundStyle(Tok.fg2)
+                        }
+                    }
+                    Spacer()
                 }
             }
         }

@@ -45,7 +45,7 @@ struct SquadsHubView: View {
             .padding(.horizontal, Tok.gutter).padding(.top, Tok.screenTop).padding(.bottom, 40)
         }
         .background(HaleBackdrop())
-        .navigationTitle("Squads").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("").navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(isPresented: $showPaywall) { PaywallView(from: "squads") }
     }
 

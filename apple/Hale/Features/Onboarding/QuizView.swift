@@ -21,7 +21,7 @@ struct QuizView: View {
     /// Back out of step 0 (chapter switch); falls back to dismiss when pushed.
     var onExit: (() -> Void)? = nil
 
-    private enum Phase { case questions, building, reveal, commit, push, invite }
+    private enum Phase { case questions, building, reveal, commit, push, invite, save }
 
     struct Product {
         let value, label, icon, q2Title, q3Title, q3Eyebrow: String
@@ -30,21 +30,27 @@ struct QuizView: View {
         let costDivisor: Double                       // 0 == "perDay"
     }
     private let products: [Product] = [
+        // People don't count "pods per day" — a disposable or pod lasts a variable
+        // number of days. Ask how long one lasts → devices/day = 1 / days, and the
+        // cost is per device/pod (costDivisor 1). Covers disposables and refillable pods.
         .init(value: "vape", label: "Vape / e-cig", icon: "wind",
-              q2Title: "How often do you go through a vape or pod?", q3Title: "What does one usually cost you?",
-              q3Eyebrow: "Cost per vape / pod",
-              q2Options: [("More than one a day", "", 1.5), ("About one a day", "", 1), ("One every 2–3 days", "", 0.4), ("One or two a week", "", 0.2), ("A few a month", "", 0.1)],
+              q2Title: "How long does one vape usually last you?", q3Title: "What does one vape cost?",
+              q3Eyebrow: "Cost per vape",
+              q2Options: [("1–2 days", "I go through them fast", 0.67), ("3–4 days", "one lasts a few days", 0.29), ("About a week", "a slow burner", 0.14), ("About 2 weeks", "one goes a long way", 0.071), ("3–4 weeks", "I barely touch it", 0.041)],
               q2Eyebrow: "", q2Suffix: "", costDivisor: 1),
         .init(value: "pouch", label: "Nicotine pouches", icon: "circle.grid.2x2.fill",
               q2Title: "How many pouches a day?", q3Title: "What does a tin cost?", q3Eyebrow: "Cost per tin",
               q2Options: [], q2Eyebrow: "pouches per day", q2Suffix: "a day", costDivisor: 15),
         .init(value: "cig", label: "Cigarettes", icon: "smoke.fill",
-              q2Title: "How much do you smoke a day?", q3Title: "What does a pack cost where you live?", q3Eyebrow: "Cost per pack",
-              q2Options: [("A few a day", "1–5 cigarettes", 4), ("Around half a pack", "about 10 a day", 10), ("About a pack a day", "about 20", 20), ("Around two packs", "about 40", 40), ("More than two packs", "it adds up fast", 60)],
+              q2Title: "How many cigarettes a day?", q3Title: "What does a pack cost where you live?", q3Eyebrow: "Cost per pack",
+              q2Options: [("A few a day", "about 4 a day", 4), ("About half a pack", "around 10 a day", 10), ("About a pack a day", "around 20", 20), ("Around 1.5 packs", "about 30 a day", 30), ("Two packs or more", "it adds up fast", 40)],
               q2Eyebrow: "", q2Suffix: "", costDivisor: 20),
+        // Mixed is spend-based: a single "how much a day" question. It skips the
+        // amount/cost pair and commits baselinePerDay = 1, unitCost = daily spend
+        // (see steps + normalizedProfile), so q2/q3 fields below go unused.
         .init(value: "mixed", label: "A mix of things", icon: "shuffle",
-              q2Title: "How many times a day do you reach for nicotine?", q3Title: "About how much do you spend a day?", q3Eyebrow: "Spend per day",
-              q2Options: [], q2Eyebrow: "times per day", q2Suffix: "times a day", costDivisor: 0),
+              q2Title: "", q3Title: "", q3Eyebrow: "",
+              q2Options: [], q2Eyebrow: "", q2Suffix: "", costDivisor: 1),
     ]
     private let triggerChoices = ["Stress", "Boredom", "After meals", "Coffee", "Alcohol", "Driving", "Social", "Scrolling", "Waking up", "Work breaks"]
     private let hourBands: [(Int, String)] = [(7, "Early morning"), (10, "Mid-morning"), (13, "Midday"), (16, "Afternoon"), (19, "Evening"), (22, "Late night")]
@@ -67,6 +73,16 @@ struct QuizView: View {
     @State private var customHour = ""
     @State private var customMotivation = ""
 
+    // Reflect-back payback beats: after the cost, triggers, and hour steps we pause
+    // and show the user their OWN answer, turned into meaning — so they feel seen
+    // three times before the reveal instead of answering seven questions into a void.
+    @State private var reflect: ReflectKind?
+    private enum ReflectKind: Equatable {
+        case money(Int)        // annual $ "you've been breathing out"
+        case triggers([String])// named back
+        case hour(Int)         // reframed as a promise
+    }
+
     // Cinematic state (visual only — never feeds the committed answers).
     @State private var answerPulse = 0        // orb ripple per answer
     @State private var revealShine = 0        // hero-card shine after count-up
@@ -75,6 +91,18 @@ struct QuizView: View {
     private let sheenTimer = Timer.publish(every: 3.2, on: .main, in: .common).autoconnect()
 
     private var product: Product { products.first { $0.value == productType } ?? products[0] }
+
+    // Ordered question steps. Most products ask amount → cost; mixed is
+    // spend-based and asks a single daily-$ question, so its sequence is shorter.
+    // Product only changes on step 0 (which resets answers), so stepIndex stays valid.
+    private enum Step { case product, amount, cost, spend, triggers, hour, motivation, name }
+    private var steps: [Step] {
+        product.value == "mixed"
+            ? [.product, .spend, .triggers, .hour, .motivation, .name]
+            : [.product, .amount, .cost, .triggers, .hour, .motivation, .name]
+    }
+    private var totalSteps: Int { steps.count }
+    private var currentStep: Step { stepIndex < steps.count ? steps[stepIndex] : .name }
 
     var body: some View {
         ZStack {
@@ -85,6 +113,10 @@ struct QuizView: View {
             case .commit:    commitScreen.transition(.storyBeat)
             case .push:      pushStep.transition(.storyBeat)
             case .invite:    inviteStep.transition(.storyBeat)
+            case .save:      saveProgressStep.transition(.storyBeat)
+            }
+            if let reflect {
+                reflectOverlay(reflect).transition(.opacity.combined(with: .scale(scale: 1.03)))
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -108,10 +140,24 @@ struct QuizView: View {
     private func applyDebugJump() {
         #if DEBUG
         let env = ProcessInfo.processInfo.environment
-        guard env["HALE_QUIZ_STEP"] != nil || env["HALE_QUIZ_PHASE"] != nil else { return }
-        productType = "vape"; perDay = 1; unitCost = 25
-        triggers = ["Stress", "After meals"]; hardestHour = 21; motivation = "health"; name = "Alex"
-        if let s = env["HALE_QUIZ_STEP"].flatMap(Int.init), (0...6).contains(s) { stepIndex = s }
+        guard env["HALE_QUIZ_STEP"] != nil || env["HALE_QUIZ_PHASE"] != nil
+            || env["HALE_QUIZ_REFLECT"] != nil else { return }
+        productType = "vape"; perDay = 0.14; unitCost = 12
+        triggers = ["Stress", "After meals", "Driving"]; hardestHour = 21; motivation = "health"; name = "Alex"
+        if let r = env["HALE_QUIZ_REFLECT"] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                withAnimation(.easeOut(duration: 0.5)) {
+                    switch r {
+                    case "money":    reflect = .money(annual)
+                    case "triggers": reflect = .triggers(triggers)
+                    case "hour":     reflect = .hour(hardestHour ?? 21)
+                    default: break
+                    }
+                }
+            }
+            return
+        }
+        if let s = env["HALE_QUIZ_STEP"].flatMap(Int.init), steps.indices.contains(s) { stepIndex = s }
         let jump: Phase?
         switch env["HALE_QUIZ_PHASE"] {
         case "building": jump = .building
@@ -119,6 +165,7 @@ struct QuizView: View {
         case "commit":   jump = .commit
         case "push":     jump = .push
         case "invite":   jump = .invite
+        case "save":     jump = .save
         default:         jump = nil
         }
         if let jump {
@@ -133,35 +180,126 @@ struct QuizView: View {
     /// Drive the shared backdrop: each answered step burns off more haze.
     private func syncAtmosphere() {
         switch phase {
-        case .questions: atmosphere = .journey(Double(stepIndex) / 6.0)
+        case .questions: atmosphere = .journey(Double(stepIndex) / Double(max(1, totalSteps - 1)))
         case .building:  atmosphere = .building
         case .reveal:    atmosphere = .reveal
         case .commit:    atmosphere = .commit
         case .push:      atmosphere = .pushCue
         case .invite:    atmosphere = .invite
+        case .save:      atmosphere = .reveal   // calm, clear final beat
         }
         parallax = CGFloat(stepIndex) * 34
     }
 
     private func advance() {
         Haptics.select()
-        withAnimation(.easeInOut(duration: 0.4)) {
-            if stepIndex == 6 { phase = .building } else { stepIndex += 1 }
+        // Before moving on, pay the user back with a reflect-back beat on the
+        // cost / triggers / hour steps (the storytelling spine).
+        if reflect == nil, let beat = reflectBeat(for: currentStep) {
+            showReflect(beat)
+            return
         }
+        stepForward()
+    }
+
+    private func stepForward() {
+        withAnimation(.easeInOut(duration: 0.4)) {
+            if stepIndex >= totalSteps - 1 { phase = .building } else { stepIndex += 1 }
+        }
+    }
+
+    private func reflectBeat(for step: Step) -> ReflectKind? {
+        switch step {
+        case .cost, .spend: return annual > 0 ? .money(annual) : nil
+        case .triggers:     return triggers.isEmpty ? nil : .triggers(triggers)
+        case .hour:         return hardestHour.map { .hour($0) }
+        default:            return nil
+        }
+    }
+
+    private func showReflect(_ beat: ReflectKind) {
+        withAnimation(.easeOut(duration: 0.5)) { reflect = beat }
+        Haptics.soft()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.9) { dismissReflect() }
+    }
+
+    private func dismissReflect() {
+        guard reflect != nil else { return }
+        withAnimation(.easeIn(duration: 0.4)) { reflect = nil }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) { stepForward() }
+    }
+
+    // "9pm", "7am" — a warm clock label from the 0…23 hour.
+    private func hourLabel(_ h: Int) -> String {
+        let display = h % 12 == 0 ? 12 : h % 12
+        return "\(display)\(h < 12 ? "am" : "pm")"
+    }
+    // "Stress, after meals, and driving" — the user's triggers, named back.
+    private func triggerPhrase(_ ts: [String]) -> String {
+        let lc = ts.map { $0.lowercased() }
+        let joined: String
+        switch lc.count {
+        case 0:  return ""
+        case 1:  joined = lc[0]
+        case 2:  joined = "\(lc[0]) and \(lc[1])"
+        default: joined = lc.dropLast().joined(separator: ", ") + ", and " + (lc.last ?? "")
+        }
+        return joined.prefix(1).uppercased() + joined.dropFirst()
+    }
+
+    // The reflect-back beat: a focused full-bleed moment where the user's own
+    // answer condenses out of the haze as meaning, then lifts away as we continue.
+    @ViewBuilder
+    private func reflectOverlay(_ kind: ReflectKind) -> some View {
+        ZStack {
+            // Cover the busy question, but keep the beat alive with its own soft
+            // emerald glow — a clean, cinematic full-bleed moment.
+            Tok.bg.opacity(0.97).ignoresSafeArea()
+            RadialGradient(colors: [Tok.accent.opacity(0.16), .clear],
+                           center: .center, startRadius: 0, endRadius: 320)
+                .breathing(period: 3.4, scale: 0.94...1.06, opacity: 0.6...1.0)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+            VStack(spacing: 18) {
+                Spacer()
+                switch kind {
+                case .money(let annualValue):
+                    Txt.Eyebrow("What you've been breathing out", color: Tok.fg2)
+                    CountUpDisplay(target: annualValue, size: 72)
+                    NarratorText(line: "Every year. We're going to turn that back into yours.", delay: 0.5)
+                case .triggers(let ts):
+                    Txt.Eyebrow("I heard you", color: Tok.accent)
+                    Txt.H1(triggerPhrase(ts))
+                    NarratorText(line: "I'll build your plan around exactly those.", delay: 0.4)
+                case .hour(let h):
+                    Txt.Eyebrow("Your hardest hour", color: Tok.accent)
+                    Txt.Display(hourLabel(h), size: 72, color: Tok.accent)
+                    NarratorText(line: "That's your cliff. I'll be standing there before you reach it.", delay: 0.4)
+                }
+                Spacer()
+                Txt.Muted("Tap to continue")
+            }
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Tok.gutter)
+            .padding(.bottom, 40)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { dismissReflect() }
     }
 
     private func bump() { answerPulse += 1 }
 
     // MARK: questions
     private var canAdvance: Bool {
-        switch stepIndex {
-        case 0: return productType != nil
-        case 1: return (perDay ?? 0) > 0
-        case 2: return (unitCost ?? 0) > 0
-        case 3: return !triggers.isEmpty
-        case 4: return hardestHour != nil
-        case 5: return !motivation.isEmpty
-        default: return true
+        switch currentStep {
+        case .product:      return productType != nil
+        case .amount:       return (perDay ?? 0) > 0
+        case .cost, .spend: return (unitCost ?? 0) > 0
+        case .triggers:     return !triggers.isEmpty
+        case .hour:         return hardestHour != nil
+        case .motivation:   return !motivation.isEmpty
+        case .name:         return true
         }
     }
 
@@ -175,7 +313,7 @@ struct QuizView: View {
                         withAnimation(.easeInOut(duration: 0.35)) { stepIndex -= 1 }
                     }
                 }
-                Steps(total: 7, current: stepIndex)
+                Steps(total: totalSteps, current: stepIndex)
                 Spacer()
             }
             .padding(.horizontal, Tok.gutter).padding(.top, 4)
@@ -189,7 +327,7 @@ struct QuizView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             StoryDock {
-                HButton(label: stepIndex == 6 ? "Build my plan" : "Continue", variant: .primary, disabled: !canAdvance) {
+                HButton(label: stepIndex == totalSteps - 1 ? "Build my plan" : "Continue", variant: .primary, disabled: !canAdvance) {
                     advance()
                 }
             }
@@ -201,12 +339,12 @@ struct QuizView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Spacer()
-                    HeroOrb(clarity: 0.1 + 0.75 * Double(stepIndex) / 6.0,
+                    HeroOrb(clarity: 0.1 + 0.75 * Double(stepIndex) / Double(max(1, totalSteps - 1)),
                             pulse: answerPulse, diameter: 84)
                     Spacer()
                 }
                 .padding(.top, 2)
-                Txt.Eyebrow("Sage · \(stepIndex + 1) of 7", color: Tok.accent).riseIn(0)
+                Txt.Eyebrow("Sage · \(stepIndex + 1) of \(totalSteps)", color: Tok.accent).riseIn(0)
                 Txt.H1(stepTitle).riseIn(1)
                 if let sub = stepSubtitle { NarratorText(line: sub, delay: 0.3) }
                 stepBody.padding(.top, 4).riseIn(2, delay: 0.15)
@@ -217,31 +355,45 @@ struct QuizView: View {
     }
 
     private var stepTitle: String {
-        switch stepIndex {
-        case 0: return "What are you\nquitting?"
-        case 1: return product.q2Title
-        case 2: return product.q3Title
-        case 3: return "When do cravings\nhit hardest?"
-        case 4: return "What's your\ntoughest time?"
-        case 5: return "What's pulling\nyou forward?"
-        default: return "What should we\ncall you?"
+        switch currentStep {
+        case .product:    return "What are you\nquitting?"
+        case .amount:     return product.q2Title
+        case .cost:       return product.q3Title
+        case .spend:      return "About how much do\nyou spend a day?"
+        case .triggers:   return "When do cravings\nhit hardest?"
+        case .hour:       return "What's your\ntoughest time?"
+        case .motivation: return "What's pulling\nyou forward?"
+        case .name:       return "What should we\ncall you?"
         }
     }
     private var stepSubtitle: String? {
-        switch stepIndex {
-        case 0: return "We tailor your plan to what you use."
-        case 1: return "Ballpark is fine. We use it to size your savings."
-        case 2: return "Roughly is fine."
-        case 3: return "Pick all that hit. Your plan works around them."
-        case 4: return "We'll check in with you right before it."
-        case 5: return "Your reason shows up when cravings do."
-        default: return "Just a first name, so your plan feels like yours. Optional."
+        switch currentStep {
+        case .product: return "We tailor your plan to what you use."
+        case .amount:
+            switch product.value {
+            case "vape":  return "However long one usually lasts you — most go days to weeks."
+            case "pouch": return "A rough daily count is all we need."
+            case "cig":   return "Ballpark is fine — singles or packs."
+            default:      return "Across everything you use, on a normal day."
+            }
+        case .cost:
+            switch product.value {
+            case "vape":  return "The price of one vape — most run about $12."
+            case "pouch": return "What a tin runs you — about 15 pouches."
+            case "cig":   return "What a pack costs where you live — about 20."
+            default:      return "Your rough daily spend across all of it."
+            }
+        case .spend:      return "Across everything you use — your rough daily total."
+        case .triggers:   return "Pick all that hit. Your plan works around them."
+        case .hour:       return "We'll check in with you right before it."
+        case .motivation: return "Your reason shows up when cravings do."
+        case .name:       return "Just a first name, so your plan feels like yours. Optional."
         }
     }
 
     @ViewBuilder private var stepBody: some View {
-        switch stepIndex {
-        case 0:
+        switch currentStep {
+        case .product:
             VStack(spacing: 12) {
                 ForEach(products, id: \.value) { p in
                     OptRow(label: p.label, on: productType == p.value, icon: p.icon) {
@@ -250,7 +402,7 @@ struct QuizView: View {
                     }
                 }
             }
-        case 1:
+        case .amount:
             if product.q2Options.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     Txt.Eyebrow(product.q2Eyebrow)
@@ -264,13 +416,23 @@ struct QuizView: View {
                     }
                 }
             }
-        case 2:
+        case .cost:
             VStack(alignment: .leading, spacing: 10) {
                 Txt.Eyebrow(product.q3Eyebrow)
                 UnderlineInput(text: Binding(get: { unitCostText }, set: { unitCostText = $0.filter { "0123456789.".contains($0) }; unitCost = Double(unitCostText); bump() }),
                                filled: (unitCost ?? 0) > 0, prefix: "$", placeholder: "0.00")
+                Txt.Muted("We'll calculate what you save every single day.").padding(.top, 2)
             }
-        case 3:
+        case .spend:
+            // Mixed: a single daily-$ question. Stored as unitCost; baselinePerDay
+            // is fixed at 1 in normalizedProfile so dailySpend == this figure.
+            VStack(alignment: .leading, spacing: 10) {
+                Txt.Eyebrow("Spend per day")
+                UnderlineInput(text: Binding(get: { unitCostText }, set: { unitCostText = $0.filter { "0123456789.".contains($0) }; unitCost = Double(unitCostText); bump() }),
+                               filled: (unitCost ?? 0) > 0, prefix: "$", placeholder: "0.00")
+                Txt.Muted("We'll calculate what you save every single day.").padding(.top, 2)
+            }
+        case .triggers:
             let cols = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
             let allTriggers = triggerChoices + triggers.filter { !triggerChoices.contains($0) }
             VStack(spacing: 10) {
@@ -289,7 +451,7 @@ struct QuizView: View {
                         customTrigger = ""
                     }
             }
-        case 4:
+        case .hour:
             VStack(spacing: 12) {
                 ForEach(hourBands, id: \.0) { band in
                     OptRow(label: band.1, on: customHour.isEmpty && hardestHour == band.0) { hardestHour = band.0; customHour = ""; bump() }
@@ -297,7 +459,7 @@ struct QuizView: View {
                 Input(text: $customHour, placeholder: "Or enter a time, e.g. 9am, 14:00")
                     .onChange(of: customHour) { _, v in if let h = parseHour(v) { hardestHour = h; bump() } }
             }
-        case 5:
+        case .motivation:
             VStack(spacing: 12) {
                 ForEach(motivations, id: \.0) { m in
                     OptRow(label: m.1, on: customMotivation.isEmpty && motivation == m.0, icon: m.2) { motivation = m.0; customMotivation = ""; bump() }
@@ -305,7 +467,7 @@ struct QuizView: View {
                 Input(text: $customMotivation, placeholder: "Or write your own reason")
                     .onChange(of: customMotivation) { _, v in if !v.isEmpty { motivation = v } }
             }
-        default:
+        case .name:
             Input(text: $name, placeholder: "First name")
         }
     }
@@ -327,10 +489,16 @@ struct QuizView: View {
 
     // MARK: derived savings
     private var normalizedProfile: QuitProfile {
-        let entered = unitCost ?? 0
-        let pd = perDay ?? 0
-        let uc = product.costDivisor == 0 ? (pd > 0 ? entered / pd : 0) : entered / product.costDivisor
-        return QuitProfile(productType: ProductType(rawValue: product.value) ?? .mixed, baselinePerDay: pd, unitCost: uc)
+        let pt = ProductType(rawValue: product.value) ?? .mixed
+        // Mixed is spend-based: the entered $ IS the day's spend, so commit one
+        // "unit" per day priced at that spend. dailySpend = 1 × spend.
+        if product.value == "mixed" {
+            return QuitProfile(productType: pt, baselinePerDay: 1, unitCost: unitCost ?? 0)
+        }
+        // Others: entered cost is per pack/tin/device → divide to a single-unit cost.
+        // vape ÷1 (per device), pouch ÷15 (per tin), cig ÷20 (per pack).
+        let uc = (unitCost ?? 0) / product.costDivisor
+        return QuitProfile(productType: pt, baselinePerDay: perDay ?? 0, unitCost: uc)
     }
     private var annual: Int { Int(Plan.projectedAnnualSavings(normalizedProfile).rounded()) }
     private var monthly: Int { Int((Double(annual) / 12).rounded()) }
@@ -340,7 +508,7 @@ struct QuizView: View {
     private var building: some View {
         VStack(alignment: .leading, spacing: 20) {
             Spacer()
-            HStack { Spacer(); HeroOrb(clarity: 0.6, pulse: answerPulse, energy: 2.1, diameter: 128); Spacer() }
+            HStack { Spacer(); HeroOrb(clarity: 0.6, pulse: answerPulse, energy: 2.1, diameter: 128).hazeDistort(2.5); Spacer() }
             Txt.H1(name.isEmpty ? "Hang tight" : "Hang tight, \(name)")
                 .frame(maxWidth: .infinity, alignment: .center)
                 .multilineTextAlignment(.center)
@@ -388,6 +556,7 @@ struct QuizView: View {
                                 }
                             }
                         }
+                        .auroraShimmer()   // Metal colorEffect — living emerald light on the peak
                         .changeEffect(.shine(duration: 1.1), value: revealShine)
                         .riseIn(2, delay: 0.1)
 
@@ -455,6 +624,7 @@ struct QuizView: View {
                             Txt.Eyebrow("this year")
                         }
                     }
+                    .auroraShimmer()   // Metal colorEffect — the commitment number breathes light
                     .riseIn(1, delay: 0.2)
                 }
                 .padding(.horizontal, Tok.gutter).padding(.vertical, 20)
@@ -555,7 +725,7 @@ struct QuizView: View {
             HButton(label: "Find me a buddy", variant: .primary) { Task { await findBuddy() } }
             HButton(label: "I'll start on my own", variant: .ghost) {
                 AnalyticsService.track(.soloBridgeTaken, ["reason": "user_chose_solo"])
-                app.finishOnboarding()
+                goToSave()
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -573,6 +743,36 @@ struct QuizView: View {
         } else {
             AnalyticsService.track(.matchmakingNoMatch, ["pool_size": res?.poolSize ?? 0])
         }
-        app.finishOnboarding()
+        goToSave()
+    }
+
+    // MARK: save your progress — optional account link (Apple / Google) as the
+    // final onboarding beat. Skippable: deferred signup stays the default.
+    private func goToSave() {
+        withAnimation(.easeInOut(duration: 0.5)) { phase = .save }
+    }
+
+    private var saveProgressStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Spacer()
+            Image(systemName: "checkmark.seal.fill").font(.system(size: 28)).foregroundStyle(Tok.accent)
+                .frame(width: 64, height: 64).background(Tok.accentSoft).clipShape(RoundedRectangle(cornerRadius: 18))
+                .riseIn(0)
+            Txt.H1("Save your\nprogress").riseIn(1)
+            NarratorText(line: "Your quit is underway. Add a free account so your streak is safe — on a new phone, or if this one is ever lost.", delay: 0.3)
+            Spacer()
+            AccountLinkButtons {
+                AnalyticsService.track(.accountLinked, ["linked": true, "surface": "onboarding"])
+                app.finishOnboarding()
+            }
+            .riseIn(2)
+            HButton(label: "Maybe later", variant: .ghost) {
+                AnalyticsService.track(.accountLinked, ["linked": false, "surface": "onboarding"])
+                app.finishOnboarding()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Tok.gutter).padding(.bottom, 30)
+        .onAppear { AnalyticsService.track(.savePromptShown, ["surface": "onboarding"]) }
     }
 }

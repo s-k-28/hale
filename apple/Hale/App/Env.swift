@@ -29,4 +29,16 @@ enum Env {
     static let postHogHost      = "https://us.i.posthog.com"
     static let sentryDSN        = ProcessInfo.processInfo.environment["SENTRY_DSN"]
         ?? "https://282bcb332a6fc7b89e0c0ca15a0c0dd1@o4511662759280640.ingest.us.sentry.io/4511662769504256"
+
+    // Google Sign-In (OAuth 2.0 native PKCE). The iOS OAuth client id from the
+    // Google Cloud Console. EMPTY until provisioned — the Google button is hidden
+    // while empty, so the app builds and runs without it. When set, also add the
+    // reversed-client-id URL scheme to Info.plist and set GOOGLE_CLIENT_ID on the
+    // Convex deployment (the backend audience check).
+    static let googleClientID = ProcessInfo.processInfo.environment["GOOGLE_CLIENT_ID"] ?? ""
+    // Derived OAuth redirect (reversed client id). Only meaningful when configured.
+    static var googleRedirectURI: String {
+        let reversed = googleClientID.split(separator: ".").reversed().joined(separator: ".")
+        return "\(reversed):/oauth2redirect"
+    }
 }

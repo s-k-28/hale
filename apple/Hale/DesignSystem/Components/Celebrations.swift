@@ -1,51 +1,84 @@
 import SwiftUI
 
-// RingBurst — radial particle burst fired on check-in (remount via .id(surge) to
-// replay). Deterministic per-index physics: each particle gets its own launch
-// angle (with jitter), speed, size and hue; velocity decays on an ease-out curve
-// while gravity pulls the tail down, so the burst blooms then falls like sparks.
-struct RingBurst: View {
-    @State private var fired = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    private let count = 28
-    private let life: Double = 0.95
+// Celebrations, re-authored around the app's core metaphor: smoke CLEARING, not a
+// party. Nothing here is multicolor confetti — the reward is haze lifting into
+// clean emerald light. Rising embers (upward only, smoke-gray at birth → emerald
+// as they rise and thin) plus a single one-shot bloom. Calm, premium, on-message.
+
+// Smoke-gray at birth → emerald as it rises: the haze turning to clean light.
+// Shared by RingBurst and EmberField so every ember reads from the same ramp.
+enum Ember {
+    static func color(_ t: Double, seed: Double) -> Color {
+        let warmth = (seed * 97.3).truncatingRemainder(dividingBy: 1) * 0.05
+        let r = 0.50 + (0.204 - 0.50) * t + warmth
+        let g = 0.52 + (0.827 - 0.52) * t
+        let b = 0.53 + (0.600 - 0.53) * t
+        return Color(red: r, green: g, blue: b)
+    }
+}
+
+// A single one-shot emerald bloom — a soft radial breath of light that scales up
+// and fades once. Punctuates a moment without a burst of debris.
+struct EmberBloom: View {
+    var color: Color = Tok.accent
+    var life: Double = 1.0
+    var maxRadius: CGFloat = 150
+    @State private var shown = false
 
     var body: some View {
-        // Reduce Motion: skip the particle burst entirely (the ring surge + haptic remain).
+        RadialGradient(colors: [color.opacity(0.34), .clear],
+                       center: .center, startRadius: 0, endRadius: maxRadius)
+            .scaleEffect(shown ? 1.4 : 0.6)
+            .opacity(shown ? 0 : 0.95)
+            .allowsHitTesting(false)
+            .onAppear { withAnimation(.easeOut(duration: life)) { shown = true } }
+    }
+}
+
+// RingBurst — fired on check-in (remount via .id(surge) to replay). Embers lift
+// upward from the ring's center and thin to nothing; a single bloom breathes
+// behind them. The old sparks-with-gravity confetti is gone.
+struct RingBurst: View {
+    @State private var startDate: Date?
+    @State private var fired = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private let count = 16                 // ~40% fewer than the old 28
+    private let life: Double = 1.1
+
+    var body: some View {
+        // Reduce Motion: skip particles entirely (the ring surge + haptic remain).
         if reduceMotion {
             Color.clear
         } else {
-            burst
+            ZStack {
+                EmberBloom(maxRadius: 130)
+                embers
+            }
         }
     }
 
-    private var burst: some View {
+    private var embers: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60)) { tl in
             Canvas { ctx, size in
                 guard fired, let start = startDate else { return }
                 let t = min(1, tl.date.timeIntervalSince(start) / life)
                 guard t < 1 else { return }
                 let c = CGPoint(x: size.width / 2, y: size.height / 2)
-                let eased = 1 - pow(1 - t, 3)                     // easeOutCubic
+                let eased = 1 - pow(1 - t, 2.2)                 // easeOut, calmer than cubic
 
                 for i in 0..<count {
                     let seed = Double(i)
-                    // deterministic pseudo-random per index
                     let jitter = (seed * 127.1).truncatingRemainder(dividingBy: 1)
-                    let speedVar = 0.72 + (seed * 311.7).truncatingRemainder(dividingBy: 1) * 0.56
-                    let angle = (seed / Double(count) + jitter * 0.05) * 2 * .pi
-                    let dist = eased * 148 * speedVar
-                    let gravity = 90 * t * t                       // px of sag by end of life
-                    let x = c.x + CGFloat(cos(angle) * dist)
-                    let y = c.y + CGFloat(sin(angle) * dist + gravity * (0.3 + jitter * 0.7))
-                    // sparks flicker; dots fade smoothly
-                    let isSpark = i % 4 == 0
-                    let flicker = isSpark ? (0.75 + 0.25 * sin(seed + t * 26)) : 1
-                    let r: CGFloat = (isSpark ? 1.6 : (i % 2 == 0 ? 3.2 : 2.2)) * CGFloat(1 - t * 0.35)
-                    let color: Color = isSpark ? .white : (i % 3 == 0 ? Tok.accent2 : Tok.accent)
+                    let spread = (seed * 311.7).truncatingRemainder(dividingBy: 1) - 0.5  // -0.5…0.5
+                    // upward only; a little sideways drift like real smoke
+                    let rise = eased * (120 + jitter * 90)
+                    let x = c.x + CGFloat(spread * 66 + sin(t * 3 + seed) * 12)
+                    let y = c.y - CGFloat(rise)
+                    let r = CGFloat(2.6 - t * 1.9) * CGFloat(0.7 + jitter * 0.6)   // shrink as it rises
+                    guard r > 0.2 else { continue }
                     ctx.fill(
                         Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)),
-                        with: .color(color.opacity((1 - t) * flicker))
+                        with: .color(Ember.color(t, seed: seed).opacity((1 - t) * 0.9))
                     )
                 }
             }
@@ -53,12 +86,11 @@ struct RingBurst: View {
         .allowsHitTesting(false)
         .onAppear { startDate = .now; fired = true }
     }
-    @State private var startDate: Date?
 }
 
-// MilestoneCelebration — full-screen landmark-day overlay. Layered confetti
-// (blurred back layer + crisp front layer at different speeds = depth), a
-// breathing emerald aura, spring hero-number pop, and a haptic crescendo.
+// MilestoneCelebration — full-screen landmark-day overlay. A drifting emerald
+// shader aura + a breathing radial core behind the number, a field of embers
+// rising through the whole screen, and one bloom at the peak. No confetti.
 struct MilestoneCelebration: View {
     let day: Int
     var onClose: () -> Void
@@ -70,7 +102,8 @@ struct MilestoneCelebration: View {
         ZStack {
             Tok.bg.opacity(0.94).ignoresSafeArea()
 
-            // breathing emerald aura behind the number
+            // drifting emerald shader glow + a breathing radial core behind the number
+            ShaderAura(tint: Tok.accent, intensity: 0.9, speed: 1.0)
             RadialGradient(colors: [Tok.accent.opacity(0.20), .clear],
                            center: .center, startRadius: 0, endRadius: 260)
                 .breathing(period: 2.8, scale: 0.94...1.06, opacity: 0.55...1.0)
@@ -78,9 +111,8 @@ struct MilestoneCelebration: View {
                 .allowsHitTesting(false)
 
             if !reduceMotion {
-                ConfettiLayer(flakes: 26, speed: 0.55, sizeScale: 1.5, opacity: 0.35)
-                    .blur(radius: 3)                    // far layer — soft, slow, large
-                ConfettiLayer(flakes: 44, speed: 1.0, sizeScale: 1.0, opacity: 0.9)
+                EmberField(count: 30)
+                EmberBloom(color: Tok.accent, life: 1.6, maxRadius: 300)
             }
 
             VStack(spacing: 8) {
@@ -105,35 +137,29 @@ struct MilestoneCelebration: View {
     }
 }
 
-// One confetti sheet — deterministic flakes falling with sway + tumble. Two
-// instances at different speed/size/blur read as parallax depth.
-private struct ConfettiLayer: View {
-    let flakes: Int
-    let speed: Double
-    let sizeScale: CGFloat
-    let opacity: Double
+// A slow field of embers rising the full height — clean air lifting through the
+// screen. Deterministic per-index, each on its own loop so the field is steady.
+private struct EmberField: View {
+    var count = 30
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30)) { tl in
             Canvas { ctx, size in
                 let elapsed = tl.date.timeIntervalSinceReferenceDate
-                for i in 0..<flakes {
+                for i in 0..<count {
                     let seed = Double(i)
                     let lane = (seed * 61.7).truncatingRemainder(dividingBy: 1)
                     let phase = (seed * 13.3).truncatingRemainder(dividingBy: 1)
-                    let fallTime = 5.2 / speed
-                    let fall = (elapsed / fallTime + phase).truncatingRemainder(dividingBy: 1)
-                    let sway = sin(elapsed * (1.1 + lane) + seed) * 14
-                    let x = lane * size.width + sway
-                    let y = fall * (size.height + 60) - 30
-                    let rot = elapsed * (1.8 + lane * 2.4) + seed
-                    let color: Color = i % 3 == 0 ? Tok.accent : (i % 3 == 1 ? Tok.accent2 : Tok.warm)
-                    let w = 6 * sizeScale, h = 10 * sizeScale
-                    // tumble: squash width with a cosine so flakes appear to flip
-                    let squash = max(0.25, abs(cos(elapsed * (2.2 + lane) + seed)))
-                    var rect = Path(CGRect(x: -w / 2 * squash, y: -h / 2, width: w * squash, height: h))
-                    rect = rect.applying(.init(translationX: x, y: y).rotated(by: rot))
-                    ctx.fill(rect, with: .color(color.opacity(opacity)))
+                    let riseTime = 7.5
+                    let p = (elapsed / riseTime + phase).truncatingRemainder(dividingBy: 1)  // 0 bottom → 1 top
+                    let x = lane * size.width + sin(elapsed * (0.6 + lane) + seed) * 18
+                    let y = size.height * (1.05 - p * 1.1)
+                    let r = (1.4 + lane * 1.8) * (1 - p * 0.55)
+                    let fade = sin(p * .pi)                       // in near bottom, out near top
+                    ctx.fill(
+                        Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)),
+                        with: .color(Ember.color(p, seed: seed).opacity(fade * 0.5))
+                    )
                 }
             }
         }

@@ -51,6 +51,7 @@ struct Ring<Content: View>: View {
     var surge: Int = 0
     var tone: RingTone = .accent
     var breathes: Bool = false
+    var shimmer: Bool = false
     @ViewBuilder var content: Content
 
     @State private var p: Double = 0
@@ -84,15 +85,31 @@ struct Ring<Content: View>: View {
                                    startPoint: .topLeading, endPoint: .bottomTrailing),
                     style: StrokeStyle(lineWidth: stroke, lineCap: .round)
                 )
+                .ringShimmer(active: shimmer)
                 .rotationEffect(.degrees(-90))
                 .shadow(color: glow.opacity(0.22), radius: 6)
+
+            // Leading-edge glow cap: a soft halo + bright core pinned at the head of
+            // progress (Oura / Apple Fitness). Marks "here's where you are" and makes
+            // the ring read as a live vital sign rather than a static arc.
+            if p > 0.02 {
+                let a = Double(p) * 2 * .pi - .pi / 2
+                let rad = (size - stroke) / 2 - 3
+                ZStack {
+                    Circle().fill(glow).frame(width: stroke * 1.7).blur(radius: 3)
+                    Circle().fill(Color.white.opacity(0.9)).frame(width: stroke * 0.66)
+                }
+                .offset(x: rad * cos(a), y: rad * sin(a))
+                .shadow(color: glow.opacity(0.7), radius: 5)
+                .allowsHitTesting(false)
+            }
             content
         }
         .padding(inset)
         .frame(width: size, height: size)
         .scaleEffect(1 + pop * 0.03)
-        .onAppear { withAnimation(Springs.ring) { p = progress } }
-        .onChange(of: progress) { _, v in withAnimation(Springs.ring) { p = v } }
+        .onAppear { withAnimation(.interpolatingSpring(mass: 0.9, stiffness: 120, damping: 14)) { p = progress } }
+        .onChange(of: progress) { _, v in withAnimation(.interpolatingSpring(mass: 0.9, stiffness: 120, damping: 14)) { p = v } }
         .onChange(of: surge) { _, _ in
             withAnimation(.easeInOut(duration: 0.14)) { pop = 1 }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) {

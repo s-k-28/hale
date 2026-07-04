@@ -6,6 +6,7 @@ enum Fn {
     // auth (public actions from @convex-dev/auth)
     static let signIn  = "auth:signIn"
     static let signOut = "auth:signOut"
+    static let accountStatus = "authNative:accountStatus"   // anon vs permanent + email
 
     // users
     static let todayState           = "users:todayState"

@@ -210,6 +210,7 @@ struct CoachView: View {
                 .buttonStyle(SpringPress())
                 .changeEffect(.jump(height: 8), value: sends)
                 .disabled(!canSend)
+                .accessibilityLabel("Send message")
             }
             .changeEffect(.shake(rate: .fast), value: shakes)
             .padding(.horizontal, Tok.gutter).padding(.top, 12).padding(.bottom, 10)
@@ -219,16 +220,19 @@ struct CoachView: View {
 
 struct TypingIndicator: View {
     @State private var phase = 0.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         HStack(spacing: 4) {
             ForEach(0..<3) { i in
                 Circle().fill(Tok.fg3).frame(width: 6, height: 6)
-                    .offset(y: sin(phase + Double(i) * 0.6) * 3)
+                    .offset(y: reduceMotion ? 0 : sin(phase + Double(i) * 0.6) * 3)
             }
         }
         .padding(.vertical, 13).padding(.horizontal, 18)
         .background(Tok.surface).clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Tok.stroke, lineWidth: 1))
-        .onAppear { withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) { phase = .pi * 2 } }
+        // Reduce Motion: no bouncing dots (static), still announced to VoiceOver.
+        .onAppear { if !reduceMotion { withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) { phase = .pi * 2 } } }
+        .accessibilityLabel("Sage is typing")
     }
 }

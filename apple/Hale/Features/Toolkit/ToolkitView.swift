@@ -35,7 +35,7 @@ struct ToolkitView: View {
             .padding(.horizontal, Tok.gutter).padding(.top, Tok.screenTop).padding(.bottom, 40)
         }
         .background(HaleBackdrop())
-        .navigationTitle("Toolkit").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("").navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(isPresented: $showPaywall) { PaywallView(from: "toolkit") }
         .onAppear { AnalyticsService.track(.analyticsViewed, ["surface": "advanced_toolkit"]) }
     }

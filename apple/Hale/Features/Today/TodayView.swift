@@ -13,6 +13,12 @@ struct TodayView: View {
     @State private var nudges = LiveQuery<[Nudge]>(Fn.myNudges)
     @State private var celebrateDay: Int?
     @State private var firedCounterViewed = false
+    // Live money-saved: money accrues linearly from quitStart, so the per-ms rate is
+    // (savedSnapshot / elapsed-at-snapshot). Frozen once per server value, then the
+    // display climbs off the live clock so "money saved" ticks up instead of sitting dead.
+    @State private var moneyBase = 0.0
+    @State private var moneyBaseMs = 0.0
+    @State private var moneyRatePerMs = 0.0
 
     var body: some View {
         Group {
@@ -75,6 +81,8 @@ struct TodayView: View {
         let recoveryPct = Int(Plan.recoveryFraction(quitStart: today.quitStart, now: nowMs) * 100)
         let tz = today.timezone ?? "UTC"
         let alreadyToday = today.lastCheckInLocalDate == Streak.localDateOf(nowMs, timezone: tz)
+        let liveMoney = moneyRatePerMs > 0 ? moneyBase + moneyRatePerMs * (nowMs - moneyBaseMs)
+                                           : today.currentMoneySaved
 
         return ZStack {
             // emerald bloom sits under the ring — the screen's one hero glow
@@ -100,13 +108,11 @@ struct TodayView: View {
                             variant: .primary, loading: checking, disabled: alreadyToday) {
                         Task { await runCheckIn() }
                     }
-                    .changeEffect(.spray(origin: UnitPoint(x: 0.5, y: 0.3)) {
-                        Image(systemName: "leaf.fill").foregroundStyle(Tok.accent)
-                    }, value: ringSurge)
+                    .changeEffect(.glow(color: Tok.accent), value: ringSurge)
                     .padding(.top, 34)
 
                     // ── demoted secondary stack ────────────────────────────────
-                    quietStats(money: money(today.currentMoneySaved),
+                    quietStats(money: liveMoney,
                                recovery: recoveryPct == 0 ? "Day 1" : "\(recoveryPct)%")
                         .padding(.top, Tok.sectionLg)
 
@@ -124,8 +130,10 @@ struct TodayView: View {
                 .padding(.top, Tok.screenTop)
                 .padding(.bottom, 40)
                 .onChange(of: days) { _, d in checkLandmark(d) }
+                .onChange(of: today.currentMoneySaved) { _, _ in captureMoneyRate(today) }
                 .onAppear {
                     checkLandmark(days)
+                    captureMoneyRate(today)
                     if !firedCounterViewed { firedCounterViewed = true; AnalyticsService.track(.counterViewed) }
                 }
             }
@@ -143,7 +151,7 @@ struct TodayView: View {
     }
 
     private func heroRing(days: Int, hours: Int, mins: Int, secs: Int, progress: Double) -> some View {
-        Ring(progress: progress, size: 256, stroke: 9, surge: ringSurge, breathes: true) {
+        Ring(progress: progress, size: 256, stroke: 9, surge: ringSurge, breathes: true, shimmer: true) {
             VStack(spacing: 2) {
                 Txt.Eyebrow("Clean for")
                 Txt.Display("\(days)", size: 68).digitRoll(days)
@@ -184,9 +192,28 @@ struct TodayView: View {
     }
 
     // Money / recovery — demoted to two quiet stats separated by a hairline. No card.
-    private func quietStats(money: String, recovery: String) -> some View {
+    // Freeze the accrual rate from the current server snapshot (money is linear in
+    // clean time). Recomputed whenever the server pushes a new savings value.
+    private func captureMoneyRate(_ today: TodayState) {
+        let capMs = Date().timeIntervalSince1970 * 1000
+        moneyBase = today.currentMoneySaved
+        moneyBaseMs = capMs
+        moneyRatePerMs = today.currentMoneySaved / max(1, capMs - today.quitStart)
+    }
+
+    private func quietStats(money: Double, recovery: String) -> some View {
         HStack(spacing: 0) {
-            quietStat("Money saved", money, accent: false)
+            VStack(spacing: 6) {
+                Txt.Eyebrow("Money saved")
+                Text(money, format: .currency(code: Locale.current.currency?.identifier ?? "USD")
+                        .precision(.fractionLength(2)))
+                    .font(.sora(.bold, 22)).tracking(-0.4)
+                    .foregroundStyle(Tok.fg)
+                    .monospacedDigit()
+                    .contentTransition(.numericText(value: money))
+                    .animation(.snappy(duration: 0.5), value: money)
+            }
+            .frame(maxWidth: .infinity)
             Rectangle().fill(Tok.hairline).frame(width: 1, height: 34)
             quietStat("Typical recovery", recovery, accent: true)
         }

@@ -123,10 +123,15 @@ struct WelcomeScene: View {
             Spacer()
             logo.riseIn(0)
             Txt.Hero("Quit\nnicotine.")
+                // 88pt Hero: "nicotine." is wider than any phone — shrink to fit
+                // rather than truncate to "Quit nicoti…" on SE / 15 / 17 Pro.
+                .lineLimit(2)
+                .minimumScaleFactor(0.5)
                 .padding(.top, 8)
                 .riseIn(1, delay: 0.1, distance: 18)
             Text("Together.")
                 .font(.sora(.bold, 44)).foregroundStyle(Tok.accent)
+                .lineLimit(1).minimumScaleFactor(0.6)
                 .riseIn(2, delay: 0.25, distance: 18)
             NarratorText(line: "I'm Sage. Give me sixty seconds and I'll build a quit plan that's actually yours.", delay: 0.7)
                 .padding(.top, 16)

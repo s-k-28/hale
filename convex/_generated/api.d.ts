@@ -11,6 +11,7 @@
 import type * as account from "../account.js";
 import type * as analytics from "../analytics.js";
 import type * as auth from "../auth.js";
+import type * as authNative from "../authNative.js";
 import type * as buddies from "../buddies.js";
 import type * as checkins from "../checkins.js";
 import type * as community from "../community.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   account: typeof account;
   analytics: typeof analytics;
   auth: typeof auth;
+  authNative: typeof authNative;
   buddies: typeof buddies;
   checkins: typeof checkins;
   community: typeof community;
