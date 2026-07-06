@@ -35,13 +35,32 @@ extension View {
         self.glassEffect(.regular.interactive(), in: .rect(cornerRadius: radius, style: .continuous))
     }
 
-    /// Emerald-tinted interactive glass — reserve for the screen's focal surface.
-    func haleGlassAccent(radius: CGFloat = Tok.R.tile, tint: Color = Tok.accentSoft) -> some View {
-        self.glassEffect(.regular.tint(tint).interactive(), in: .rect(cornerRadius: radius, style: .continuous))
+    /// Emerald-tinted glass — reserve for the screen's focal surface. Pass
+    /// `interactive: false` for non-tappable heroes (e.g. CardHero) so the
+    /// material still matches without press shimmer.
+    func haleGlassAccent(radius: CGFloat = Tok.R.tile, tint: Color = Tok.accentSoft,
+                         interactive: Bool = true) -> some View {
+        self.glassEffect(interactive ? .regular.tint(tint).interactive() : .regular.tint(tint),
+                         in: .rect(cornerRadius: radius, style: .continuous))
     }
 
     /// Coral-tinted glass — SOS lane only.
     func haleGlassCoral(radius: CGFloat = Tok.R.tile) -> some View {
         self.glassEffect(.regular.tint(Tok.coralSoft).interactive(), in: .rect(cornerRadius: radius, style: .continuous))
+    }
+
+    /// Selectable glass row/card (e.g. paywall plans): plain interactive glass
+    /// at rest, the screen's one emerald tint when chosen — same material both
+    /// ways so selection reads as light, not a repaint.
+    func haleGlassSelectable(_ selected: Bool, radius: CGFloat = Tok.R.tile) -> some View {
+        self.glassEffect(selected ? .regular.tint(Tok.accentSoft).interactive() : .regular.interactive(),
+                         in: .rect(cornerRadius: radius, style: .continuous))
+    }
+
+    /// Dark refractive veil for locked/teased content — dims what's beneath
+    /// while keeping it legibly *there*. (LockedFeature's material.)
+    func haleGlassVeil(radius: CGFloat = Tok.R.panel) -> some View {
+        self.glassEffect(.regular.tint(Tok.bg.opacity(0.45)),
+                         in: .rect(cornerRadius: radius, style: .continuous))
     }
 }

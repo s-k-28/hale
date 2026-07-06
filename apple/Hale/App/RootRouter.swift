@@ -55,17 +55,17 @@ struct MainTabs: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            TodayView()
+            TabCrossfade(tag: 0, selection: selection) { TodayView() }
                 .tag(0).tabItem { Label("Today", systemImage: "house.fill") }
-            SquadView()
+            TabCrossfade(tag: 1, selection: selection) { SquadView() }
                 .tag(1).tabItem { Label("Squad", systemImage: "person.2.fill") }
             if FeatureFlags.community {
-                CommunityTabView()
+                TabCrossfade(tag: 2, selection: selection) { CommunityTabView() }
                     .tag(2).tabItem { Label("Community", systemImage: "heart.circle.fill") }
             }
-            CoachView()
+            TabCrossfade(tag: 3, selection: selection) { CoachView() }
                 .tag(3).tabItem { Label("Coach", systemImage: "message.fill") }
-            YouView()
+            TabCrossfade(tag: 4, selection: selection) { YouView() }
                 .tag(4).tabItem { Label("You", systemImage: "person.fill") }
         }
         .tint(Tok.accent)
@@ -73,5 +73,40 @@ struct MainTabs: View {
         // content owns the screen, re-expand on scroll-up.
         .tabBarMinimizeBehavior(.onScrollDown)
         .onChange(of: selection) { _, _ in Haptics.select() }
+        .task {
+            // DEBUG screenshot hook: HALE_TABSWITCH="4@3" switches to tab 4 after
+            // 3s so the cross-fade can be captured headless (locked-screen sims).
+            #if DEBUG
+            if let spec = ProcessInfo.processInfo.environment["HALE_TABSWITCH"] {
+                let parts = spec.split(separator: "@")
+                if parts.count == 2, let tag = Int(parts[0]), let delay = Double(parts[1]) {
+                    try? await Task.sleep(for: .seconds(delay))
+                    selection = tag
+                }
+            }
+            #endif
+        }
+    }
+}
+
+// Calm 220ms cross-fade when a tab becomes current — the default instant swap
+// reads as a jolt against HALE's slow backdrop. Fades the incoming tab in over
+// the shared HaleBackdrop (which never moves), so the switch reads as one
+// continuous space changing contents, never a slide. Reduce Motion: instant.
+private struct TabCrossfade<Content: View>: View {
+    let tag: Int
+    let selection: Int
+    @ViewBuilder var content: Content
+    @State private var shown = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .onChange(of: selection) { _, now in
+                guard now == tag, !reduceMotion else { return }
+                shown = false
+                withAnimation(.easeInOut(duration: 0.22)) { shown = true }
+            }
     }
 }

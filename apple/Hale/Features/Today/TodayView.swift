@@ -6,8 +6,12 @@ import Pow
 // The check-in is the one primary action on the screen.
 struct TodayView: View {
     @Environment(AppState.self) private var app
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var ringSurge = 0
     @State private var checking = false
+    // Synchronized reveal: on appear the ring arc sweeps 0→progress (~900ms, slight
+    // overshoot) while clean-time and money count up from 0 IN SYNC, landing together.
+    @State private var revealed = false
     @State private var showSOS = false
     @State private var buddy = LiveQuery<MyBuddy?>(Fn.myBuddy)
     @State private var nudges = LiveQuery<[Nudge]>(Fn.myNudges)
@@ -98,10 +102,11 @@ struct TodayView: View {
                     // ── HERO: the ring, given room to breathe ──────────────────
                     heroRing(days: days, hours: hours, mins: mins, secs: secs,
                              progress: milestoneProgress)
-                        .padding(.top, 44)
+                        .padding(.top, Tok.sectionLg)
 
-                    milestoneLine(next: next, progress: milestoneProgress, cleanMs: cleanMs)
-                        .padding(.top, 30)
+                    milestoneLine(next: next, progress: revealed ? milestoneProgress : 0, cleanMs: cleanMs)
+                        .padding(.top, Tok.section)
+                        .haleScrollReveal(0)
 
                     // ── the one primary action ─────────────────────────────────
                     HButton(label: alreadyToday ? "Checked in, clean today" : "Check in, clean today",
@@ -109,19 +114,21 @@ struct TodayView: View {
                         Task { await runCheckIn() }
                     }
                     .changeEffect(.glow(color: Tok.accent), value: ringSurge)
-                    .padding(.top, 34)
+                    .padding(.top, Tok.sectionLg)
+                    .haleScrollReveal(1)
 
                     // ── demoted secondary stack ────────────────────────────────
-                    quietStats(money: liveMoney,
+                    quietStats(money: revealed ? liveMoney : 0,
                                recovery: recoveryPct == 0 ? "Day 1" : "\(recoveryPct)%")
                         .padding(.top, Tok.sectionLg)
+                        .haleScrollReveal(2)
 
-                    sosRow.padding(.top, Tok.section)
+                    sosRow.padding(.top, Tok.section).haleScrollReveal(3)
 
                     if !buddy.loaded {
                         buddyPlaceholder.padding(.top, Tok.section)
                     } else if let b = buddy.value ?? nil {
-                        buddyRow(b).padding(.top, Tok.section)
+                        buddyRow(b).padding(.top, Tok.section).haleScrollReveal(4)
                     }
                 }
                 .frame(maxWidth: Tok.maxContent)
@@ -134,6 +141,7 @@ struct TodayView: View {
                 .onAppear {
                     checkLandmark(days)
                     captureMoneyRate(today)
+                    triggerReveal()
                     if !firedCounterViewed { firedCounterViewed = true; AnalyticsService.track(.counterViewed) }
                 }
             }
@@ -151,19 +159,33 @@ struct TodayView: View {
     }
 
     private func heroRing(days: Int, hours: Int, mins: Int, secs: Int, progress: Double) -> some View {
-        Ring(progress: progress, size: 256, stroke: 9, surge: ringSurge, breathes: true, shimmer: true) {
+        // Everything the hero shows is gated on `revealed` so the arc, the day count,
+        // and H/M/S all count up from 0 together on the synchronized reveal.
+        Ring(progress: revealed ? progress : 0, size: 256, stroke: 9,
+             surge: ringSurge, breathes: true, shimmer: true) {
             VStack(spacing: 2) {
                 Txt.Eyebrow("Clean for")
-                Txt.Display("\(days)", size: 68).digitRoll(days)
+                Txt.Display("\(revealed ? days : 0)", size: 68).digitRoll(revealed ? days : 0)
                 Txt.Eyebrow(days == 1 ? "Day" : "Days", color: Tok.accent)
                 HStack(spacing: 12) {
-                    counter(hours, "H"); counter(mins, "M"); counter(secs, "S")
+                    counter(revealed ? hours : 0, "H")
+                    counter(revealed ? mins : 0, "M")
+                    counter(revealed ? secs : 0, "S")
                 }
                 .padding(.top, 8)
             }
         }
         .overlay { if ringSurge > 0 { RingBurst().id(ringSurge).frame(width: 256, height: 256) } }
         .frame(maxWidth: .infinity)
+    }
+
+    // Fire the synchronized count-up reveal. Uses the same spring the Ring uses for
+    // its arc, so the numbers and the arc land together (~900ms, slight overshoot).
+    // Reduce Motion → straight to final values, no count-up.
+    private func triggerReveal() {
+        guard !revealed else { return }
+        if reduceMotion { revealed = true; return }
+        withAnimation(.interpolatingSpring(mass: 0.9, stiffness: 120, damping: 14)) { revealed = true }
     }
 
     private func counter(_ v: Int, _ unit: String) -> some View {
@@ -245,22 +267,28 @@ struct TodayView: View {
     }
 
     private var buddyPlaceholder: some View {
-        Card(pad: true) { SkeletonList(rows: 1) }
+        HStack(spacing: 12) {
+            Circle().fill(Tok.surface2).frame(width: 34, height: 34)
+            SkeletonList(rows: 1)
+        }
     }
 
+    // Buddy — one quiet line (no card): a warm avatar + name + status. Warm lane.
     @ViewBuilder
     private func buddyRow(_ b: MyBuddy) -> some View {
-        Card(pad: true) {
+        VStack(spacing: 0) {
+            Rectangle().fill(Tok.hairline).frame(height: 1)
             HStack(spacing: 12) {
-                Circle().fill(Tok.warmSoft).frame(width: 40, height: 40)
-                    .overlay(Text(String((b.buddy.name ?? "★").prefix(1))).font(.sora(.bold, 16)).foregroundStyle(Tok.warm))
+                Circle().fill(Tok.warmSoft).frame(width: 34, height: 34)
+                    .overlay(Text(String((b.buddy.name ?? "★").prefix(1))).font(.sora(.bold, 15)).foregroundStyle(Tok.warm))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(b.buddy.name ?? "Your buddy").font(.sora(.semibold, 15)).foregroundStyle(Tok.fg)
                     Text(b.buddy.currentStreak > 0 ? "\(b.buddy.currentStreak)-day streak · cheer them on" : "Tap to check in on each other")
                         .font(.sora(.regular, 13)).foregroundStyle(Tok.fg2)
                 }
-                Spacer()
+                Spacer(minLength: 0)
             }
+            .padding(.top, 14)
         }
     }
 
@@ -290,10 +318,6 @@ struct TodayView: View {
         .accessibilityLabel("Open buddy nudge: \(n.title)")
     }
 
-    private func money(_ v: Double) -> String {
-        let f = NumberFormatter(); f.numberStyle = .currency; f.maximumFractionDigits = v < 100 ? 2 : 0
-        return f.string(from: NSNumber(value: v)) ?? "$0"
-    }
     private func countdown(hoursTarget: Double, cleanMs: Double) -> String {
         let remainingH = hoursTarget - cleanMs / 3_600_000
         if remainingH <= 0 { return "now" }
@@ -302,3 +326,6 @@ struct TodayView: View {
         return "\(Int(remainingH / 24))d"
     }
 }
+// NOTE: `.haleScrollReveal` is the shared modifier provided by
+// DesignSystem/ScrollFX.swift (authored by the concurrent Tab-1 session). Today
+// adopts it directly per spec — no local copy.

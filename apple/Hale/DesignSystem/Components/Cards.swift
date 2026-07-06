@@ -39,8 +39,7 @@ struct CardHero<Content: View>: View {
         content
             .padding(pad ? Tok.cardPad : 0)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(.regular.tint(Tok.accentSoft),
-                         in: .rect(cornerRadius: Tok.R.panel, style: .continuous))
+            .haleGlassAccent(radius: Tok.R.panel, interactive: false)
             .overlay(RoundedRectangle(cornerRadius: Tok.R.panel, style: .continuous)
                 .strokeBorder(Tok.accentEdge, lineWidth: 1))
     }

@@ -11,6 +11,7 @@ struct PaywallView: View {
     @State private var monthly: Package?
     @State private var selected = "annual"
     @State private var busy = false
+    @Namespace private var glassNS
 
     var body: some View {
         ZStack {
@@ -112,9 +113,11 @@ struct PaywallView: View {
                 Text(price).font(.sora(.bold, 16)).foregroundStyle(Tok.fg)
             }
             .padding(18)
-            // interactive glass plans; selection = the screen's one emerald tint
-            .glassEffect(on ? .regular.tint(Tok.accentSoft).interactive() : .regular.interactive(),
-                         in: .rect(cornerRadius: Tok.R.tile, style: .continuous))
+            // interactive glass plans; selection = the screen's one emerald tint.
+            // glassEffectID inside the shared container lets the material MORPH
+            // between states instead of cross-fading.
+            .haleGlassSelectable(on)
+            .glassEffectID("plan-\(key)", in: glassNS)
             .overlay(RoundedRectangle(cornerRadius: Tok.R.tile, style: .continuous)
                 .strokeBorder(on ? Tok.accentEdge : Tok.stroke, lineWidth: on ? 1.5 : 1))
             .scaleEffect(on ? 1.02 : 1)

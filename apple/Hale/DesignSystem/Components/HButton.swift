@@ -56,15 +56,14 @@ struct HButton: View {
 
         if isGlass {
             core
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: radius, style: .continuous))
+                .haleGlassInteractive(radius: radius)
                 .overlay(
                     RoundedRectangle(cornerRadius: radius, style: .continuous)
                         .strokeBorder(Tok.stroke, lineWidth: 1)
                 )
         } else if isPrimaryGlass {
             core
-                .glassEffect(.regular.tint(Tok.accent).interactive(),
-                             in: .rect(cornerRadius: radius, style: .continuous))
+                .haleGlassAccent(radius: radius, tint: Tok.accent)
                 .shadow(color: glowColor, radius: glowRadius, x: 0, y: glowY)
         } else {
             core

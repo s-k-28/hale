@@ -1,4 +1,5 @@
 import SwiftUI
+import Pow
 
 // Celebrations, re-authored around the app's core metaphor: smoke CLEARING, not a
 // party. Nothing here is multicolor confetti — the reward is haze lifting into
@@ -102,16 +103,12 @@ struct MilestoneCelebration: View {
         ZStack {
             Tok.bg.opacity(0.94).ignoresSafeArea()
 
-            // drifting emerald shader glow + a breathing radial core behind the number
-            ShaderAura(tint: Tok.accent, intensity: 0.9, speed: 1.0)
-            RadialGradient(colors: [Tok.accent.opacity(0.20), .clear],
-                           center: .center, startRadius: 0, endRadius: 260)
-                .breathing(period: 2.8, scale: 0.94...1.06, opacity: 0.55...1.0)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+            // ONE emerald glow behind the number — the drifting shader aura (the
+            // breathing radial core was a redundant second glow; removed for restraint).
+            ShaderAura(tint: Tok.accent, intensity: 0.7, speed: 1.0)
 
             if !reduceMotion {
-                EmberField(count: 30)
+                EmberField(count: 16)          // was 30 — calmer, less debris
                 EmberBloom(color: Tok.accent, life: 1.6, maxRadius: 300)
             }
 
@@ -136,6 +133,121 @@ struct MilestoneCelebration: View {
         }
     }
 }
+
+// MARK: - StatReveal — the payoff number
+
+// The hero-number reveal used on payoff surfaces (You lifetime saved, Insights
+// recovery). A big numeral counts up while an accompanying bar fills 0→target IN
+// SYNC (~900ms ease-out, the bar's spring carries the slight overshoot), then a
+// SINGLE one-shot glow+shine lands on the numeral — never a loop. Eyebrow above,
+// Muted metadata below; the number is the star. Reduce Motion → final values,
+// no draw, no sparkle. Set `bar: false` when the caller supplies its own synced
+// fill (e.g. Insights' segmented MilestoneTrack).
+struct StatReveal: View {
+    let eyebrow: String
+    let value: Double
+    var format: (Double) -> String
+    var meta: String? = nil
+    var suffix: String? = nil           // demoted text after the numeral, e.g. "/ 10"
+    var fillTarget: Double = 1          // 0…1 bar fill target
+    var bar: Bool = true                // false → caller draws its own fill
+    var color: Color = Tok.accent
+    var numberSize: CGFloat = 52
+    var duration: Double = 0.9
+    var startDelay: Double = 0.12
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var begin: Date?
+    @State private var landed = false
+    @State private var sparkle = 0
+    @State private var pop: CGFloat = 1
+    @State private var barFrac: CGFloat = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Txt.Eyebrow(eyebrow, color: color)
+            numeral
+                .scaleEffect(pop, anchor: .leading)
+                .changeEffect(.glow(color: color, radius: 22), value: sparkle)
+                .changeEffect(.shine(duration: 0.9), value: sparkle)
+            if bar { fillBar }
+            if let meta { Txt.Muted(meta) }
+        }
+        .onAppear(perform: run)
+    }
+
+    @ViewBuilder private var numeral: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            countingText
+            if let suffix {
+                Text(suffix).font(.sora(.semibold, max(13, numberSize * 0.32)))
+                    .foregroundStyle(Tok.fg3)
+            }
+        }
+    }
+
+    @ViewBuilder private var countingText: some View {
+        if reduceMotion {
+            number(format(value))
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 40.0, paused: landed)) { tl in
+                let t = progress(at: tl.date)
+                let eased = 1 - pow(1 - t, 3)                 // ease-out
+                number(format(value * eased))
+                    .scaleEffect(0.99 + 0.01 * eased, anchor: .leading)
+            }
+        }
+    }
+
+    private func number(_ s: String) -> some View {
+        Text(s)
+            .font(.sora(.bold, numberSize)).tracking(-1)
+            .foregroundStyle(color)
+            .monospacedDigit()
+            .contentTransition(.numericText())
+    }
+
+    private var fillBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Tok.track).frame(height: 6)
+                Capsule().fill(color)
+                    .frame(width: max(0, geo.size.width * barFrac), height: 6)
+                    .shadow(color: color.opacity(0.45), radius: 4)   // emerald glow, not a border
+            }
+        }
+        .frame(height: 6)
+    }
+
+    private func progress(at date: Date) -> Double {
+        guard let begin else { return 0 }
+        return min(1, max(0, date.timeIntervalSince(begin) / duration))
+    }
+
+    private func run() {
+        if reduceMotion {
+            landed = true
+            barFrac = CGFloat(fillTarget)
+            return
+        }
+        begin = Date().addingTimeInterval(startDelay)
+        // Bar fills on a gentle spring → the "slight overshoot" the arc/number share.
+        withAnimation(.interpolatingSpring(mass: 0.9, stiffness: 160, damping: 15).delay(startDelay)) {
+            barFrac = CGFloat(fillTarget)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + startDelay + duration) {
+            guard !landed else { return }
+            landed = true
+            sparkle += 1                       // one-shot glow + shine
+            Haptics.soft()
+            pop = 1.05
+            withAnimation(.interpolatingSpring(mass: 0.5, stiffness: 220, damping: 12)) { pop = 1 }
+        }
+    }
+}
+
+// (Scroll-in reveal lives in ScrollFX.swift: `.haleScrollReveal(_:)` — reused by
+// the milestone rows / Insights cards below.)
 
 // A slow field of embers rising the full height — clean air lifting through the
 // screen. Deterministic per-index, each on its own loop so the field is steady.

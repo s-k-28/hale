@@ -294,7 +294,7 @@ struct StoryDock<Content: View>: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+            .haleGlassPanel(radius: 30, stroked: false)
             .padding(.horizontal, Tok.gutter)
             .padding(.bottom, 14)
     }

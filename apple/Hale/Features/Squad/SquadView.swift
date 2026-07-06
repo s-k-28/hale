@@ -9,6 +9,7 @@ struct SquadView: View {
     @State private var shareCode: String?
     @State private var cheered = false
     @State private var showUnpairConfirm = false
+    @Namespace private var zoomNS
 
     var body: some View {
       NavigationStack {
@@ -148,7 +149,8 @@ struct SquadView: View {
     private var rowDivider: some View { Rectangle().fill(Tok.hairline).frame(height: 1) }
 
     private func navRow<D: View>(_ title: String, glyph: Glyph, @ViewBuilder _ dest: @escaping () -> D) -> some View {
-        NavigationLink { dest() } label: {
+        // Push zooms out of the tapped row (iOS 18+ zoom transition).
+        NavigationLink { dest().navigationTransition(.zoom(sourceID: title, in: zoomNS)) } label: {
             HStack(spacing: 12) {
                 Icon(glyph, size: 17, color: Tok.fg2)
                 Text(title).font(.sora(.semibold, 15)).foregroundStyle(Tok.fg)
@@ -158,6 +160,7 @@ struct SquadView: View {
             .padding(.vertical, 14)
         }
         .buttonStyle(PressScaleStyle(scale: 0.99))
+        .matchedTransitionSource(id: title, in: zoomNS)
     }
 
     // Warm-lane CTA label (buddy / together lane — amber, not emerald).

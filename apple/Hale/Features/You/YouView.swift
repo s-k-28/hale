@@ -11,6 +11,8 @@ struct YouView: View {
     @State private var aiConsent = LiveQuery<AiConsent>(Fn.aiConsentStatus)
     @State private var aiOn = false
     @State private var account = LiveQuery<AccountStatus>(Fn.accountStatus)
+    @State private var autoPush = false
+    @Namespace private var zoomNS
 
     var body: some View {
       NavigationStack {
@@ -20,8 +22,7 @@ struct YouView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Tok.section) {
                         header(today)
-                        lifetimeStats(today)
-                        shareMoment(today)
+                        savedMoment(today)
                         premiumMoment(today)
                         accountSection
                         milestoneHistory(today)
@@ -39,9 +40,23 @@ struct YouView: View {
                 ProgressView().tint(Tok.accent)
             }
         }
+        #if DEBUG
+        .navigationDestination(isPresented: $autoPush) {
+            InsightsView().navigationTransition(.zoom(sourceID: "Your insights", in: zoomNS))
+        }
+        #endif
       }
       .fullScreenCover(isPresented: $showPaywall) { PaywallView(from: "profile") }
       .onChange(of: aiConsent.value?.consented) { _, v in if let v { aiOn = v } }
+      #if DEBUG
+      // Screenshot hook: HALE_AUTOPUSH=1 pushes "Your insights" after 3s through
+      // the SAME zoom transition as the tapped row, for headless capture.
+      .task {
+          guard ProcessInfo.processInfo.environment["HALE_AUTOPUSH"] != nil else { return }
+          try? await Task.sleep(for: .seconds(3))
+          autoPush = true
+      }
+      #endif
     }
 
     private func header(_ today: TodayState) -> some View {
@@ -55,30 +70,19 @@ struct YouView: View {
         }
     }
 
-    // Lifetime pride — two quiet stats, hairline-separated. No card.
-    private func lifetimeStats(_ today: TodayState) -> some View {
-        HStack(spacing: 0) {
-            quietStat("Saved, lifetime", money(today.lifetimeMoneySaved), accent: true)
-            Rectangle().fill(Tok.hairline).frame(width: 1, height: 40)
-            quietStat("Best streak", "\(today.longestStreak)d", accent: false)
-        }
-    }
-    private func quietStat(_ label: String, _ value: String, accent: Bool) -> some View {
-        VStack(spacing: 6) {
-            Txt.Eyebrow(label)
-            Text(value).font(.sora(.bold, 26)).tracking(-0.5)
-                .foregroundStyle(accent ? Tok.accent : Tok.fg)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    // Focal moment #1 — share your story. Calm card, one action.
-    private func shareMoment(_ today: TodayState) -> some View {
+    // The one celebratory focal — lifetime saved counts up while its bar fills in
+    // sync, best streak demoted to Muted metadata, and "share your story" as the
+    // single action beneath. One synced count-up+fill reveal per screen.
+    private func savedMoment(_ today: TodayState) -> some View {
         Card(pad: true) {
-            VStack(alignment: .leading, spacing: 12) {
-                Txt.Eyebrow("Your story so far", color: Tok.accent)
-                Txt.H3("Built to be screenshotted")
-                Txt.Body("A clean card of your progress — share it, and maybe start someone else on their way.")
+            VStack(alignment: .leading, spacing: 16) {
+                StatReveal(
+                    eyebrow: "Saved, lifetime",
+                    value: today.lifetimeMoneySaved,
+                    format: { "$" + Money.grouped(Int($0.rounded())) },
+                    meta: "Best streak \(today.longestStreak) days · yours to keep",
+                    numberSize: 52
+                )
                 HButton(label: "Share your progress", variant: .primary, sm: true, icon: "square.and.arrow.up") {
                     let now = Date().timeIntervalSince1970 * 1000
                     let days = Int(max(0, now - today.quitStart) / 86_400_000)
@@ -86,7 +90,6 @@ struct YouView: View {
                     ShareCard.share(days: days, money: money(today.currentMoneySaved), recoveryPct: pct)
                 }
                 .fixedSize()
-                .padding(.top, 2)
             }
         }
     }
@@ -132,11 +135,12 @@ struct YouView: View {
                 if reached.isEmpty {
                     Txt.Muted("Your first recovery milestone unlocks within the hour of your quit. Keep going.")
                 } else {
-                    ForEach(Array(reached.reversed().enumerated()), id: \.offset) { _, m in
+                    ForEach(Array(reached.reversed().enumerated()), id: \.offset) { i, m in
                         HStack(alignment: .top, spacing: 10) {
                             Icon(.check, size: 13, color: Tok.accent).padding(.top, 3)
                             Txt.Body(m.label, color: Tok.fg)
                         }
+                        .haleScrollReveal(i)
                     }
                     Txt.Muted("Commonly reported recovery timeline — supportive, not medical advice.")
                 }
@@ -240,7 +244,8 @@ struct YouView: View {
     }
 
     private func linkRow<D: View>(_ title: String, glyph: Glyph, tint: Color = Tok.fg, @ViewBuilder _ dest: @escaping () -> D) -> some View {
-        NavigationLink { dest() } label: {
+        // Push zooms out of the tapped row (iOS 18+ zoom transition).
+        NavigationLink { dest().navigationTransition(.zoom(sourceID: title, in: zoomNS)) } label: {
             HStack(spacing: 12) {
                 Icon(glyph, size: 16, color: tint == Tok.coral ? Tok.coral : Tok.fg2)
                 Text(title).font(.sora(.semibold, 15)).foregroundStyle(tint)
@@ -250,6 +255,7 @@ struct YouView: View {
             .padding(.vertical, 14)
         }
         .buttonStyle(PressScaleStyle(scale: 0.99))
+        .matchedTransitionSource(id: title, in: zoomNS)
     }
 
     private func toggleRow(_ title: String, _ sub: String, _ binding: Binding<Bool>, _ onChange: @escaping (Bool) -> Void) -> some View {

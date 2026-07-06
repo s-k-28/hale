@@ -28,16 +28,18 @@ struct GalleryContent: View {
     @State private var field = ""
     @State private var numField = "12"
     @State private var ringSurge = 0
+    @State private var fxTab = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 34) {
             header.id("a0")
+            scrollFXSection
             typographySection
             buttonSection
-            controlSection.id("a1")
+            controlSection
             cardSection
             inputSection
-            progressSection.id("a2")
+            progressSection
             ringSection
             sageAndLockSection
         }
@@ -49,6 +51,72 @@ struct GalleryContent: View {
 
     private func sectionLabel(_ s: String) -> some View {
         Txt.Eyebrow(s, color: Tok.accent).padding(.bottom, 2)
+    }
+
+    // MARK: ScrollFX demo — reveal / demote / parallax / tab cross-fade.
+    // Anchors a1 (top) and a2 (mid) land inside this section for HALE_SCROLL captures.
+    private var scrollFXSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionLabel("Scroll motion").id("a1")
+            Txt.Muted("Rows reveal as they enter from the bottom and demote — fade + a soft blur — as they leave the top. Reduce Motion freezes them at rest.")
+            parallaxBanner
+            tabFadeDemo
+            ForEach(0..<14, id: \.self) { i in
+                let row = fxRow(i).haleScrollReveal(i).haleScrollDemote()
+                if i == 8 { row.id("a2") } else { row }
+            }
+        }
+    }
+
+    private func fxRow(_ i: Int) -> some View {
+        let icons = ["flame.fill", "wind", "leaf.fill", "heart.fill", "bolt.fill", "star.fill"]
+        return Card(pad: true) {
+            HStack(spacing: 14) {
+                Image(systemName: icons[i % icons.count])
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Tok.accent)
+                    .frame(width: 36, height: 36)
+                    .background(Tok.accentSoft, in: RoundedRectangle(cornerRadius: Tok.R.inset, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Row \(i + 1)").font(.sora(.semibold, 15)).foregroundStyle(Tok.fg)
+                    Text("Reveals in · demotes out").font(.sora(.regular, 12)).foregroundStyle(Tok.fg2)
+                }
+                Spacer()
+                Text("\(i * 3)d").font(.sora(.bold, 15)).foregroundStyle(Tok.accent)
+            }
+        }
+    }
+
+    private var parallaxBanner: some View {
+        ZStack {
+            LinearGradient(colors: [Tok.accentDeep, Tok.accent],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+            Text("Parallax cover").font(.sora(.bold, 18)).foregroundStyle(Tok.accentInk)
+        }
+        .frame(height: 120)
+        .clipShape(RoundedRectangle(cornerRadius: Tok.R.panel, style: .continuous))
+        .haleParallax(26)
+    }
+
+    private var tabFadeDemo: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Picker("", selection: $fxTab) {
+                Text("Today").tag(0); Text("Squad").tag(1); Text("You").tag(2)
+            }
+            .pickerStyle(.segmented)
+            Card(pad: true) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(["Today", "Squad", "You"][fxTab])
+                        .font(.sora(.semibold, 16)).foregroundStyle(Tok.fg)
+                    Text(["Your clean streak and today's check-in.",
+                          "Your buddy's streak, side by side.",
+                          "Your lifetime progress and settings."][fxTab])
+                        .font(.sora(.regular, 13)).foregroundStyle(Tok.fg2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .haleTabTransition(fxTab)   // cross-fade, no slide
+        }
     }
 
     private var header: some View {

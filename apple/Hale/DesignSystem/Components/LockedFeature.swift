@@ -43,8 +43,7 @@ struct LockedFeature<Content: View>: View {
                 content.allowsHitTesting(false)
                 Rectangle()
                     .fill(.clear)
-                    .glassEffect(.regular.tint(Tok.bg.opacity(0.45)),
-                                 in: .rect(cornerRadius: radius, style: .continuous))
+                    .haleGlassVeil(radius: radius)
                 backdrop.allowsHitTesting(false)
                 chrome
             }

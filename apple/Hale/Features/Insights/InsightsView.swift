@@ -27,9 +27,9 @@ struct InsightsView: View {
                               locked: !premium, onTap: { showPaywall = true }) {
                     VStack(alignment: .leading, spacing: Tok.section) {
                         recoveryCard
-                        frequencyCard
-                        hourlyCard
-                        intensityCard
+                        frequencyCard.haleScrollReveal(0)
+                        hourlyCard.haleScrollReveal(1)
+                        intensityCard.haleScrollReveal(2)
                     }
                 }
             }
@@ -48,22 +48,20 @@ struct InsightsView: View {
     @ViewBuilder private var recoveryCard: some View {
         if let r = recovery.value {
             Card(pad: true) {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Txt.Eyebrow("Recovery")
-                        Spacer()
-                        (Text("\(r.reached)").font(.sora(.bold, 22)).foregroundStyle(Tok.accent)
-                         + Text(" / \(r.total)").font(.sora(.semibold, 15)).foregroundStyle(Tok.fg3))
-                    }
+                // The one synced count-up+fill reveal: milestones-reached counts up
+                // (44pt hero, "/ total" demoted) while the segmented track lights up
+                // in sync below. "Next" is the Muted metadata.
+                VStack(alignment: .leading, spacing: 14) {
+                    StatReveal(
+                        eyebrow: "Recovery",
+                        value: Double(r.reached),
+                        format: { "\(Int($0.rounded()))" },
+                        meta: r.nextLabel.map { "Next: \($0)" } ?? "Every milestone reached 🌿",
+                        suffix: "/ \(r.total)",
+                        bar: false,
+                        numberSize: 44
+                    )
                     MilestoneTrack(reached: r.reached, total: max(1, r.total))
-                    if let n = r.nextLabel {
-                        HStack(spacing: 6) {
-                            Circle().fill(Tok.accentEdge).frame(width: 5, height: 5)
-                            Txt.Muted("Next: \(n)")
-                        }
-                    } else {
-                        Txt.Muted("Every milestone reached. 🌿")
-                    }
                 }
             }
         }
@@ -250,6 +248,8 @@ struct IntensityChart: View {
 struct HourlyChart: View {
     let buckets: [CravingPatterns.HourBucket]
     let peakHour: Int?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var grown = false
     private var byHour: [Int: CravingPatterns.HourBucket] {
         Dictionary(uniqueKeysWithValues: buckets.map { ($0.hour, $0) })
     }
@@ -268,9 +268,13 @@ struct HourlyChart: View {
                         RoundedRectangle(cornerRadius: 3, style: .continuous)
                             .fill(barFill(frac: frac, isPeak: isPeak))
                             .frame(width: barW, height: max(3, frac * 92))
+                            // grow from baseline, 40ms/bar stagger, 500ms ease-out
+                            .scaleEffect(y: (grown || reduceMotion) ? 1 : 0.001, anchor: .bottom)
+                            .animation(reduceMotion ? nil : .easeOut(duration: 0.5).delay(Double(h) * 0.04), value: grown)
                             .overlay(alignment: .top) {
                                 if isPeak {
                                     Circle().fill(Tok.accent2).frame(width: 4, height: 4).offset(y: -7)
+                                        .opacity((grown || reduceMotion) ? 1 : 0)
                                 }
                             }
                     }
@@ -285,6 +289,7 @@ struct HourlyChart: View {
                 }
             }
         }
+        .onAppear { grown = true }
     }
 
     // Sequential single-hue ramp: quiet hours read as faint emerald, busy hours full.
@@ -296,27 +301,37 @@ struct HourlyChart: View {
 }
 
 // MARK: - Recovery milestone track (discrete segments, rounded)
+// Reached segments light up left→right in sync with the count-up (40ms/segment,
+// grow-from-leading). Unreached segments are the static trough. Reduce Motion → final.
 struct MilestoneTrack: View {
     let reached: Int
     let total: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var lit = false
     var body: some View {
         GeometryReader { geo in
             let gap: CGFloat = 4
             let segW = (geo.size.width - gap * CGFloat(total - 1)) / CGFloat(total)
             HStack(spacing: gap) {
                 ForEach(0..<total, id: \.self) { i in
+                    let isReached = i < reached
+                    let on = lit || reduceMotion
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(i < reached
+                        .fill(isReached
                               ? AnyShapeStyle(LinearGradient(colors: [Tok.accent2, Tok.accent],
                                                              startPoint: .leading, endPoint: .trailing))
                               : AnyShapeStyle(Tok.track))
                         .frame(width: max(2, segW), height: 10)
                         .overlay(
                             RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .strokeBorder(i < reached ? Tok.accentEdge : Tok.stroke, lineWidth: 1))
+                                .strokeBorder(isReached ? Tok.accentEdge : Tok.stroke, lineWidth: 1))
+                        .opacity(isReached && !on ? 0 : 1)
+                        .scaleEffect(x: isReached && !on ? 0.55 : 1, anchor: .leading)
+                        .animation(reduceMotion ? nil : .easeOut(duration: 0.5).delay(Double(i) * 0.04), value: lit)
                 }
             }
         }
         .frame(height: 10)
+        .onAppear { lit = true }
     }
 }
