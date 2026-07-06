@@ -1,177 +1,238 @@
+<div align="center">
+
 # HALE
 
-**Quit nicotine. Together.**
+**Quit nicotine for good, one checked-in day at a time.**
 
-HALE is a quit-nicotine app built around buddy accountability: you commit to a quit, pair with someone who keeps you honest, and beat cravings with tools that work in the moment. It tracks the things that make quitting feel real — clean days, money saved, your body's recovery — and pairs them with an AI cessation coach and a social layer (buddies, squads, leagues) for people who don't want to quit alone.
+HALE is a nicotine cessation app that pairs a personalized quit plan with an AI coach, a craving SOS toolkit, and real social accountability: buddies, squads, and streak leagues. Everything runs on a realtime Convex backend, so your streak, your buddy's nudge, and your squad's feed update live on every device.
 
----
+[![Expo](https://img.shields.io/badge/Expo-56-000020?style=flat-square&logo=expo&logoColor=white)](https://expo.dev)
+[![React Native](https://img.shields.io/badge/React%20Native-0.85-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactnative.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Convex](https://img.shields.io/badge/Convex-realtime%20backend-EE342F?style=flat-square)](https://convex.dev)
+[![RevenueCat](https://img.shields.io/badge/RevenueCat-subscriptions-F25A5A?style=flat-square)](https://www.revenuecat.com)
+[![OneSignal](https://img.shields.io/badge/OneSignal-push-E54B4D?style=flat-square)](https://onesignal.com)
+[![PostHog](https://img.shields.io/badge/PostHog-analytics-F9BD2B?style=flat-square)](https://posthog.com)
+[![Sentry](https://img.shields.io/badge/Sentry-crash%20tracking-362D59?style=flat-square&logo=sentry&logoColor=white)](https://sentry.io)
+[![Jest](https://img.shields.io/badge/Jest-tested-C21325?style=flat-square&logo=jest&logoColor=white)](https://jestjs.io)
 
-## Key Features
-
-### Quit tracking
-- **Streaks & daily check-ins** — one transactional check-in per local day advances your streak, with **2 streak freezes** that forgive a missed day. Timezone-correct streak math lives server-side (`convex/model/streak.ts`); the check-in mutation dedups by local date and updates the streak cache atomically.
-- **Lapse vs. relapse, without shame** — a slip can be logged as a lapse (streak safe) or a relapse, which closes the attempt and opens a *fresh run*. Lifetime clean days and lifetime money saved are a **banked ledger that never resets** — the recovery screen leads with those, never a zero.
-- **Money saved & body recovery** — savings are computed from your real usage profile (units/day × unit cost, clamped server-side against bad data) and tick up live. A 10-step health-recovery timeline runs from 20 minutes ("heart rate begins to normalize") to 1 year ("heart-disease risk roughly halved") — framed as commonly-reported effects, not medical advice.
-- **Milestones & share cards** — landmark days (1, 3, 7, 14, 30, 60, 90, 180, 365) trigger a full-screen celebration with a custom Skia particle burst and a shareable proof card (huge day numeral, money saved, recovery bar) captured via `react-native-view-shot` and handed to the native share sheet. The share card is deliberately never paywalled — it's the acquisition loop.
-
-### Social accountability
-- **Buddy pairing** — the core wedge. Invite a friend by link or get matched from a pool (matched on product type, quit stage, and timezone). One active buddy at a time, enforced server-side with symmetric-safe pairing (a deterministic pair key means invite/accept can't create duplicates). Buddies see each other's streak and check-in status — never cravings or money details — and can send support nudges.
-- **Squads & leagues** — small "stay clean together" groups with invite codes and optional 6-week challenges, plus opt-in leagues. Free tier includes one squad; multiple squads are a HALE+ feature, gated server-side.
-
-### Sage — the AI cessation coach
-- A chat coach with a non-negotiable rule: **Sage never shames.** Built on the production Convex pattern for LLM calls — a mutation captures the message, an action calls the model (Llama 3.3 70B via Groq's OpenAI-compatible API), a mutation persists the reply. Chat history is windowed to 12 turns to bound input tokens.
-- **Evidence-grounded via RAG** — a curated cessation corpus (23 sources, 224 chunks, allowlisted to 8 authoritative domains like CDC/NIH/WHO/Mayo) indexed with the Convex RAG component and Google `gemini-embedding-001` embeddings. Dosing/clinical chunks are stored as reference-only and filtered out of retrieval so Sage can never repeat them.
-- **Safety routing** — crisis-flagged messages skip RAG and route to the 988 Suicide & Crisis Lifeline; medical questions route to a clinician/quitline. No API key or any API failure degrades to a warm fallback reply — the chat never errors at the user.
-- **Cost-controlled** — per-tier daily caps (free 5 / trial 15 / paid 50 messages) enforced server-side *before* any compute, and every reply is stamped with token counts and a cost proxy rolled into a per-user month-to-date ledger.
-
-### Craving SOS
-A crisis toolkit one tap from the Today screen:
-- **Ride it out** — a 5-minute countdown with reassurance copy that changes as the craving peaks and fades.
-- **Breathe** — box breathing (4-4-4-4) with an animated guide.
-- **Talk to Sage** — hands off to the coach.
-- **Craving log** — after surviving, capture intensity (1–5), trigger, and context; fully skippable, feeds trigger-pattern analytics.
-- **"I slipped"** — the lapse/relapse flow above, with a double-tap guard so a relapse is never committed twice.
-- **Advanced toolkit** (HALE+) — urge-surfing, trigger insights, and a craving heatmap.
-
-### Referral system
-Invite friends, earn HALE+: every user has a referral code and an `https://…/r/<code>` universal link. A referral **attributes** when the invited friend installs via the link (or types the code at onboarding — the deferred-attribution fallback) and **completes** when that friend pairs up as someone's buddy. Install alone never counts. **3 completed referrals grant a one-time 7-day HALE+ window** — app-managed, no card, no auto-charge, granted exactly once. Completed referrals are never clawed back.
-
-### HALE+ (premium)
-$79.99/yr ($6.67/mo equivalent) with a 14-day free trial, plus an app-managed 14-day full-access window granted at onboarding. HALE+ gates: full health analytics, the advanced craving toolkit, multiple squads, home-screen widgets, and the highest Sage message cap. Locked features render *blurred but visible* behind one reusable `LockedFeature` treatment — free users see exactly what they're missing.
+</div>
 
 ---
 
-## Tech Stack
+## What it does
 
-| Layer | Technology |
-|-------|------------|
-| App | [Expo](https://expo.dev) SDK 56 · React Native 0.85 · React 19 · TypeScript |
-| Routing | `expo-router` (file-based) · scheme `hale://` · universal links on `go.haleapp.com` |
-| Styling | NativeWind 4 (Tailwind for RN) · single-source design tokens (`src/theme/tokens.js`) |
-| Backend | [Convex](https://convex.dev) — reactive database, mutations/queries/actions, scheduler, crons, HTTP endpoints |
-| Auth | `@convex-dev/auth` — **anonymous-first** (no email gate to start a quit) |
-| Subscriptions | [RevenueCat](https://revenuecat.com) (`react-native-purchases` 10) + server webhook mirror |
-| AI | Llama 3.3 70B on Groq (Sage) · Convex RAG component + Google `gemini-embedding-001` (knowledge) |
-| Analytics | PostHog (`posthog-react-native`) — typed event catalog in `docs/ANALYTICS_EVENTS.md` |
-| Push | OneSignal (REST from Convex; external id = Convex user id; hard cap 2 pushes/user/local-day) |
-| Email | Resend (lifecycle email from Convex actions) |
-| Crash reporting | Sentry |
-| Animation | Reanimated 4 · Skia (particles) · Lottie · Rive |
-| Testing | Jest (`jest-expo`) — unit tests over the pure server model modules |
+HALE takes you from "I want to quit" to a daily ritual that sticks:
 
-Bundle id / package: `com.haleapp.hale`.
+- You onboard with an age gate and a quiz that builds your quit profile: what you use, how much it costs, and when cravings hit.
+- Every day you check in. Check-ins are transactional, deduped by your local calendar date, and advance a streak with bounded freeze forgiveness so one rough day does not erase a month of progress.
+- When a craving hits, the SOS screen and craving toolkit give you something to do in the next 90 seconds instead of relapsing.
+- Sage, the AI quit coach, answers in context: it knows your streak, your quit stage, and your savings, and it retrieves from a curated, source-allowlisted knowledge corpus before it speaks.
+- Buddies keep you honest. You pair with an accountability buddy by invite code, nudge each other, and climb streak leagues together. Squads give small groups a shared home.
+- A moderated community feed (topic groups, anonymous handles, reactions, reports) is built in, gated behind a feature flag for staged rollout.
 
----
+HALE+ is the paid tier: unlimited AI coaching, the advanced craving toolkit, and health analytics, sold as an auto-renewable subscription through RevenueCat. Three activated buddy referrals earn a 7 day HALE+ reward without paying.
 
-## Architecture — the full cycle
+## Why it's different
 
-**Frontend → Convex → frontend, reactively.** Screens are expo-router routes that read state with `useQuery` and write with `useMutation`. Convex queries are *live subscriptions*: when a mutation commits, every subscribed component re-renders with fresh data — there is no manual cache invalidation anywhere in the app.
+| | Typical quit app | HALE |
+|---|---|---|
+| Streak math | Server UTC day, breaks at midnight for half the world | Computed in the user's own IANA timezone, with bounded freeze forgiveness |
+| AI coach | Generic chatbot wrapper | Sage: RAG over an allowlisted knowledge corpus, per-user context line, medical dosing questions detected and redirected, daily cap enforced server side |
+| Accountability | A leaderboard of strangers | Buddy pairing with nudges, invite-code squads, and streak leagues |
+| Community safety | Post first, moderate never | Every post and comment is classified by Claude before it goes live, plus reports, mutes, and bans |
+| Monetization state | Scattered "isPro" booleans | One server-side entitlement resolver: paid via RevenueCat webhook mirror, or earned via referrals |
+| Backend | REST plus polling | Convex: reactive queries, scheduled actions, crons, all in TypeScript |
 
-**A check-in, end to end.** Tapping CHECK IN calls the `checkins.checkIn` mutation. In one ACID transaction it dedups against the user's *local* date (timezone-correct), computes the new streak through the pure model in `convex/model/streak.ts` (spending a streak freeze if a day was missed), inserts the check-in row, and updates the denormalized streak cache on the user. The mutation returns activation flags; the client mirrors them to PostHog. Every subscribed surface — the streak ring, the buddy's view of you, squad lists — updates in real time via Convex reactivity.
+## Architecture
 
-**Business logic lives in pure modules.** `convex/model/*` (streak, plan/money math, entitlement, trial, buddy invariants, webhook mapping) are pure TypeScript with no `ctx` — callable from queries and mutations, runnable client-side (onboarding computes your plan before an account exists), and unit-tested in `__tests__/`.
+```
+┌────────────────────────────────────────────┐
+│           HALE app (Expo / React Native)   │
+│  expo-router screens · NativeWind · Skia   │
+│  Reanimated · Rive · Lottie · FlashList    │
+└───────┬───────────────┬────────────────────┘
+        │ reactive       │ native SDKs
+        │ queries and    │
+        │ mutations      ▼
+        │        ┌─────────────────────────────┐
+        │        │ RevenueCat (purchases + UI) │
+        │        │ OneSignal (push)            │
+        │        │ PostHog (analytics)         │
+        │        │ Sentry (crash tracking)     │
+        │        └──────────┬──────────────────┘
+        ▼                   │ webhook (RC)
+┌────────────────────────────────────────────┐
+│              Convex backend                │
+│  22 tables · auth · crons · http routes    │
+│  checkins · buddies · squads · leagues     │
+│  sage · rag · communityModeration · pushes │
+└───┬──────────┬─────────────┬──────────┬────┘
+    │          │             │          │
+    ▼          ▼             ▼          ▼
+ Groq API   Anthropic    Google AI    Resend
+ (Sage      (feed        (RAG         (lifecycle
+ replies)   moderation)  embeddings)  email)
+```
 
-**Entitlements: one source of truth.** `resolveEntitlement` in `convex/model/entitlement.ts` is the single `hasHALEPlus` decision, OR-ing three grant paths: **paid** (RevenueCat), **trial** (app-managed 14-day window), and **referral reward** (7-day window). Every consumer reads this one function — server gates (Sage caps, squad limits), the reactive client mirror (`users.todayState`), and the `usePremium()` hook, which additionally OR's in the RevenueCat SDK's on-device entitlement so a fresh purchase unlocks instantly, before any webhook lands.
+The client never talks to an LLM directly. Every AI call runs inside a Convex action with server-held keys.
 
-**RevenueCat + webhook mirror.** The RC SDK on device is the *runtime* source of truth for paid status (`Purchases.logIn` with the Convex user id as the app-user id). In parallel, RevenueCat posts events to a Convex HTTP endpoint (`POST /revenuecat/webhook`, shared-secret auth), which maps them through a pure, tested allowlist (`convex/model/rcWebhook.ts`) onto `users.premium` — grant on purchase/renewal, revoke on expiration or refund, transfer moves the mirror between accounts, ambiguous events deliberately ignored. The mirror exists so *server-side* gates and segmentation can see paid status; the device never waits on it.
+### Sage, the AI coach pipeline
 
-**Deep links & referral attribution.** `hale://` scheme plus `https://go.haleapp.com` universal links map straight into expo-router routes: `/r/<code>` resolves a referral code to its owner and hands off to `/u/<id>`, the canonical buddy-invite handler. An onboarded user pairs immediately; a fresh install stashes the inviter id (`pendingBuddy`) and redeems it at onboarding commit — attribution (`referrals.attributeInstall`, set-once, self-referral blocked) then pairing (`buddies.pairWith`), whose server hook completes the referral and grants the 7-day reward when the count hits 3, exactly once. Since iOS can't carry a link through an App Store install, the share message and landing page carry the code in plain text, and a "Have an invite code?" entry at onboarding feeds the same stash — one redemption path, two doors.
+```
+user sends message
+      │
+      ▼
+send (mutation) ── daily cap check (free tier) ── writes user turn
+      │ schedules
+      ▼
+generate (internalAction)
+      │
+      ├─ contextFor: streak, quit stage, money saved, last turns
+      ├─ detectRouteFlag: crisis or medical dosing? ──▶ safe redirect reply
+      ├─ searchKnowledge: RAG retrieval (gemini-embedding-001 vectors,
+      │     referenceOnly clinical chunks filtered out of replies)
+      ▼
+Groq · Llama 3.3 70B ──▶ writeReply (internalMutation) ──▶ live query updates UI
+```
 
-**Analytics.** A typed event catalog (`src/lib/analytics.ts`, documented in `docs/ANALYTICS_EVENTS.md`) flows to PostHog from the client. Server mutations stay pure data — they *return* flags (e.g. `referralCompleted`, `rewardGranted`, activation signals) and the calling client fires the events, so no server-side analytics keys are needed. Critical funnels (activation, referral, monetization) are also written server-side to queryable Convex tables.
+### Streak check-in flow
 
-**Scheduled work.** Convex crons drive the retention loop: a daily streak-at-risk push sweep, an hourly "hardest hour" proactive nudge matched to each user's self-reported toughest time, and a daily trial-ending email sweep (Resend). All pushes funnel through one budget gate: at most 2 server pushes per user per local day.
+```
+user taps "Check in"
+      │
+      ▼
+checkIn (one transactional mutation)
+      ├─ localDateOf(now, user.timezone)      day boundaries in YOUR timezone
+      ├─ dedupe: already checked in today? ─▶ no-op
+      ├─ computeStreakOnCheckIn               missed a day? bounded freeze
+      │                                       forgiveness may save the streak
+      ├─ write checkIns row (source of truth)
+      ├─ update users.currentStreak (cache, updated only here)
+      └─ day 3 streak? completes any pending referral activation
+      │
+      ▼ (daily cron)
+streak-at-risk push: "you have not checked in today" via OneSignal,
+evaluated against each user's own timezone
+```
 
----
+### Subscription and entitlement flow
 
-## Project Structure
+```
+Paywall screen ──▶ RevenueCat Paywalls UI ──▶ StoreKit purchase
+                                                    │
+                              RevenueCat webhook ◀──┘
+                                    │  verified secret
+                                    ▼
+                     Convex /revenuecat/webhook (http route)
+                                    │ event to mirror mapping
+                                    ▼
+                            users.premium mirror
+                                    │
+                                    ▼
+              resolveEntitlement: paid | referral_reward | none
+               (single source of truth for server gates and
+                the usePremium client hook)
+```
+
+## Features
+
+- **Today tab**: streak ring, daily check-in with mood, money saved, milestone celebrations rendered with Skia, Reanimated, Lottie, and Rive.
+- **Coach tab (Sage)**: contextual AI coaching backed by a RAG corpus of allowlisted sources, crisis and medical-dosing detection with safe redirects, server-enforced daily cap on the free tier.
+- **SOS and toolkit**: dedicated craving SOS screen plus an advanced craving toolkit, with craving and relapse logging that feeds your analytics.
+- **Squad tab**: accountability buddy pairing by 6 character invite code, nudges, invite-only squads, and streak leagues.
+- **Community tab**: topic groups, anonymous handles, posts, comments, reactions. Every piece of content is classified by Claude before publishing; users can report and mute; moderators can remove content and ban. Feature-flagged for staged rollout.
+- **Referrals**: share your code, and when 3 invited friends activate (reach a 3 day streak), you unlock 7 days of HALE+.
+- **You tab**: profile, savings goals, health analytics, account deletion, disclaimers.
+- **Onboarding**: welcome, age gate, quit quiz, and health notice before anything else.
+- **Lifecycle infra**: behavior-triggered OneSignal pushes, Resend lifecycle email, PostHog product analytics with experiments, Sentry crash reporting.
+
+## Quickstart
+
+```bash
+# 1. Install
+npm install
+
+# 2. Configure the client (copy and fill EXPO_PUBLIC_* keys)
+cp .env.example .env.local
+
+# 3. Start the backend (writes EXPO_PUBLIC_CONVEX_URL for you)
+npx convex dev
+
+# 4. Set server-only secrets in Convex, not in .env
+npx convex env set GROQ_API_KEY <key>
+npx convex env set GOOGLE_GENERATIVE_AI_API_KEY <key>
+npx convex env set ONESIGNAL_REST_API_KEY <key>
+npx convex env set RESEND_API_KEY <key>
+npx convex env set REVENUECAT_WEBHOOK_SECRET <key>
+
+# 5. Run the app
+npm run ios        # or: npm run android, npm run web, npm start
+
+# Verify
+npm test           # jest-expo unit tests
+npm run lint       # expo lint
+```
+
+Production builds ship through EAS (`eas.json`: development, preview, and production profiles with auto-incrementing build numbers) and submit to App Store Connect with a preconfigured ASC app id.
+
+## Tech stack
+
+| Layer | Tech |
+|---|---|
+| App | Expo SDK 56, React Native 0.85, React 19, expo-router, TypeScript |
+| UI | NativeWind (Tailwind), rn-primitives, React Native Skia, Reanimated 4, Rive, Lottie, FlashList, Gorhom bottom sheet, custom `src/ui` kit |
+| Backend | Convex (reactive database, actions, crons, http routes), Convex Auth |
+| AI coach | Llama 3.3 70B on Groq, @convex-dev/rag with gemini-embedding-001 embeddings, curated knowledge corpus in `knowledge/` |
+| Moderation | Anthropic Claude classification pipeline for all community content |
+| Payments | RevenueCat (react-native-purchases + Paywalls UI), StoreKit intro offer, webhook mirror |
+| Push | OneSignal (client SDK + server REST from Convex) |
+| Analytics | PostHog (events + experiments), first-party activation events in Convex |
+| Crashes | Sentry React Native |
+| Email | Resend, sent from Convex |
+| Testing | Jest with jest-expo: streaks, entitlements, buddy logic, RC webhook mapping, community rules |
+| Delivery | EAS Build + Submit, expo-updates OTA channels |
+
+## Project structure
 
 ```
 hale/
 ├── src/
-│   ├── app/                  # expo-router screens (file-based routing)
-│   │   ├── (onboarding)/     #   welcome → 7-question quiz → plan reveal → commit → buddy
-│   │   ├── (tabs)/           #   Today · Squad · Coach (Sage) · You
-│   │   ├── r/[code].tsx      #   referral deep link (code → referrer)
-│   │   ├── u/[id].tsx        #   buddy-invite deep link (attribution + auto-pair)
-│   │   ├── sos.tsx           #   craving SOS (ride/breathe/log/slip/recover)
-│   │   ├── paywall.tsx       #   HALE+ upsell (+ analytics, goals, leagues, squads, toolkit)
-│   │   └── _layout.tsx       #   providers: Convex, auth, PostHog, RevenueCat, fonts
-│   ├── components/           # shared UI (LockedFeature, ReferralCard, TransformationCard,
-│   │                         #   MilestoneCelebration, InviteCodeEntry, ui/ primitives)
-│   ├── hooks/                # usePremium (the client hasHALEPlus mirror), push tags, …
-│   ├── lib/                  # analytics, links (universal-link builders), revenuecat,
-│   │                         #   pendingBuddy stash, config (env access)
-│   └── theme/                # design tokens — single source for Tailwind + runtime hexes
-├── convex/                   # backend: schema + functions
-│   ├── schema.ts             #   users, quitAttempts, checkIns, cravings, buddyLinks,
-│   │                         #   squads, referrals, matchRequests, activationEvents, …
-│   ├── model/                #   PURE logic: entitlement, streak, plan, buddy, trial,
-│   │                         #   rcWebhook, sage (unit-tested, no ctx)
-│   ├── checkins.ts · buddies.ts · referrals.ts · squads.ts · sage.ts · relapse.ts …
-│   ├── http.ts               #   RevenueCat webhook endpoint
-│   ├── crons.ts              #   streak-at-risk · proactive nudge · trial reminder
-│   └── rag.ts                #   Sage knowledge index (Convex RAG + Google embeddings)
-├── knowledge/                # curated cessation corpus + build pipeline (RAG source)
-├── web/                      # static link-domain site (AASA, assetlinks, store redirect)
-├── docs/                     # analytics events contract, design specs, deliverables
-└── __tests__/                # Jest unit tests (entitlement, streak/plan, buddy, webhook)
+│   ├── app/                  expo-router routes
+│   │   ├── (onboarding)/     welcome, age gate, quiz, health notice
+│   │   ├── (tabs)/           today, coach, community, squad, you
+│   │   ├── sos.tsx           craving SOS
+│   │   ├── toolkit.tsx       craving toolkit
+│   │   ├── paywall.tsx       HALE+ purchase
+│   │   ├── leagues.tsx       streak leagues
+│   │   ├── goals.tsx         savings goals
+│   │   ├── analytics.tsx     health analytics
+│   │   └── referral/, r/, u/  referral flow, code links, profiles
+│   ├── components/           milestone celebrations, referral cards, community UI
+│   ├── ui/                   design system: Button, Card, Ring, Screen, ...
+│   ├── hooks/                usePremium, usePushTags
+│   └── lib/                  analytics, revenuecat, onesignal, sentry, links, haptics
+├── convex/                   backend: schema (22 tables), checkins, buddies,
+│   │                         squads, leagues, sage, rag, communityModeration,
+│   │                         referrals, pushes, crons, http (RC webhook)
+│   └── model/                pure, unit-tested domain logic: streak, entitlement,
+│                             plan, communityRules, sage prompt, rcWebhook
+├── knowledge/                Sage RAG corpus + source allowlist config
+├── web/                      universal-links kit (AASA, privacy, terms), ready
+│                             to deploy; v1 ships code-first sharing instead
+├── __tests__/                jest unit tests for the domain models
+├── app.json                  Expo config, privacy manifests, OneSignal plugin
+└── eas.json                  EAS build profiles + App Store submit config
 ```
 
----
+## Design decisions worth stealing
 
-## Getting Started
+- **Streaks live in the user's timezone, never UTC.** `localDateOf` uses `Intl` with the user's IANA zone, so a 11:50 pm check-in in Mumbai counts for the right day.
+- **One mutation owns the streak.** `checkIns` is the source of truth; `users.currentStreak` is a cache written only inside the check-in mutation. No drift.
+- **Entitlement is resolved in exactly one function.** Paid (RevenueCat mirror) and earned (referral reward window) both flow through `resolveEntitlement`, which gates Sage caps on the server and the `usePremium` hook on the client.
+- **Moderation is pre-publish, not post-hoc.** Content is written as pending, classified by Claude in a scheduled action, then flipped by a pure state machine. A requeue job catches anything that stalls.
+- **Pure domain logic is separated and tested.** Everything in `convex/model/` is side-effect free and covered by Jest: streak math, entitlement windows, plan calculations, webhook event mapping.
 
-### Prerequisites
-- Node 18+ and npm
-- Xcode (iOS simulator) and/or Android Studio
-- A free [Convex](https://convex.dev) account
+## License
 
-### Install & run
-
-```bash
-git clone https://github.com/s-k-28/hale.git
-cd hale
-npm install
-
-# Start the Convex backend (first run provisions a dev deployment and
-# writes EXPO_PUBLIC_CONVEX_URL / EXPO_PUBLIC_CONVEX_SITE_URL to .env.local)
-npx convex dev
-
-# In a second terminal — start the app
-npm start          # Expo dev server (press i for iOS simulator, a for Android)
-```
-
-```bash
-npm test           # Jest unit tests
-npm run lint       # ESLint
-npx tsc --noEmit   # typecheck
-```
-
-### Environment variables
-
-Copy `.env.example` → `.env.local`. Client keys (bundled into the app, all optional — the app degrades gracefully in scaffold mode when keys are absent):
-
-| Variable | Purpose |
-|----------|---------|
-| `EXPO_PUBLIC_CONVEX_URL` / `EXPO_PUBLIC_CONVEX_SITE_URL` | Convex deployment (written by `npx convex dev`) |
-| `EXPO_PUBLIC_POSTHOG_KEY` / `EXPO_PUBLIC_POSTHOG_HOST` | PostHog analytics |
-| `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | RevenueCat public SDK keys |
-| `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT` | Entitlement identifier (default `HALE+`) |
-| `EXPO_PUBLIC_ONESIGNAL_APP_ID` | OneSignal app id |
-| `EXPO_PUBLIC_SENTRY_DSN` | Sentry crash reporting |
-
-Server-only keys live in the **Convex deployment env** (`npx convex env set NAME value`), never in the client bundle:
-
-| Variable | Purpose |
-|----------|---------|
-| `GROQ_API_KEY` | Sage coach LLM (Llama 3.3 70B on Groq) |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | RAG embeddings (`gemini-embedding-001`) |
-| `REVENUECAT_WEBHOOK_SECRET` | Authenticates the RevenueCat → Convex webhook |
-| `ONESIGNAL_REST_API_KEY` | Server-triggered pushes |
-| `RESEND_API_KEY` | Lifecycle email |
-
-Without any optional keys the app still runs end-to-end: Sage answers with a warm fallback, the in-app paywall renders instead of RevenueCat's, and pushes/email become no-ops.
-
----
-
-*Health-timeline and coaching content is supportive information, not medical advice. If you're in crisis, call or text 988 (US).*
+MIT. See [LICENSE](LICENSE).
