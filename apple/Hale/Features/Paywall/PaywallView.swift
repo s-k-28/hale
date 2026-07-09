@@ -3,9 +3,9 @@ import RevenueCat
 import Pow
 
 // HALE+ hard paywall (custom UI, not RC's). Single-screen, no-scroll conversion
-// layout: value stack → 3-day trial timeline (trust) → annual-default plan
-// selector with savings → one primary CTA, all visible at once. No dismiss
-// affordance — the only ways forward are starting the trial or restoring.
+// layout: value stack, social proof + 3-day trial timeline, annual-default plan
+// selector with savings, one primary CTA — all visible at once. No dismiss
+// affordance; the only ways forward are starting the trial or restoring.
 struct PaywallView: View {
     var from: String = "paywall_screen"
     @Environment(\.dismiss) private var dismiss
@@ -24,24 +24,24 @@ struct PaywallView: View {
     var body: some View {
         ZStack {
             HaleBackdrop(bloom: UnitPoint(x: 0.30, y: 0.14))
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 // Header — hard paywall, no dismiss control.
                 Txt.Eyebrow("HALE+", color: Tok.accent).riseIn(0)
                 Txt.H1("Go all in.").riseIn(1)
-                Txt.Lead("Your coach, your data, your people — no limits.")
+                Txt.Lead("Your coach, your data, your people. No limits.")
                     .fixedSize(horizontal: false, vertical: true).riseIn(1)
 
-                // Value stack — compact.
-                VStack(alignment: .leading, spacing: 8) {
+                // Value stack — title over detail so nothing looks squished.
+                VStack(alignment: .leading, spacing: 10) {
                     featureRow("Unlimited Sage", "Your AI coach the second a craving hits.").riseIn(2)
                     featureRow("Full health analytics", "Every pattern, trend, and recovery milestone.").riseIn(3)
                     featureRow("Multiple squads", "Quit alongside more than one group.").riseIn(4)
                 }
 
-                // Trial timeline — the trust builder.
-                trialTimeline.riseIn(4)
+                // Social proof + trial timeline.
+                trialCard.riseIn(4)
 
-                Spacer(minLength: 6)
+                Spacer(minLength: 4)
 
                 // Plan selector — annual is the highlighted default.
                 GlassEffectContainer(spacing: 10) {
@@ -53,7 +53,11 @@ struct PaywallView: View {
                     }
                 }
 
-                // CTA + trust + legal (App Review 3.1.2).
+                // Reassurance + CTA + legal (App Review 3.1.2).
+                Label("No payment due now", systemImage: "checkmark")
+                    .font(.sora(.semibold, 13)).foregroundStyle(Tok.accent)
+                    .frame(maxWidth: .infinity)
+
                 HButton(label: "Start my 3-day free trial", variant: .primary, loading: busy) { purchase() }
                     .sheen(radius: Tok.R.tile)
                     .changeEffect(.shine(duration: 0.6), value: selected)
@@ -77,7 +81,7 @@ struct PaywallView: View {
                 .frame(maxWidth: .infinity)
             }
             .padding(.horizontal, Tok.gutter)
-            .padding(.top, 14)
+            .padding(.top, 12)
             .padding(.bottom, 8)
         }
         .task {
@@ -91,15 +95,17 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Trial timeline
+    // MARK: - Social proof + trial timeline
 
-    private var trialTimeline: some View {
-        VStack(alignment: .leading, spacing: 10) {
+    private var trialCard: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            Text("Join a community quitting together.")
+                .font(.sora(.semibold, 15)).foregroundStyle(Tok.fg)
             Text("HOW YOUR FREE TRIAL WORKS")
                 .font(.sora(.bold, 11)).foregroundStyle(Tok.fg3).kerning(0.6)
             timelineStep("lock.open.fill", "Today", "Everything unlocks instantly.", accent: true)
             timelineStep("bell.fill", "Day 2", "A reminder before your trial ends.")
-            timelineStep("checkmark.seal.fill", "Day 3", "Your plan starts — cancel any time before.")
+            timelineStep("checkmark.seal.fill", "Day 3", "Your plan starts. Cancel anytime before then.")
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -123,13 +129,15 @@ struct PaywallView: View {
         .accessibilityElement(children: .combine)
     }
 
-    // MARK: - Feature rows
+    // MARK: - Feature rows (title over detail — clean, never squished)
 
     private func featureRow(_ title: String, _ detail: String) -> some View {
-        HStack(alignment: .center, spacing: 10) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(Tok.accent)
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 19))
+                .foregroundStyle(Tok.accent)
                 .accessibilityHidden(true)
-            HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.sora(.semibold, 15)).foregroundStyle(Tok.fg)
                 Text(detail).font(.sora(.regular, 13)).foregroundStyle(Tok.fg2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -138,12 +146,15 @@ struct PaywallView: View {
         .accessibilityElement(children: .combine)
     }
 
-    // MARK: - Plan card
+    // MARK: - Plan card (selection ring + circle indicator)
 
     private func planOption(_ key: String, title: String, price: String, sub: String, badge: String?) -> some View {
         let on = selected == key
         return Button { selected = key; Haptics.select() } label: {
             HStack(spacing: 12) {
+                Image(systemName: on ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundStyle(on ? Tok.accent : Tok.fg3)
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 8) {
                         Text(title).font(.sora(.semibold, 16)).foregroundStyle(Tok.fg)
