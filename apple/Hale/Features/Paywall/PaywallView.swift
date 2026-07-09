@@ -20,10 +20,8 @@ struct PaywallView: View {
             GeometryReader { proxy in
               ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                HStack {
-                    Spacer()
-                    IconBtn(systemName: "xmark") { dismiss() }
-                }
+                // Hard paywall: no dismiss affordance — the only ways forward are
+                // starting the trial or restoring an existing purchase.
                 Spacer()
                 Txt.Eyebrow("HALE+", color: Tok.accent).riseIn(0)
                 Txt.H1("Go all in.").riseIn(1)
@@ -37,22 +35,22 @@ struct PaywallView: View {
                 GlassEffectContainer(spacing: 12) {
                     VStack(spacing: 12) {
                         planOption("annual", title: "Annual",
-                                   price: annual?.storeProduct.localizedPriceString ?? "$79.99", note: "/yr · $6.67/mo")
+                                   price: annual?.storeProduct.localizedPriceString ?? "$49.99", note: "/yr · $4.17/mo")
                         planOption("monthly", title: "Monthly",
-                                   price: monthly?.storeProduct.localizedPriceString ?? "$12.99", note: "/mo")
+                                   price: monthly?.storeProduct.localizedPriceString ?? "$6.99", note: "/mo")
                     }
                 }
-                HButton(label: "Start my 14-day free trial", variant: .primary, loading: busy) { purchase() }
+                HButton(label: "Start my 3-day free trial", variant: .primary, loading: busy) { purchase() }
                     .sheen(radius: Tok.R.tile)                       // looping specular sweep
                     .changeEffect(.shine(duration: 0.6), value: selected)  // flash when plan changes
                 subscriptionDisclosure
-                HStack(spacing: 18) {
-                    Button("Restore purchases") { restore() }
-                    Button("Continue with the free version") { dismiss() }
-                }
-                .font(.sora(.medium, 14)).foregroundStyle(Tok.fg2)
-                .lineLimit(1).minimumScaleFactor(0.8)   // shrink, don't ellipsize
-                .frame(maxWidth: .infinity)
+                // Restore only — no "free version" escape. Apple requires a
+                // Restore affordance, but it's not a bypass (it only unlocks an
+                // already-purchased subscription).
+                Button("Restore purchases") { restore() }
+                    .font(.sora(.medium, 14)).foregroundStyle(Tok.fg2)
+                    .lineLimit(1).minimumScaleFactor(0.8)   // shrink, don't ellipsize
+                    .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, Tok.gutter).padding(.bottom, 24).padding(.top, 8)
                 // Fill height so the Spacers still distribute the layout when it
@@ -73,7 +71,7 @@ struct PaywallView: View {
     // App Review 3.1.2: auto-renew disclosure + working Terms & Privacy links.
     private var subscriptionDisclosure: some View {
         VStack(spacing: 6) {
-            Text("14-day free trial, then your plan renews automatically. Cancel anytime — auto-renews unless turned off at least 24 hours before the period ends. Manage in Settings ▸ Apple ID ▸ Subscriptions.")
+            Text("3-day free trial, then your plan renews automatically. Cancel anytime — auto-renews unless turned off at least 24 hours before the period ends. Manage in Settings ▸ Apple ID ▸ Subscriptions.")
                 .font(.sora(.regular, 11)).foregroundStyle(Tok.fg3)
                 .multilineTextAlignment(.center)
                 // 3.1.2 disclosure must never truncate — wrap even when the
@@ -133,7 +131,7 @@ struct PaywallView: View {
             let ok = await PurchasesService.purchase(pkg)
             busy = false
             if ok {
-                AnalyticsService.track(.trialStarted, ["trial_days": 14, "trial_type": "storekit", "surface": from])
+                AnalyticsService.track(.trialStarted, ["trial_days": 3, "trial_type": "storekit", "surface": from])
                 Haptics.success(); dismiss()
             } else {
                 Toast.error("Purchase didn't go through. You weren't charged.")
