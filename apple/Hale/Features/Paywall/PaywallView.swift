@@ -2,11 +2,10 @@ import SwiftUI
 import RevenueCat
 import Pow
 
-// HALE+ hard paywall (custom UI, not RC's). Conversion-optimized layout:
-// value stack → 3-day trial timeline (trust) → annual-default plan selector with
-// savings → one pinned primary CTA. No dismiss affordance — the only ways forward
-// are starting the trial or restoring an existing purchase. Prices come from the
-// live StoreKit product; fallbacks match the App Store Connect pricing.
+// HALE+ hard paywall (custom UI, not RC's). Single-screen, no-scroll conversion
+// layout: value stack → 3-day trial timeline (trust) → annual-default plan
+// selector with savings → one primary CTA, all visible at once. No dismiss
+// affordance — the only ways forward are starting the trial or restoring.
 struct PaywallView: View {
     var from: String = "paywall_screen"
     @Environment(\.dismiss) private var dismiss
@@ -24,38 +23,62 @@ struct PaywallView: View {
 
     var body: some View {
         ZStack {
-            HaleBackdrop(bloom: UnitPoint(x: 0.30, y: 0.16))
-            GeometryReader { proxy in
-                ZStack(alignment: .bottom) {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
-                            // Header — hard paywall, no dismiss control.
-                            Txt.Eyebrow("HALE+", color: Tok.accent).riseIn(0)
-                            Txt.H1("Go all in.").riseIn(1)
-                            Txt.Lead("Unlock your coach, your data, and your people — and quit for good.")
-                                .fixedSize(horizontal: false, vertical: true)
-                                .riseIn(1)
+            HaleBackdrop(bloom: UnitPoint(x: 0.30, y: 0.14))
+            VStack(alignment: .leading, spacing: 12) {
+                // Header — hard paywall, no dismiss control.
+                Txt.Eyebrow("HALE+", color: Tok.accent).riseIn(0)
+                Txt.H1("Go all in.").riseIn(1)
+                Txt.Lead("Your coach, your data, your people — no limits.")
+                    .fixedSize(horizontal: false, vertical: true).riseIn(1)
 
-                            // Value stack
-                            VStack(alignment: .leading, spacing: 10) {
-                                featureRow("Unlimited Sage", "Coaching the moment a craving hits — no daily cap.").riseIn(2)
-                                featureRow("Full health analytics", "Craving patterns, intensity trends, recovery timeline.").riseIn(3)
-                                featureRow("Multiple squads", "Quit alongside more than one group at a time.").riseIn(4)
-                            }
-
-                            // Trial timeline — the trust builder
-                            trialTimeline.riseIn(4)
-                        }
-                        .padding(.horizontal, Tok.gutter)
-                        .padding(.top, 20)
-                        .padding(.bottom, 360)   // clear the pinned plans + CTA
-                        .frame(minHeight: proxy.size.height, alignment: .top)
-                    }
-                    .scrollIndicators(.hidden)
-
-                    ctaFooter
+                // Value stack — compact.
+                VStack(alignment: .leading, spacing: 8) {
+                    featureRow("Unlimited Sage", "Your AI coach the second a craving hits.").riseIn(2)
+                    featureRow("Full health analytics", "Every pattern, trend, and recovery milestone.").riseIn(3)
+                    featureRow("Multiple squads", "Quit alongside more than one group.").riseIn(4)
                 }
+
+                // Trial timeline — the trust builder.
+                trialTimeline.riseIn(4)
+
+                Spacer(minLength: 6)
+
+                // Plan selector — annual is the highlighted default.
+                GlassEffectContainer(spacing: 10) {
+                    VStack(spacing: 10) {
+                        planOption("annual", title: "Annual", price: annualPrice,
+                                   sub: "$4.17/mo · billed yearly", badge: "SAVE 40%")
+                        planOption("monthly", title: "Monthly", price: monthlyPrice,
+                                   sub: "billed monthly", badge: nil)
+                    }
+                }
+
+                // CTA + trust + legal (App Review 3.1.2).
+                HButton(label: "Start my 3-day free trial", variant: .primary, loading: busy) { purchase() }
+                    .sheen(radius: Tok.R.tile)
+                    .changeEffect(.shine(duration: 0.6), value: selected)
+
+                Text("No charge today · Cancel anytime in Settings")
+                    .font(.sora(.semibold, 12)).foregroundStyle(Tok.accent)
+                    .frame(maxWidth: .infinity)
+
+                Text("3-day free trial, then \(selectedRenewal). Auto-renews until cancelled.")
+                    .font(.sora(.regular, 11)).foregroundStyle(Tok.fg3)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+
+                HStack(spacing: 18) {
+                    Button("Restore") { restore() }
+                    Link("Privacy", destination: Links.privacy)
+                    Link("Terms", destination: Links.terms)
+                }
+                .font(.sora(.medium, 12)).foregroundStyle(Tok.fg3)
+                .frame(maxWidth: .infinity)
             }
+            .padding(.horizontal, Tok.gutter)
+            .padding(.top, 14)
+            .padding(.bottom, 8)
         }
         .task {
             AnalyticsService.track(.paywallViewed, ["surface": from])
@@ -68,75 +91,31 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Pinned CTA + legal (always visible for conversion + App Review 3.1.2)
-
-    private var ctaFooter: some View {
-        VStack(spacing: 10) {
-            // Plan selector — annual is the highlighted default. Pinned with the CTA
-            // so the price is always in view (never scrolled off).
-            GlassEffectContainer(spacing: 10) {
-                VStack(spacing: 10) {
-                    planOption("annual", title: "Annual", price: annualPrice,
-                               sub: "$4.17/mo · billed yearly", badge: "SAVE 40%")
-                    planOption("monthly", title: "Monthly", price: monthlyPrice,
-                               sub: "billed monthly", badge: nil)
-                }
-            }
-
-            HButton(label: "Start my 3-day free trial", variant: .primary, loading: busy) { purchase() }
-                .sheen(radius: Tok.R.tile)
-                .changeEffect(.shine(duration: 0.6), value: selected)
-
-            Text("No charge today · Cancel anytime in Settings")
-                .font(.sora(.semibold, 12)).foregroundStyle(Tok.accent)
-
-            // Auto-renew disclosure (Guideline 3.1.2) — dynamic to the selected plan.
-            Text("3-day free trial, then \(selectedRenewal). Auto-renews until cancelled.")
-                .font(.sora(.regular, 11)).foregroundStyle(Tok.fg3)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity)
-
-            HStack(spacing: 18) {
-                Button("Restore") { restore() }
-                Link("Privacy", destination: Links.privacy)
-                Link("Terms", destination: Links.terms)
-            }
-            .font(.sora(.medium, 12)).foregroundStyle(Tok.fg3)
-        }
-        .padding(.horizontal, Tok.gutter)
-        .padding(.top, 16)
-        .padding(.bottom, 14)
-        .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
-        .overlay(alignment: .top) { Rectangle().fill(Tok.stroke).frame(height: 1) }
-    }
-
     // MARK: - Trial timeline
 
     private var trialTimeline: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("HOW YOUR FREE TRIAL WORKS")
                 .font(.sora(.bold, 11)).foregroundStyle(Tok.fg3).kerning(0.6)
-            timelineStep("lock.open.fill", "Today", "Full access — Sage, analytics, and squads unlock instantly.", accent: true)
-            timelineStep("bell.fill", "Day 2", "We'll send a reminder before your trial ends.")
-            timelineStep("checkmark.seal.fill", "Day 3", "Your plan begins. Cancel any time before then and pay nothing.")
+            timelineStep("lock.open.fill", "Today", "Everything unlocks instantly.", accent: true)
+            timelineStep("bell.fill", "Day 2", "A reminder before your trial ends.")
+            timelineStep("checkmark.seal.fill", "Day 3", "Your plan starts — cancel any time before.")
         }
-        .padding(16)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: Tok.R.tile, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Tok.R.tile, style: .continuous).strokeBorder(Tok.stroke, lineWidth: 1))
     }
 
     private func timelineStep(_ icon: String, _ day: String, _ detail: String, accent: Bool = false) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(accent ? Tok.accent : Tok.fg2)
-                .frame(width: 24)
+                .frame(width: 22)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(day).font(.sora(.semibold, 14)).foregroundStyle(Tok.fg)
+            HStack(spacing: 6) {
+                Text(day).font(.sora(.semibold, 13)).foregroundStyle(Tok.fg)
                 Text(detail).font(.sora(.regular, 13)).foregroundStyle(Tok.fg2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -147,12 +126,12 @@ struct PaywallView: View {
     // MARK: - Feature rows
 
     private func featureRow(_ title: String, _ detail: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(Tok.accent)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 1) {
-                Txt.Lead(title, color: Tok.fg)
-                Txt.Body(detail)
+            HStack(spacing: 6) {
+                Text(title).font(.sora(.semibold, 15)).foregroundStyle(Tok.fg)
+                Text(detail).font(.sora(.regular, 13)).foregroundStyle(Tok.fg2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -181,7 +160,7 @@ struct PaywallView: View {
                 Spacer()
                 Text(price).font(.sora(.bold, 20)).foregroundStyle(Tok.fg)
             }
-            .padding(18)
+            .padding(16)
             .haleGlassSelectable(on)
             .glassEffectID("plan-\(key)", in: glassNS)
             .overlay(RoundedRectangle(cornerRadius: Tok.R.tile, style: .continuous)
