@@ -12,11 +12,12 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.ravipulavarthy.hale",
-      "buildNumber": "10",
+      "buildNumber": "13",
       "icon": "./assets/images/icon.png",
       "supportsTablet": false,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Hale does not track your location. A supporting library references this permission; Hale never requests it."
       },
       "privacyManifests": {
         "NSPrivacyTracking": false,
@@ -160,16 +161,34 @@
                       "group.com.ravipulavarthy.hale.onesignal"
                     ]
                   }
+                },
+                {
+                  "targetName": "OneSignalNotificationServiceExtension",
+                  "bundleIdentifier": "com.ravipulavarthy.hale.OneSignalNotificationServiceExtension",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.ravipulavarthy.hale.onesignal"
+                    ]
+                  }
+                },
+                {
+                  "targetName": "OneSignalNotificationServiceExtension",
+                  "bundleIdentifier": "com.ravipulavarthy.hale.OneSignalNotificationServiceExtension",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.ravipulavarthy.hale.onesignal"
+                    ]
+                  }
                 }
               ]
             }
           }
         },
-        "projectId": "b9df8322-f338-4e87-9d9d-9f267e40335b"
+        "projectId": "5d7e5cd6-959a-42d3-9443-5cf70efa6971"
       },
       "router": {}
     },
-    "owner": "john-pula",
+    "owner": "s-k-28",
     "runtimeVersion": {
       "policy": "appVersion"
     },
