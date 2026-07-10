@@ -1,0 +1,21 @@
+# Keep the EAS archive lean. ios/ is excluded so EAS prebuilds a fresh native
+# project from app.json (correct bundle id, icon, splash) instead of the stale
+# local prebuild.
+node_modules/
+ios/
+apple/
+docs/
+screenshots/
+marketing/
+knowledge/
+web/
+scripts/
+brand/
+.maestro/
+.claude/
+.agents/
+.vscode/
+.git/
+*.log
+*.mp4
+*.mov
