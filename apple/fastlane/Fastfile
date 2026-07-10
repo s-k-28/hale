@@ -25,7 +25,9 @@ platform :ios do
     UI.message("Building HALE with build number #{next_build || '(project default)'}")
 
     build_app(
-      project: "../Hale.xcodeproj",
+      # gym resolves relative paths from the fastlane dir's PARENT (apple/),
+      # so the project sits at "Hale.xcodeproj", not "../Hale.xcodeproj".
+      project: "Hale.xcodeproj",
       scheme: "Hale",
       export_method: "app-store",
       configuration: "Release",
