@@ -1,14 +1,18 @@
+# Paywall verification — run with the app foregrounded on the paywall route
+# (deep link: hale://paywall). Regex notes: '$'/'%' are regex chars; plan cards
+# expose one combined a11y label, so taps/badges use wildcard patterns.
 appId: com.ravipulavarthy.hale
 ---
-- launchApp:
-    clearState: false
-- runFlow:
-    when:
-      visible: "Start my 3-day free trial"
-    commands:
-      - takeScreenshot: /tmp/maestro-paywall
 - assertVisible: "Start my 3-day free trial"
-- assertVisible: "$49.99"
-- assertVisible: "$6.99"
+- assertVisible: '.*49.99.*'
+- assertVisible: '.*6.99.*'
 - assertVisible: "HOW YOUR FREE TRIAL WORKS"
-- takeScreenshot: /tmp/maestro-paywall
+- assertVisible: "No payment due now"
+- assertVisible: '.*SAVE 40.*'
+- assertNotVisible: "Continue with the free version"
+- takeScreenshot: /tmp/maestro-annual
+- tapOn: '.*Monthly.*'
+- assertVisible: "Start my 3-day free trial"
+- takeScreenshot: /tmp/maestro-monthly
+- tapOn: '.*Annual.*'
+- takeScreenshot: /tmp/maestro-annual-back
