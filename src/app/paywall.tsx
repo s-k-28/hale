@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, Bot, LineChart, Users } from 'lucide-react-native';
+import { Check, Unlock, Bell, BadgeCheck } from 'lucide-react-native';
 import {
   loadPlanOffers,
   purchasePlan,
@@ -20,7 +20,6 @@ import {
   Body,
   Badge,
   Muted as Caption,
-  H2 as Heading,
 } from '@/ui';
 import { clean } from '@/theme/clean';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,8 +39,10 @@ import Animated, {
  * RC-rendered sheet: purchases go straight through StoreKit via
  * Purchases.purchasePackage (lib/paywall.ts).
  *
- * MUST be registered in src/app/_layout.tsx as:
- *   <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
+ * Exact port of the SwiftUI PaywallView: value stack, social proof + 3-day
+ * trial timeline (Today / Day 2 / Day 3), annual-default plan selector with a
+ * SAVE 40% badge, one primary CTA. Plans + CTA stay pinned so the price is
+ * always in view.
  *
  * Hard paywall: no dismiss control. The only ways forward are starting the
  * 3-day trial or restoring an existing purchase (Restore is Apple-required and
@@ -50,30 +51,19 @@ import Animated, {
  *
  * Plans: annual $49.99/yr (default, highlighted) and monthly $6.99/mo, with
  * the 3-day StoreKit intro trial framed on the primary CTA. When offerings
- * can't load, a plain unavailable notice + retry — never blank, never a
- * browser link.
+ * can't load, the fallback prices render — never blank, never a browser link.
  */
 
-type IconCmp = typeof Bot;
+const BENEFITS: { title: string; detail: string }[] = [
+  { title: 'Unlimited Sage', detail: 'Your AI coach the second a craving hits.' },
+  { title: 'Full health analytics', detail: 'Every pattern, trend, and recovery milestone.' },
+  { title: 'Multiple squads', detail: 'Quit alongside more than one group.' },
+];
 
-const BENEFITS: { title: string; detail: string; Icon: IconCmp }[] = [
-  {
-    title: 'Unlimited Sage',
-    detail: 'Talk to your AI coach as much as you need, no daily caps, day or night.',
-    Icon: Bot,
-  },
-  {
-    title: 'Full health analytics',
-    detail: 'Every recovery milestone, trigger pattern, and savings projection unlocked.',
-    Icon: LineChart,
-  },
-  {
-    title: 'Multiple squads',
-    detail: 'Quit alongside more than one buddy and keep every group accountable.',
-    Icon: Users,
-  },
-  // NOTE: do NOT list features that aren't in the binary (Guideline 2.1/3.1.2)
-  // — home-screen widgets were removed here until the WidgetKit extension ships.
+const TIMELINE: { Icon: typeof Unlock; day: string; detail: string; accent?: boolean }[] = [
+  { Icon: Unlock, day: 'Today', detail: 'Everything unlocks instantly.', accent: true },
+  { Icon: Bell, day: 'Day 2', detail: 'A reminder before your trial ends.' },
+  { Icon: BadgeCheck, day: 'Day 3', detail: 'Your plan starts. Cancel anytime before then.' },
 ];
 
 export default function Paywall() {
@@ -108,7 +98,6 @@ export default function Paywall() {
   const onStart = async () => {
     if (busy) return;
     setNotice(null);
-    // Offerings missing → retry the load (unavailable state), never a browser.
     if (offers === 'loading' || offers === null) {
       setBusy(true);
       const o = await loadPlanOffers();
@@ -127,7 +116,6 @@ export default function Paywall() {
     const result = await purchasePlan(offer, surface);
     setBusy(false);
     if (result === 'purchased') {
-      // The StoreKit intro trial starts with the subscription.
       track(Ev.TRIAL_STARTED, { trial_days: 3, trial_type: 'storekit' });
       dismiss();
     } else if (result === 'failed') {
@@ -169,7 +157,7 @@ export default function Paywall() {
 }
 
 /* ------------------------------------------------------------------ */
-/* In-app fallback upsell (scaffold / RC-unconfigured)                 */
+/* Presentation                                                        */
 /* ------------------------------------------------------------------ */
 
 function HalePlusUpsell({
@@ -194,167 +182,198 @@ function HalePlusUpsell({
     if (offers === 'loading' || offers === null) return fallback;
     return offers.find((o) => o.plan === p)?.price ?? fallback;
   };
-  // Explicit insets: SafeAreaView can race to zero inside fullScreenModal
-  // and put the header under the status bar (ui-audit D4).
+  const annualPrice = priceFor('annual', '$49.99');
+  const monthlyPrice = priceFor('monthly', '$6.99');
+  const selectedRenewal = plan === 'annual' ? `${annualPrice}/yr` : `${monthlyPrice}/mo`;
+
   return (
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 8) }}>
-      {/* Hard paywall: no close control. The value stack scrolls; it can never
-          be clipped by the pinned CTA. */}
+      {/* Hard paywall: no close control. Value stack scrolls; the plans + CTA
+          below are pinned so the price is never scrolled off. */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-gutter pb-8 pt-3"
+        contentContainerClassName="px-gutter pt-3 pb-4"
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero — tightened (text-5xl, single line) so all four benefits sit above the fold */}
+        {/* Header */}
         <View className="mt-1">
           <Badge label="HALE+" tone="soft" />
-
-          <Display className="mt-4 text-fg text-5xl leading-tight tracking-tight">
+          <Display className="mt-3 text-fg text-5xl leading-tight tracking-tight">
             Go all in.
           </Display>
-
-          <Heading className="mt-3 text-accent text-xl leading-snug">
-            Quitting sticks when you stop holding back.
-          </Heading>
-
           <Body className="mt-2 text-fg-2 text-base leading-relaxed">
-            Unlock the full toolkit, your coach, your data, and your people.
+            Your coach, your data, your people. No limits.
           </Body>
         </View>
 
-        {/* Benefits — one tight group */}
-        <View className="mt-7 gap-3">
-          {BENEFITS.map((b, i) => (
-            <Benefit key={b.title} title={b.title} detail={b.detail} Icon={b.Icon} elevated={i === 0} />
+        {/* Value stack — title over detail, never squished */}
+        <View className="mt-6 gap-3">
+          {BENEFITS.map((b) => (
+            <Benefit key={b.title} title={b.title} detail={b.detail} />
           ))}
         </View>
 
-        {/* Reassurance */}
-        <Caption className="mt-5 text-center leading-relaxed">
-          3-day free trial, then your chosen plan auto-renews until cancelled. Cancel anytime in Apple Settings, at least 24h before renewal.
-        </Caption>
+        {/* Social proof + trial timeline */}
+        <TrialCard />
       </ScrollView>
 
-      {/* Pinned footer: price stays visible WITH the CTA, and it's slim enough
-          that it never covers a benefit. Focal point = the lime START HALE+ action. */}
+      {/* Pinned footer: plans + reassurance + CTA + legal */}
       <View
         className="border-t border-stroke bg-surface px-gutter pb-2 pt-4"
         style={{ shadowColor: '#000000', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: -8 } }}
       >
-        {/* Plan selector — annual is the highlighted default. */}
-        <View className="mb-3 flex-row gap-3">
+        {/* Plan selector — annual is the highlighted default */}
+        <View className="gap-2.5">
           <PlanCard
             selected={plan === 'annual'}
             onPress={() => onPlan('annual')}
             title="Annual"
-            price={priceFor('annual', '$49.99')}
-            per="/yr · $4.17/mo"
-            tag="Best value"
+            price={annualPrice}
+            sub="$4.17/mo · billed yearly"
+            badge="SAVE 40%"
           />
           <PlanCard
             selected={plan === 'monthly'}
             onPress={() => onPlan('monthly')}
             title="Monthly"
-            price={priceFor('monthly', '$6.99')}
-            per="/mo"
+            price={monthlyPrice}
+            sub="billed monthly"
           />
         </View>
 
-        <SheenButton
-          onPress={onStart}
-          label={notice ? 'Try again' : 'Start my 3-day free trial'}
-          busy={busy}
-        />
-        {notice ? (
-          <Body className="mt-3 text-center text-[13px] leading-5 text-fg-2">{notice}</Body>
-        ) : null}
+        {/* Reassurance */}
+        <View className="mt-3 flex-row items-center justify-center gap-1.5">
+          <Check color={clean.accent} size={14} strokeWidth={3} />
+          <Caption className="text-accent font-sora-bold">No payment due now</Caption>
+        </View>
 
-        {/* Stacked, not side-by-side: the two labels + a gap overflow the row
-            width on 402pt devices and RN collapses the gap (ui-audit root
-            cause #2) — vertical guarantees a fit on every width. */}
-        <View className="mt-1 items-center">
-          <Pressable
-            onPress={onRestore}
-            accessibilityRole="button"
-            className="items-center px-6 py-2.5 active:opacity-70"
-          >
-            <Caption className="text-fg-2">Restore purchases</Caption>
+        <View className="mt-2">
+          <SheenButton
+            onPress={onStart}
+            label={notice ? 'Try again' : 'Start my 3-day free trial'}
+            busy={busy}
+          />
+        </View>
+
+        {notice ? (
+          <Body className="mt-2 text-center text-[13px] leading-5 text-fg-2">{notice}</Body>
+        ) : (
+          <Caption className="mt-2 text-center leading-relaxed text-fg-3 text-[11px]">
+            3-day free trial, then {selectedRenewal}. Auto-renews until cancelled.
+          </Caption>
+        )}
+
+        {/* Restore + legal (Guideline 3.1.2) — one quiet row */}
+        <View className="mt-1.5 flex-row items-center justify-center gap-6">
+          <Pressable onPress={onRestore} accessibilityRole="button" hitSlop={8} className="active:opacity-70">
+            <Caption className="text-fg-2">Restore</Caption>
           </Pressable>
-          {/* Subscription legal (Guideline 3.1.2): functional Privacy + Terms
-              links on the purchase surface. Quiet by design. */}
-          <View className="mt-0.5 flex-row items-center gap-6">
-            <Pressable
-              hitSlop={8}
-              accessibilityRole="link"
-              onPress={() => {
-                haptics.select();
-                void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {});
-              }}
-            >
-              <Caption className="text-fg-3 underline">Privacy</Caption>
-            </Pressable>
-            <Pressable
-              hitSlop={8}
-              accessibilityRole="link"
-              onPress={() => {
-                haptics.select();
-                void WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {});
-              }}
-            >
-              <Caption className="text-fg-3 underline">Terms</Caption>
-            </Pressable>
-          </View>
+          <Pressable
+            hitSlop={8}
+            accessibilityRole="link"
+            onPress={() => {
+              haptics.select();
+              void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => {});
+            }}
+          >
+            <Caption className="text-fg-3 underline">Privacy</Caption>
+          </Pressable>
+          <Pressable
+            hitSlop={8}
+            accessibilityRole="link"
+            onPress={() => {
+              haptics.select();
+              void WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {});
+            }}
+          >
+            <Caption className="text-fg-3 underline">Terms</Caption>
+          </Pressable>
         </View>
       </View>
     </View>
   );
 }
 
-/** Selectable plan card — emerald ring when active (the single accent). */
+/* Social proof headline + "how your free trial works" timeline. */
+function TrialCard() {
+  return (
+    <View className="mt-5 rounded-tile border border-stroke bg-surface/60 px-4 py-4">
+      <Body className="font-sora-bold text-fg text-[15px]">Join a community quitting together.</Body>
+      <Caption className="mt-3 text-fg-3 text-[11px] tracking-wider font-sora-bold">
+        HOW YOUR FREE TRIAL WORKS
+      </Caption>
+      <View className="mt-2.5 gap-2.5">
+        {TIMELINE.map((t) => (
+          <View key={t.day} className="flex-row items-center gap-3">
+            <View className="w-6 items-center">
+              <t.Icon color={t.accent ? clean.accent : clean.fg2} size={16} strokeWidth={2.5} />
+            </View>
+            <View className="flex-row flex-1 flex-wrap items-baseline gap-1.5">
+              <Body className="font-sora-bold text-fg text-[13px]">{t.day}</Body>
+              <Body className="text-fg-2 text-[13px]">{t.detail}</Body>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** Selectable plan card — circle indicator + emerald ring when active. */
 function PlanCard({
   selected,
   onPress,
   title,
   price,
-  per,
-  tag,
+  sub,
+  badge,
 }: {
   selected: boolean;
   onPress: () => void;
   title: string;
   price: string;
-  per: string;
-  tag?: string;
+  sub: string;
+  badge?: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
-      className={`flex-1 rounded-tile px-4 py-3 ${
+      className={`flex-row items-center gap-3 rounded-tile px-4 py-3.5 ${
         selected ? 'border-[1.5px] border-accent bg-accent-soft' : 'border border-stroke bg-surface-2'
       }`}
     >
-      {/* Tag below the title, never beside it: side-by-side, the pill collided
-          with "Annual" on 402pt widths (ui-audit D7). */}
-      <Caption className={selected ? 'text-accent' : 'text-fg-3'}>{title}</Caption>
-      {tag ? (
-        <View className="mt-1 self-start rounded-pill bg-accent px-1.5 py-0.5">
-          <Caption className="text-[9px] font-sora-bold text-accent-ink">{tag}</Caption>
+      {/* Selection indicator: filled check when on, empty ring when off */}
+      {selected ? (
+        <View className="h-6 w-6 items-center justify-center rounded-full bg-accent">
+          <Check color={clean.bg} size={14} strokeWidth={3.5} />
         </View>
-      ) : null}
-      <Display className="mt-1 text-[22px] leading-7 text-fg">{price}</Display>
-      <Caption className="text-[11px] text-fg-3">{per}</Caption>
+      ) : (
+        <View className="h-6 w-6 rounded-full border-[1.5px] border-stroke" />
+      )}
+
+      <View className="flex-1">
+        <View className="flex-row items-center gap-2">
+          <Body className="font-sora-bold text-fg text-base">{title}</Body>
+          {badge ? (
+            <View className="rounded-pill bg-accent px-1.5 py-0.5">
+              <Caption className="text-[9px] font-sora-bold text-accent-ink">{badge}</Caption>
+            </View>
+          ) : null}
+        </View>
+        <Caption className={`mt-0.5 text-[12px] ${selected ? 'text-accent' : 'text-fg-3'}`}>{sub}</Caption>
+      </View>
+
+      <Display className="text-[20px] leading-6 text-fg">{price}</Display>
     </Pressable>
   );
 }
 
 /**
  * START HALE+ with a premium sheen: a soft, skewed white highlight sweeps across
- * the lime button every few seconds (Reanimated translateX over a clipped
- * LinearGradient), then pauses. Light-touch — draws the eye to the conversion CTA
- * without nagging. The sheen is clipped to the button's rounded rect; the Button's
- * own press physics + lift shadow are untouched (the clip only wraps the highlight).
+ * the lime button every few seconds, then pauses. Light-touch, draws the eye to
+ * the conversion CTA. The sheen is clipped to the button's rounded rect.
  */
 function SheenButton({
   onPress,
@@ -374,7 +393,6 @@ function SheenButton({
     x.value = 0;
     x.value = withRepeat(
       withSequence(
-        // Sweep across (~1s), then hold off-screen right for a calm few-second pause.
         withTiming(1, { duration: 1050, easing: Easing.inOut(Easing.quad) }),
         withTiming(1, { duration: 2600 }),
       ),
@@ -393,15 +411,10 @@ function SheenButton({
   return (
     <View className="relative" onLayout={(e) => setW(e.nativeEvent.layout.width)}>
       <Button label={label} variant="primary" loading={busy} onPress={onPress} />
-      {/* Clip the sheen to the button's rounded rect; pointerEvents none so the
-          highlight never eats a tap. Inset clip only — the Button's lift shadow,
-          which lives on the Button itself, is not clipped. */}
       <View className="absolute inset-0 overflow-hidden rounded-2xl" style={{ pointerEvents: 'none' }}>
         {w > 0 ? (
           <Animated.View style={[{ position: 'absolute', top: -12, bottom: -12, width: BAND }, sheenStyle]}>
             <LinearGradient
-              // Bright near-white core — the lime button is already light, so the
-              // streak has to push toward white to read as a premium shine.
               colors={[
                 'rgba(255,255,255,0)',
                 'rgba(255,255,255,0.35)',
@@ -420,39 +433,15 @@ function SheenButton({
   );
 }
 
-function Benefit({
-  title,
-  detail,
-  Icon,
-  elevated = false,
-}: {
-  title: string;
-  detail: string;
-  Icon: IconCmp;
-  elevated?: boolean;
-}) {
-  // The first benefit (the Sage coach — HALE's identity hook) is elevated onto the
-  // raised plane so the value stack has a leader; the rest recede. Checkmarks drop
-  // to fg-2 so the peak accent is reserved for the CTA. Order/labels unchanged.
+function Benefit({ title, detail }: { title: string; detail: string }) {
+  // Title over detail so the copy never looks squished (matches SwiftUI).
   return (
-    <View
-      className={`flex-row items-start rounded-2xl px-4 py-4 ${
-        elevated ? 'border border-accent-edge/25 bg-surface-2' : 'bg-surface/50'
-      }`}
-      style={
-        elevated
-          ? { shadowColor: clean.accent, shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } }
-          : undefined
-      }
-    >
-      <View className="mr-4 h-10 w-10 items-center justify-center rounded-xl bg-accent">
-        <Icon color={clean.bg} size={20} strokeWidth={2.5} />
-      </View>
+    <View className="flex-row items-start gap-3">
+      <Check color={clean.accent} size={19} strokeWidth={3} className="mt-0.5" />
       <View className="flex-1">
-        <Body className="font-sora-bold text-fg text-base">{title}</Body>
-        <Body className="mt-1 text-fg-2 text-sm leading-relaxed">{detail}</Body>
+        <Body className="font-sora-bold text-fg text-[15px]">{title}</Body>
+        <Body className="mt-0.5 text-fg-2 text-[13px] leading-relaxed">{detail}</Body>
       </View>
-      <Check color={clean.fg2} size={18} strokeWidth={3} className="mt-1" />
     </View>
   );
 }
