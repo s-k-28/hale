@@ -6,7 +6,7 @@ import SwiftUI
 // navigating the live app. Data-backed screens render their loading/first-run state
 // without a backend; Paywall / SOS / Disclaimers / Delete render fully.
 // Names: paywall · sos · goals · insights · toolkit · leagues · squads · referral ·
-//        delete · disclaimers
+//        delete · disclaimers · sage · you
 struct ScreenGalleryView: View {
     let which: String
     @State private var app = AppState()
@@ -15,6 +15,8 @@ struct ScreenGalleryView: View {
         Group {
             switch which {
             case "paywall":     PaywallView()
+            case "sage":        CoachView()
+            case "you":         YouView()
             case "sos":         SOSView()
             case "goals":       nav { GoalsView() }
             case "insights":    nav { InsightsView() }
@@ -30,6 +32,20 @@ struct ScreenGalleryView: View {
             }
         }
         .environment(app)
+        #if DEBUG
+        // Data-backed screens (You) need a TodayState to render past their
+        // loading gate; inject a representative fixture, no backend required.
+        .onAppear {
+            app.debugSetToday(TodayState(
+                userId: "gallery", hardestHour: 21, quitStart: Date().timeIntervalSince1970 * 1000 - 30 * 86_400_000,
+                currentMoneySaved: 187.50, lifetimeMoneySaved: 412.25, currentStreak: 30, longestStreak: 42,
+                freezesRemaining: 2, lastCheckInLocalDate: nil,
+                nextMilestone: .init(hours: 1_440, label: "Circulation fully restored"),
+                premium: false, trialEndsAt: nil, trialActive: false, trialDaysRemaining: 0,
+                hasHALEPlus: false, entitlementSource: "none",
+                referralRewardActive: false, rewardDaysRemaining: 0, timezone: nil))
+        }
+        #endif
     }
 
     private func nav<V: View>(@ViewBuilder _ content: () -> V) -> some View {

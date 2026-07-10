@@ -9,7 +9,7 @@ struct CommunityTabView: View {
             BrandEmptyState(
                 glyph: .buddy, tone: Tok.warm,
                 title: "Community is\non the way",
-                message: "Soon you'll find groups for exactly what you're quitting — anonymous, moderated, and always on your side. For now, your buddy and squad have your back.",
+                message: "Soon you'll find groups for exactly what you're quitting: anonymous, moderated, and always on your side. For now, your buddy and squad have your back.",
                 eyebrow: "Coming soon")
         }
     }

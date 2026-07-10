@@ -12,7 +12,7 @@ struct GoalsView: View {
             VStack(alignment: .leading, spacing: Tok.section) {
                 Txt.Eyebrow("Your savings", color: Tok.accent)
                 Txt.H1("Treat yourself")
-                Txt.Body("Every clean day buys back real money — put it toward something you'll actually enjoy.")
+                Txt.Body("Every clean day buys back real money. Put it toward something you'll actually enjoy.")
 
                 // Content first: your goals lead; the form to add one is demoted below.
                 if !goals.loaded {
@@ -21,7 +21,7 @@ struct GoalsView: View {
                     BrandEmptyState(
                         glyph: .goals,
                         title: "Name what you're\nsaving for",
-                        message: "Set your first savings goal below — a trip, a gift, breathing room — and watch clean days pay it off.")
+                        message: "Set your first savings goal below, like a trip, a gift, or breathing room, and watch clean days pay it off.")
                         .padding(.top, 12)
                 } else {
                     ForEach(goals.value ?? []) { g in

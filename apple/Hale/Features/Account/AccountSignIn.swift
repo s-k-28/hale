@@ -203,8 +203,8 @@ struct AccountLinkButtons: View {
         Task {
             let ok = await op()
             busy = false
-            if ok { Haptics.success(); Toast.success("Progress saved — you're signed in."); onLinked() }
-            else { Toast.error("Sign-in didn't complete. Your progress is safe — try again.") }
+            if ok { Haptics.success(); Toast.success("Progress saved. You're signed in."); onLinked() }
+            else { Toast.error("Sign-in didn't complete. Your progress is safe. Try again.") }
         }
     }
 }

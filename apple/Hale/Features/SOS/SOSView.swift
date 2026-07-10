@@ -57,12 +57,12 @@ struct SOSView: View {
             Txt.H1("You're not\nin danger.")
             Txt.Display("This passes.", size: 44, color: Tok.coral)
                 .lineLimit(1).minimumScaleFactor(0.5)
-            Txt.Body("A craving peaks in a few minutes, then fades — whether or not you act on it. Let's get you to the other side. Pick one:")
+            Txt.Body("A craving peaks in a few minutes, then fades, whether or not you act on it. Let's get you to the other side. Pick one:")
             Spacer()
             option("Ride it out", "A 5-minute timer. It peaks, then fades.", "timer", coral: true) { step = .ride }
-            option("Breathe", "Box breathing — slow it all down.", "wind") { step = .breathe }
+            option("Breathe", "Box breathing to slow it all down.", "wind") { step = .breathe }
             option("Talk to Sage", "Your coach is here, right now.", "message.fill") { sageAndClose() }
-            Button("I slipped — it's okay, let's keep going") { Haptics.tap(); step = .slipChoose }
+            Button("I slipped. It's okay, let's keep going") { Haptics.tap(); step = .slipChoose }
                 .font(.sora(.medium, 14)).foregroundStyle(Tok.fg3).padding(.top, 4)
             Disclaimer()
           }
@@ -102,7 +102,7 @@ struct SOSView: View {
             Txt.H1("Slips are part\nof quitting.")
             Txt.Display("Not the end.", size: 40, color: Tok.accent)
                 .lineLimit(1).minimumScaleFactor(0.5)
-            Txt.Body("Be honest with yourself — it's the only way the data helps you. Which one fits?")
+            Txt.Body("Be honest with yourself. It's the only way the data helps you. Which one fits?")
             Spacer()
             slipCard("Just a slip", "One moment, and I'm back on track. Your streak is protected.", badge: "Streak safe", accent: true) {
                 commitSlip(kind: "lapse")
@@ -351,7 +351,7 @@ private struct RecoverKindly: View {
             VStack(alignment: .leading, spacing: 16) {
                 Txt.H1("This isn't\na reset.")
                 Txt.Display("Fresh run.", size: 40, color: Tok.accent)
-                Txt.Body("Quitting nicotine almost never happens in one clean line. What you've built so far doesn't disappear — it's still yours.")
+                Txt.Body("Quitting nicotine almost never happens in one clean line. What you've built so far doesn't disappear. It's still yours.")
                 Card(pad: true) {
                     HStack(spacing: 12) {
                         Tile(k: "Saved · lifetime", v: money(result?.lifetimeMoneySaved ?? 0), accent: true)

@@ -11,7 +11,7 @@ struct ToolkitView: View {
         ("Notice", "Where do you feel the craving in your body? Name it without fighting it."),
         ("Don't fight it", "You don't have to push it away. Just watch it, like a wave forming."),
         ("Breathe into the peak", "It's cresting now. Slow breath in… and out. Stay with it."),
-        ("Ride it down", "Feel it fading. You didn't act on it — and it passed anyway."),
+        ("Ride it down", "Feel it fading. You didn't act on it, and it passed anyway."),
     ]
     private var premium: Bool { app.today?.hasHALEPlus ?? false }
 

@@ -263,7 +263,7 @@ struct TodayView: View {
         }
         .buttonStyle(PressScaleStyle(scale: 0.98))
         .frame(maxWidth: .infinity)
-        .accessibilityLabel("Craving SOS — tap for help")
+        .accessibilityLabel("Craving SOS. Tap for help")
     }
 
     private var buddyPlaceholder: some View {

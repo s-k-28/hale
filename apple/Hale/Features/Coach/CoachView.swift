@@ -73,16 +73,21 @@ struct CoachView: View {
     // Quiet header: a small name + a live "here" status, and one demoted line of
     // required safety copy. Deliberately understated so the chat leads.
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
+            // Title + live status: status baseline-aligned with the H2 and grouped
+            // (dot + label) so it reads as one quiet unit, not floating pieces.
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Txt.H2("Sage")
-                Circle().fill(Tok.accent).frame(width: 7, height: 7)
-                    .breathing(period: 2.8, scale: 0.85...1.15, opacity: 0.5...1.0)
-                Text("here for you").font(.sora(.medium, 13)).foregroundStyle(Tok.fg3)
+                HStack(spacing: 5) {
+                    Circle().fill(Tok.accent).frame(width: 6, height: 6)
+                        .breathing(period: 2.8, scale: 0.85...1.15, opacity: 0.5...1.0)
+                    Text("here for you").font(.sora(.medium, 13)).foregroundStyle(Tok.fg3)
+                }
                 Spacer()
             }
-            Txt.Muted("AI coach, not a medical professional — talk to a doctor before medical decisions, including NRT or medication.")
+            Txt.Muted("Sage is an AI coach, not a medical professional. Talk to a doctor before medical decisions.")
                 .font(.sora(.regular, 12))
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Tok.gutter).padding(.top, 8).padding(.bottom, 14)
@@ -143,7 +148,7 @@ struct CoachView: View {
                 .riseIn(0, distance: 16)
             VStack(spacing: 12) {
                 Txt.Display("Hey,\nI'm Sage", size: 40).multilineTextAlignment(.center).riseIn(1)
-                Txt.Body("I'm here the second a craving hits. Tell me what's going on — no judgment, just backup while you ride it out. It peaks, then it passes.")
+                Txt.Body("I'm here the second a craving hits. Tell me what's going on. No judgment, just backup while you ride it out. It peaks, then it passes.")
                     .multilineTextAlignment(.center).frame(maxWidth: 320).riseIn(2)
                 Txt.Eyebrow("Cravings pass · you don't quit on yourself", color: Tok.accent).riseIn(3)
             }
@@ -156,11 +161,11 @@ struct CoachView: View {
         Card(pad: true) {
             VStack(alignment: .leading, spacing: 10) {
                 Txt.H3("Before you chat with Sage")
-                Txt.Body("Sage shares your messages and quit stats with our AI providers — Groq (chat) and Google (memory) — so it can work. Never for ads. You can turn this off anytime in You ▸ Settings.")
+                Txt.Body("Sage shares your messages and quit stats with our AI providers, Groq (chat) and Google (memory), so it can work. Never for ads. You can turn this off anytime in You ▸ Settings.")
                 Link(destination: Links.privacy) {
                     Text("Read the privacy policy").font(.sora(.semibold, 14)).foregroundStyle(Tok.accent)
                 }
-                HButton(label: "I agree — start chatting", variant: .primary) {
+                HButton(label: "Agree and start chatting", variant: .primary) {
                     Task { await app.setAiConsent() }
                 }
             }

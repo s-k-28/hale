@@ -26,7 +26,7 @@ struct ReferralView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Badge(label: "Reward unlocked", tone: .warm)
                                     Txt.H2("7 days of HALE+,\non your friends.")
-                                    Txt.Body("Full analytics, unlimited Sage, every tool — free because you brought your people with you. \(p.rewardDaysRemaining) days left.")
+                                    Txt.Body("Full analytics, unlimited Sage, every tool. Free because you brought your people with you. \(p.rewardDaysRemaining) days left.")
                                 }
                             }
                         }
@@ -71,7 +71,7 @@ struct ReferralView: View {
                     BrandEmptyState(
                         glyph: .gift, tone: Tok.warm,
                         title: "Bring your\npeople with you",
-                        message: "Share your code — you'll unlock 7 days of HALE+ when 3 friends join and pair up.")
+                        message: "Share your code. You'll unlock 7 days of HALE+ when 3 friends join and pair up.")
                         .padding(.vertical, 8)
                     if let c = code {
                         ShareLink(item: Links.appStore, message: Text(Links.referralShareText(code: c))) {

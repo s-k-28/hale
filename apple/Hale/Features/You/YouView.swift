@@ -142,7 +142,7 @@ struct YouView: View {
                         }
                         .haleScrollReveal(i)
                     }
-                    Txt.Muted("Commonly reported recovery timeline — supportive, not medical advice.")
+                    Txt.Muted("Commonly reported recovery timeline. Supportive, not medical advice.")
                 }
             }
         }
@@ -157,7 +157,7 @@ struct YouView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Txt.Eyebrow("Your account", color: Tok.accent)
                     Txt.H3("Save your progress")
-                    Txt.Body("Add a free account so your streak is safe on a new phone — or if this one is ever lost.")
+                    Txt.Body("Add a free account so your streak is safe on a new phone, or if this one is ever lost.")
                     AccountLinkButtons {
                         AnalyticsService.track(.accountLinked, ["linked": true, "surface": "settings"])
                     }

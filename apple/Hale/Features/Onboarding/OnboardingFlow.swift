@@ -153,7 +153,7 @@ struct WelcomeScene: View {
 
     private var legalNote: some View {
         VStack(spacing: 4) {
-            Text("By continuing you agree to our Terms and Privacy Policy. We use privacy-safe analytics to improve HALE — turn it off anytime in You ▸ Settings.")
+            Text("By continuing you agree to our Terms and Privacy Policy. We use privacy-safe analytics to improve HALE. Turn it off anytime in You ▸ Settings.")
                 .font(.sora(.regular, 11)).foregroundStyle(Tok.fg3)
                 .multilineTextAlignment(.center)
             HStack(spacing: 14) {

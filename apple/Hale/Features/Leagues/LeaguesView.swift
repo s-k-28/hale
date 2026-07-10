@@ -54,7 +54,7 @@ struct LeaguesView: View {
                     BrandEmptyState(
                         glyph: .leagues,
                         title: "No league\nthis week",
-                        message: "Check back once this week's league opens — you'll be matched with people at your stage.")
+                        message: "Check back once this week's league opens. You'll be matched with people at your stage.")
                         .padding(.top, 12)
                 } else {
                     // Match the skeleton loading pattern used across the other

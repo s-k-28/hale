@@ -62,7 +62,7 @@ struct DisclaimersView: View {
                 Card(pad: true) {
                     VStack(alignment: .leading, spacing: 8) {
                         Txt.H3("Not medical advice")
-                        Txt.Body("HALE supports your quit; it does not diagnose or treat. For medical questions about quitting nicotine — including NRT or medication — talk to a doctor, pharmacist, or a free quitline at 1-800-QUIT-NOW.")
+                        Txt.Body("HALE supports your quit; it does not diagnose or treat. For medical questions about quitting nicotine, including NRT or medication, talk to a doctor, pharmacist, or a free quitline at 1-800-QUIT-NOW.")
                         Button("Call 1-800-QUIT-NOW") { open("tel:18007848669") }
                             .font(.sora(.semibold, 14)).foregroundStyle(Tok.accent)
                     }

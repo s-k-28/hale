@@ -34,6 +34,12 @@ final class AppState {
 
     func finishOnboarding() { onboardingInProgress = false }
 
+    #if DEBUG
+    // Screenshot/UI-test harness only: inject a data-backed TodayState so
+    // gallery-mounted screens (You, Today) render fully without a backend.
+    func debugSetToday(_ t: TodayState) { today = t; todayLoaded = true; booted = true; authed = true }
+    #endif
+
     // Deep links (hale://r/<code> resolves to an inviter; hale://u/<id> is direct).
     // Onboarded users pair immediately (with error states); everyone else stashes
     // the inviter so the quiz commit redeems it (deferred attribution). Mirrors u/[id].

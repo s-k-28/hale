@@ -371,14 +371,14 @@ struct QuizView: View {
         case .product: return "We tailor your plan to what you use."
         case .amount:
             switch product.value {
-            case "vape":  return "However long one usually lasts you — most go days to weeks."
+            case "vape":  return "However long one usually lasts you. Most go days to weeks."
             case "pouch": return "A rough daily count is all we need."
-            case "cig":   return "Ballpark is fine — singles or packs."
+            case "cig":   return "Ballpark is fine, singles or packs."
             default:      return "Across everything you use, on a normal day."
             }
         case .cost:
             switch product.value {
-            case "vape":  return "The price of one vape — most run about $12."
+            case "vape":  return "The price of one vape. Most run about $12."
             case "pouch": return "What a tin runs you — about 15 pouches."
             case "cig":   return "What a pack costs where you live — about 20."
             default:      return "Your rough daily spend across all of it."
@@ -616,7 +616,7 @@ struct QuizView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Txt.H1(name.isEmpty ? "Ready to\nstart?" : "Ready,\n\(name)?").riseIn(0)
-                    NarratorText(line: "Your quit clock starts the moment you commit. From here you'll see your clean time, your money saved — and you won't do it alone.", delay: 0.3)
+                    NarratorText(line: "Your quit clock starts the moment you commit. From here you'll see your clean time, your money saved, and you won't do it alone.", delay: 0.3)
                     CardHero(pad: true) {
                         VStack(alignment: .leading, spacing: 6) {
                             Txt.Eyebrow("On track to save", color: Tok.accent)
@@ -699,7 +699,7 @@ struct QuizView: View {
                 .symbolEffect(.pulse)
                 .riseIn(0)
             Txt.H1("Want a nudge\nwhen it's hardest?").riseIn(1)
-            NarratorText(line: "The people who quit for good get a little support right before their toughest hour — a check-in, a craving tip. No spam, ever.", delay: 0.3)
+            NarratorText(line: "The people who quit for good get a little support right before their toughest hour: a check-in, a craving tip. No spam, ever.", delay: 0.3)
             Spacer()
             HButton(label: "Yes, support me through it", variant: .primary) { PushService.requestPermission(); afterPush() }
             HButton(label: "Maybe later", variant: .ghost) { afterPush() }
@@ -720,7 +720,7 @@ struct QuizView: View {
                 .frame(width: 64, height: 64).background(Tok.warmSoft).clipShape(RoundedRectangle(cornerRadius: 18))
                 .riseIn(0)
             Txt.H1("Quit with\na buddy").riseIn(1)
-            NarratorText(line: "People with a buddy are far likelier to stay quit. They only ever see your streak — never your slip-ups.", delay: 0.3)
+            NarratorText(line: "People with a buddy are far likelier to stay quit. They only ever see your streak, never your slip-ups.", delay: 0.3)
             Spacer()
             HButton(label: "Find me a buddy", variant: .primary) { Task { await findBuddy() } }
             HButton(label: "I'll start on my own", variant: .ghost) {
@@ -759,7 +759,7 @@ struct QuizView: View {
                 .frame(width: 64, height: 64).background(Tok.accentSoft).clipShape(RoundedRectangle(cornerRadius: 18))
                 .riseIn(0)
             Txt.H1("Save your\nprogress").riseIn(1)
-            NarratorText(line: "Your quit is underway. Add a free account so your streak is safe — on a new phone, or if this one is ever lost.", delay: 0.3)
+            NarratorText(line: "Your quit is underway. Add a free account so your streak is safe on a new phone, or if this one is ever lost.", delay: 0.3)
             Spacer()
             AccountLinkButtons {
                 AnalyticsService.track(.accountLinked, ["linked": true, "surface": "onboarding"])
