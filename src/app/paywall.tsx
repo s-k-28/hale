@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, X, Bot, LineChart, Users } from 'lucide-react-native';
+import { Check, Bot, LineChart, Users } from 'lucide-react-native';
 import {
   loadPlanOffers,
   purchasePlan,
@@ -43,12 +43,13 @@ import Animated, {
  * MUST be registered in src/app/_layout.tsx as:
  *   <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
  *
- * App Store safety (2.1 / 3.1.1): a visible Restore Purchases affordance and
- * a discreet 'Continue with the free version' dismiss — the wall is firm,
- * not un-dismissible, so a reviewer can always reach the app.
+ * Hard paywall: no dismiss control. The only ways forward are starting the
+ * 3-day trial or restoring an existing purchase (Restore is Apple-required and
+ * not a bypass). NOTE: a fully un-dismissible wall carries App Review 3.1.1/2.1
+ * risk; ship reviewed with that in mind.
  *
- * Plans: annual $79.99/yr (default, highlighted) and monthly $12.99/mo, with
- * the 14-day StoreKit intro trial framed on the primary CTA. When offerings
+ * Plans: annual $49.99/yr (default, highlighted) and monthly $6.99/mo, with
+ * the 3-day StoreKit intro trial framed on the primary CTA. When offerings
  * can't load, a plain unavailable notice + retry — never blank, never a
  * browser link.
  */
@@ -127,7 +128,7 @@ export default function Paywall() {
     setBusy(false);
     if (result === 'purchased') {
       // The StoreKit intro trial starts with the subscription.
-      track(Ev.TRIAL_STARTED, { trial_days: 14, trial_type: 'storekit' });
+      track(Ev.TRIAL_STARTED, { trial_days: 3, trial_type: 'storekit' });
       dismiss();
     } else if (result === 'failed') {
       haptics.error();
@@ -153,10 +154,6 @@ export default function Paywall() {
 
   return (
     <HalePlusUpsell
-      onFreeVersion={() => {
-        haptics.tap();
-        dismiss();
-      }}
       onStart={onStart}
       onRestore={onRestore}
       plan={plan}
@@ -176,7 +173,6 @@ export default function Paywall() {
 /* ------------------------------------------------------------------ */
 
 function HalePlusUpsell({
-  onFreeVersion,
   onStart,
   onRestore,
   plan,
@@ -185,7 +181,6 @@ function HalePlusUpsell({
   busy,
   notice,
 }: {
-  onFreeVersion: () => void;
   onStart: () => void;
   onRestore: () => void;
   plan: HalePlan;
@@ -203,25 +198,11 @@ function HalePlusUpsell({
   // and put the header under the status bar (ui-audit D4).
   return (
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 8) }}>
-      {/* Close — top right, hairline surface chip */}
-      <View className="px-gutter pt-3">
-        <View className="flex-row items-center justify-end">
-          <Pressable
-            onPress={onFreeVersion}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            className="h-9 w-9 items-center justify-center rounded-full bg-surface border border-stroke active:opacity-70"
-          >
-            <X color={clean.fg2} size={18} strokeWidth={2.5} />
-          </Pressable>
-        </View>
-      </View>
-
-      {/* The whole value stack scrolls — it can never be clipped by the CTA. */}
+      {/* Hard paywall: no close control. The value stack scrolls; it can never
+          be clipped by the pinned CTA. */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-gutter pb-8"
+        contentContainerClassName="px-gutter pb-8 pt-3"
         showsVerticalScrollIndicator={false}
       >
         {/* Hero — tightened (text-5xl, single line) so all four benefits sit above the fold */}
@@ -250,7 +231,7 @@ function HalePlusUpsell({
 
         {/* Reassurance */}
         <Caption className="mt-5 text-center leading-relaxed">
-          14-day free trial, then your chosen plan auto-renews until cancelled. Cancel anytime in Apple Settings, at least 24h before renewal.
+          3-day free trial, then your chosen plan auto-renews until cancelled. Cancel anytime in Apple Settings, at least 24h before renewal.
         </Caption>
       </ScrollView>
 
@@ -266,22 +247,22 @@ function HalePlusUpsell({
             selected={plan === 'annual'}
             onPress={() => onPlan('annual')}
             title="Annual"
-            price={priceFor('annual', '$79.99')}
-            per="/yr · $6.67/mo"
+            price={priceFor('annual', '$49.99')}
+            per="/yr · $4.17/mo"
             tag="Best value"
           />
           <PlanCard
             selected={plan === 'monthly'}
             onPress={() => onPlan('monthly')}
             title="Monthly"
-            price={priceFor('monthly', '$12.99')}
+            price={priceFor('monthly', '$6.99')}
             per="/mo"
           />
         </View>
 
         <SheenButton
           onPress={onStart}
-          label={notice ? 'Try again' : 'Start my 14-day free trial'}
+          label={notice ? 'Try again' : 'Start my 3-day free trial'}
           busy={busy}
         />
         {notice ? (
@@ -298,13 +279,6 @@ function HalePlusUpsell({
             className="items-center px-6 py-2.5 active:opacity-70"
           >
             <Caption className="text-fg-2">Restore purchases</Caption>
-          </Pressable>
-          <Pressable
-            onPress={onFreeVersion}
-            accessibilityRole="button"
-            className="items-center px-6 py-2.5 active:opacity-70"
-          >
-            <Caption className="text-fg-3">Continue with the free version</Caption>
           </Pressable>
           {/* Subscription legal (Guideline 3.1.2): functional Privacy + Terms
               links on the purchase surface. Quiet by design. */}
