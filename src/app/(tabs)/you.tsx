@@ -11,8 +11,10 @@ import type { Id } from '@convex/_generated/dataModel';
 import {
   HEALTH_MILESTONES,
   reachedHealthMilestones,
+  recoveryFraction,
 } from '@convex/model/plan';
 import { track, Ev, isAnalyticsEnabled, setAnalyticsEnabled } from '@/lib/analytics';
+import { moneySavedLabel } from '@/lib/money';
 import { haptics, getHapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/lib/links';
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/constants/legal';
@@ -57,12 +59,7 @@ function useNow(intervalMs = 60_000) {
   return now;
 }
 
-function money(n: number) {
-  return `$${Math.max(0, n).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
+const money = moneySavedLabel;
 
 /** Pretty "time after quit" for a reached milestone (e.g. "20 min", "3 days"). */
 function milestoneWhen(hours: number) {
@@ -117,13 +114,15 @@ function YouContent({
     () => reachedHealthMilestones(state.quitStart, now),
     [state.quitStart, now],
   );
-  // Recovery indicator (0..100) for the card: share of milestones unlocked.
+  // Recovery indicator (0..100) for the shareable card. This MUST be the same
+  // curve Today uses. It used to be `reached.length / HEALTH_MILESTONES.length`,
+  // which read "10% recovered" 41 minutes in (one early milestone of ten) — the
+  // milestones are logarithmically spaced, so counting them wildly overstates
+  // recovery. Worse, it disagreed with Today on screen, and this is the card
+  // users screenshot and share.
   const recoveryPct = useMemo(
-    () =>
-      HEALTH_MILESTONES.length === 0
-        ? 0
-        : Math.round((reached.length / HEALTH_MILESTONES.length) * 100),
-    [reached.length],
+    () => Math.round(recoveryFraction(state.quitStart, now) * 100),
+    [state.quitStart, now],
   );
 
   const [hapticsOn, setHapticsOn] = useState(() => getHapticsEnabled());
@@ -424,7 +423,7 @@ function BlockedMembers() {
           <Body className="mt-0.5 text-sm text-fg-2">
             {mutes && mutes.length > 0
               ? `${mutes.length} blocked`
-              : "No one blocked — you'd never see their posts again."}
+              : "No one blocked. You'd never see their posts again."}
           </Body>
         </View>
         <ChevronRight

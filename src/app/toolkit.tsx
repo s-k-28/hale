@@ -223,7 +223,7 @@ function TriggerInsight({ patterns }: { patterns: Patterns | undefined }) {
             <View className="rounded-2xl bg-bg px-4 py-3">
               <Label>Hardest hour</Label>
               <Body className="mt-1 font-sora-semibold text-lg text-fg">
-                {peakHour != null ? `Around ${hourLabel(peakHour)}` : '—'}
+                {peakHour != null ? `Around ${hourLabel(peakHour)}` : '–'}
               </Body>
             </View>
             <Caption className="text-fg-2">

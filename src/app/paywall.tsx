@@ -68,9 +68,12 @@ const COLD_TURKEY_ROWS: TableRow[] = [
 ];
 
 // "Free vs HALE+" — for the dismissible in-app gates, mapped to the real gates.
+// EXACTLY FIVE ROWS, same as COLD_TURKEY_ROWS. A sixth row pushed the trial
+// timeline below the fold on this variant (verified on device), which is the same
+// conversion-killer the hard wall had. One ✓/✓ anchor row is enough to say "you
+// keep what you have"; the rest should be what you're MISSING.
 const FREE_VS_PLUS_ROWS: TableRow[] = [
   { label: 'Check-in & streak', free: true, plus: true },
-  { label: 'Craving SOS', free: true, plus: true },
   { label: 'Sage AI coach', free: 'Limited', plus: 'Unlimited' },
   { label: 'Recovery analytics', free: false, plus: true },
   { label: 'Craving toolkit', free: false, plus: true },

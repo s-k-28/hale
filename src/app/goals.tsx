@@ -306,20 +306,27 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: () => void }) {
 
       {/* Footer — countdown OR unlocked state. */}
       <View className="flex-row items-center justify-between px-5 pb-5 pt-2">
+        {/* flex-1 on both branches: the dollar target accepts up to 9 digits, so
+            money2() can render "$999,999,999.00" at 24px and (Yoga defaults
+            flexShrink to 0) shove the pct% clean out of the row. */}
         {done ? (
-          <View className="flex-row items-center gap-2">
+          <View className="flex-1 flex-row items-center gap-2 pr-3">
             <View className="h-6 w-6 items-center justify-center rounded-full bg-accent">
               <Check color={clean.accentInk} size={14} strokeWidth={3} />
             </View>
             <Heading className="text-sm text-accent">Treat unlocked</Heading>
           </View>
         ) : (
-          <View className="flex-row items-baseline gap-1.5">
-            <Display className="text-2xl text-fg">{money2(goal.remaining)}</Display>
+          <View className="flex-1 flex-row items-baseline gap-1.5 pr-3">
+            <Display className="shrink text-2xl text-fg" numberOfLines={1}>
+              {money2(goal.remaining)}
+            </Display>
             <Body className="font-sora-semibold text-xs text-fg-2">to go</Body>
           </View>
         )}
-        <Display className={`text-2xl ${done ? 'text-accent' : 'text-fg-2'}`}>{pct}%</Display>
+        <Display className={`shrink-0 text-2xl ${done ? 'text-accent' : 'text-fg-2'}`}>
+          {pct}%
+        </Display>
       </View>
     </View>
   );

@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { track, Ev } from '@/lib/analytics';
+import { moneySavedLabel } from '@/lib/money';
 import { clean } from '@/theme/clean';
 
 /**
@@ -53,11 +54,10 @@ const FONTS = {
   bodyBold: 'Sora_700Bold',
 };
 
-function fmtMoney(n: number) {
-  const v = Math.max(0, n);
-  // Whole-dollar on the card — it reads cleaner at thumbnail size than cents.
-  return `$${Math.round(v).toLocaleString('en-US')}`;
-}
+// Whole-dollar reads cleaner at thumbnail size, but ONLY once there are whole
+// dollars to show: rounding rendered "$0" for a day-one quitter on the very
+// artifact they share. moneySavedLabel keeps cents under $10 and drops them above.
+const fmtMoney = moneySavedLabel;
 
 function clampPct(p: number) {
   return Math.min(100, Math.max(0, Math.round(p)));
@@ -135,9 +135,18 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
           end={{ x: 1, y: 1 }}
           style={{ flex: 1 }}
         >
-          {/* Electric-lime glow blooming from the top-left (capture-safe). */}
+          {/* Electric-lime glow blooming from the top-left (capture-safe).
+              `locations` is load-bearing, not decoration. The gradient axis runs
+              DIAGONALLY, so the box's bottom edge is not a constant point on it:
+              the lowest projection along that edge (its left corner) is t≈0.60.
+              With evenly-spaced stops the glow was still ~6% opaque there when the
+              360pt box hard-clipped, which drew a visible horizontal BAND straight
+              across the card — on the artifact users post publicly. Landing the
+              fully-transparent stop at 0.6 means every point on the bottom edge has
+              already reached zero alpha before the clip. */}
           <LinearGradient
             colors={['rgba(52,211,153,0.42)', 'rgba(52,211,153,0.08)', 'rgba(52,211,153,0)']}
+            locations={[0, 0.3, 0.6]}
             start={{ x: 0.1, y: 0 }}
             end={{ x: 0.85, y: 0.9 }}
             style={{

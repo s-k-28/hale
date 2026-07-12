@@ -155,7 +155,7 @@ function Unlocked({
         <Tile k="Cravings, 30d" v={String(total30)} accent className="flex-1" />
         <Tile
           k="Avg intensity"
-          v={avgIntensity > 0 ? avgIntensity.toFixed(1) : '—'}
+          v={avgIntensity > 0 ? avgIntensity.toFixed(1) : '–'}
           className="flex-1"
         />
       </View>
@@ -361,7 +361,7 @@ function RecoveryProgress({ recovery }: { recovery: Recovery }) {
           a measurement of this user's body. */}
       <Body className="mt-4 text-xs leading-relaxed text-ash">
         Typical timeline as published by the US CDC, WHO, and US Surgeon
-        General — population averages, not measurements of your body.
+        General guidance: population averages, not measurements of your body.
       </Body>
     </View>
   );

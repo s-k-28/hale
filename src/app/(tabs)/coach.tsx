@@ -6,6 +6,7 @@ import {
   Linking,
   Platform,
   Pressable,
+  ScrollView,
   TextInput,
   View,
 } from 'react-native';
@@ -170,15 +171,18 @@ export default function Coach() {
     <SafeAreaView className="flex-1 bg-bg" edges={['top', 'left', 'right']}>
       {/* Header — Sage's identity. Loud caps wordmark, lime presence dot. */}
       <View className="flex-row items-center justify-between border-b border-stroke px-6 pb-4 pt-1">
-        <View>
+        {/* flex-1 is load-bearing: Yoga defaults flexShrink to 0 (the web defaults
+            it to 1), so without it this text block claims its full intrinsic width
+            and pushes the avatar clean off the right edge of the screen. */}
+        <View className="flex-1 pr-3">
           <Heading className="text-3xl text-fg">SAGE</Heading>
           <Label className="mt-1 text-fg-2">Your quit coach · always on</Label>
           <Muted className="mt-1 text-[11px]">
-            AI coach, not a medical professional — check with a doctor before
+            AI coach, not a medical professional. Check with a doctor before
             medical decisions, including NRT or medication.
           </Muted>
         </View>
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-accent">
+        <View className="h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent">
           <Wind color={clean.accentInk} size={20} strokeWidth={2.75} />
         </View>
       </View>
@@ -193,7 +197,7 @@ export default function Coach() {
             <ActivityIndicator color={clean.accent} />
           </View>
         ) : messageCount === 0 ? (
-          <EmptyState />
+          <EmptyState compact={!consented} />
         ) : (
           <FlatList
             ref={listRef}
@@ -234,8 +238,8 @@ export default function Coach() {
               Before you chat with Sage
             </Body>
             <Body className="mt-2 text-[13px] leading-5 text-fg-2">
-              Sage runs on third-party AI. Messages you send — plus your quit
-              stats like streak, cravings, and triggers — are shared with Groq
+              Sage runs on third-party AI. Messages you send, plus your quit
+              stats like streak, cravings, and triggers, are shared with Groq
               (which writes Sage&apos;s replies) and Google (which powers
               knowledge search). They process it only to run this feature,
               never for ads. You can turn this off anytime in You ▸ Settings.
@@ -377,18 +381,43 @@ function Bubble({ message }: { message: SageMessage }) {
   );
 }
 
-/** Warm, low-pressure first contact — no empty-screen anxiety, no judgment. */
-function EmptyState() {
+/**
+ * Warm, low-pressure first contact. No empty-screen anxiety, no judgment.
+ *
+ * SCROLLS. It used to be a fixed `flex-1` centered column, which was fine on its
+ * own but collided with the AI-consent card: that card is a flex SIBLING and eats
+ * ~250pt, so the empty state got squeezed and its content was silently CLIPPED
+ * (verified on device — "Cravings pass" was cut in half behind the card).
+ * `grow + justify-center` keeps it centered when there is room and lets it scroll
+ * when there is not, so nothing can ever be cut off again.
+ */
+function EmptyState({ compact = false }: { compact?: boolean }) {
   return (
-    <View className="flex-1 items-center justify-center px-9">
+    <ScrollView
+      className="flex-1"
+      contentContainerClassName="grow items-center justify-center px-9 py-6"
+      showsVerticalScrollIndicator={false}
+    >
       <BreathingSage />
-      <Display className="mt-6 text-center text-5xl text-fg">Hey,{'\n'}I&apos;m Sage</Display>
-      <Body className="mt-4 max-w-[300px] text-center text-base leading-6 text-fg-2">
-        I&apos;m here the second a craving hits. Tell me what&apos;s going on — no
-        judgment, just backup while you ride it out. It peaks, then it passes.
+      <Display className={`mt-6 text-center text-fg ${compact ? 'text-4xl' : 'text-5xl'}`}>
+        Hey,{'\n'}I&apos;m Sage
+      </Display>
+      {/* The full welcome yields to the consent card. Both at full size do not fit
+          one screen, and the loser was the welcome: its copy was cut off
+          mid-sentence behind the card (verified on device). */}
+      <Body
+        className={`mt-4 max-w-[300px] text-center leading-6 text-fg-2 ${compact ? 'text-[15px]' : 'text-base'}`}
+      >
+        {compact
+          ? "I'm here the second a craving hits. No judgment, just backup."
+          : "I'm here the second a craving hits. Tell me what's going on. No judgment, just backup while you ride it out. It peaks, then it passes."}
       </Body>
-      <Label className="mt-8 text-center text-fg-2">Cravings pass · you don&apos;t quit on yourself</Label>
-    </View>
+      {compact ? null : (
+        <Label className="mt-8 text-center text-fg-2">
+          Cravings pass · you don&apos;t quit on yourself
+        </Label>
+      )}
+    </ScrollView>
   );
 }
 

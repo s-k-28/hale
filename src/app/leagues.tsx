@@ -215,7 +215,7 @@ function JoinedState({
   onLeave: () => void;
   pending: boolean;
 }) {
-  const rankLabel = useMemo(() => (rank ? `#${rank}` : '—'), [rank]);
+  const rankLabel = useMemo(() => (rank ? `#${rank}` : '–'), [rank]);
 
   return (
     <View className="mt-6">

@@ -9,6 +9,7 @@ import { localDateOf } from '@convex/model/streak';
 import { LANDMARK_DAYS, recoveryFraction } from '@convex/model/plan';
 import { toast } from 'sonner-native';
 import { track, Ev } from '@/lib/analytics';
+import { moneySavedLabel } from '@/lib/money';
 import { haleScore, haleScoreBand } from '@/lib/haleScore';
 import { Screen, Button, Badge, Tile, Eyebrow, H1, H3, Body, Muted, Ring } from '@/ui';
 import { RNText } from '@/ui/internal';
@@ -58,12 +59,7 @@ function breakdown(ms: number) {
   };
 }
 
-function money(n: number) {
-  return `$${n.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
+const money = moneySavedLabel;
 
 /** Humanized countdown to the next health milestone (e.g. "1d 4h" / "12m"). */
 function countdownLabel(ms: number) {
