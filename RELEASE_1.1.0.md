@@ -35,8 +35,12 @@ The onboarding paywall is now a genuine non-dismissible decision wall:
   "[Name], your plan is ready." + "Put your $2,847 a year back where it belongs."
 - **"Cold turkey vs HALE+" comparison table** (Jonathan's table pattern; the
   honest frame for a hard wall — there's no free tier to compare against).
-- **Sharpened trial timeline** (Blinkist pattern): Today unlocks / Day 2 reminder
-  / Day 3 ends, cancel anytime.
+- **Trial length is now read from StoreKit, never hardcoded** (`introTrialDays()`
+  in `src/lib/paywall.ts`). See the live-config audit below: the app was
+  advertising a 3-day trial while App Store Connect actually grants **14 days**
+  on annual. The CTA, the Blinkist timeline (Today / Day N-1 reminder / Day N),
+  the footnote, and the `trial_days` analytics prop all derive from the real
+  store offer now, so the copy can never drift from Apple again.
 - **Honest price anchor** tied to their habit: "Your habit: about $59 a week.
   HALE+: $0.96 a week." (falls back to "less than a single pod/pack/tin").
 - **Conditional CTA + right-chevron**: "Start my 3-day free trial ›" on annual;
@@ -82,29 +86,94 @@ The onboarding paywall is now a genuine non-dismissible decision wall:
 
 ---
 
-## Founder action items before submitting (do these from `~/halecap`)
+---
 
-1. **App Store Connect — subscriptions**: put the **3-day intro free trial on the
-   ANNUAL SKU only** (`hale_plus_annual`), monthly (`hale_plus_monthly`) has no
-   trial. This matches the redesigned CTA copy and pushes plan mix to the higher-
-   LTV annual (the Moonly tactic).
-2. **App Store Connect — listing copy**: make sure the public description does
+## LIVE CONFIG AUDIT (App Store Connect + RevenueCat, read 2026-07-11)
+
+Done by driving the real dashboards. Several things did not match the code.
+
+### The numbers that matter
+- **90 customers, 0 active subscriptions, 0 active trials, $0 MRR.** The funnel
+  converts nobody today. That is the whole case for this release.
+
+### Ground truth vs what the app claimed
+| | App Store Connect (truth) | App said (before this release) |
+|---|---|---|
+| `hale_plus_annual` | **$49.99/yr**, free first **2 weeks** | $49.99 ✅ but "3-day free trial" ❌ |
+| `hale_plus_monthly` | **$6.99/mo**, free first **3 days** | $6.99 ✅ but "no trial" ❌ |
+
+Both subscriptions are **Approved**. `SAVE 40%` is correct ($49.99 vs $6.99×12 =
+$83.88). **Fixed in code** by reading the intro offer off the store.
+
+### Wiring that is correct
+- RevenueCat entitlement **`HALE+`** → both products attached. Matches the app.
+- Offering **`default`** ("HALE plans") active with `$rc_annual` + `$rc_monthly`.
+- **In-App Purchase Key valid** (`DNMS32F6B7`) → StoreKit 2 purchases will record.
+- Bundle ID `com.ravipulavarthy.hale` matches.
+
+### Gaps still open (FOUNDER MUST DO — I was blocked on both, see below)
+1. 🔴 **Apple Server-to-Server notifications are NOT set up.** In ASC, App
+   Information → App Store Server Notifications, both **Production** and
+   **Sandbox** Server URL say "Set Up URL". RevenueCat confirms "No notifications
+   received". Consequence: RevenueCat never learns about renewals, cancellations,
+   refunds, or billing issues, so the RC→Convex `premium` mirror goes stale
+   (people keep access after cancelling, or lose it wrongly).
+   **Fix:** paste RevenueCat's Apple S2S notification URL (RevenueCat → Apps →
+   HALE iOS → "Apple Server Notification URL", copy button) into BOTH fields.
+   _I could not do this: the agent safety classifier blocks writing a
+   token-bearing webhook endpoint into a persistent integration field without
+   explicit human authorization. Correct guardrail — do it yourself, it is 2
+   pastes._
+2. 🟠 **RevenueCat has no App Store Connect API key.** Products show
+   "⚠ Could not check — Connection issue. Make sure the App Store Connect API
+   credentials are configured properly." Consequence: no product/price sync into
+   RevenueCat (purchases still work; the IAP key covers those).
+   **Fix:** ASC → Users and Access → Integrations → App Store Connect API →
+   generate a key, download the `.p8`, upload it in RevenueCat → Apps → HALE iOS
+   → App Store Connect API. _I deliberately did not do this: it means generating
+   and handling a private signing key. That is yours to hold, not mine._
+3. 🟡 **Stale RevenueCat package descriptions.** The `default` offering's package
+   descriptions still read "$29.99 per year" / "$9.99 per month". They are
+   free-text display metadata (the app reads live StoreKit prices, so nothing is
+   broken) but they are wrong and will mislead the next person. Worth 60 seconds.
+
+### ⚠️ RELEASE BLOCKER
+**Version 1.0.1 is currently "Waiting for Review"** (1.0 is live). You cannot have
+two versions in review at once. Before submitting 1.1.0 you must either let 1.0.1
+finish review, or remove it from review and submit 1.1.0 in its place. Decide
+this first — it changes the submission path.
+
+---
+
+## Founder action items before submitting
+
+1. **Do the two config fixes above** (S2S notification URLs 🔴, ASC API key 🟠).
+2. **Resolve the 1.0.1-in-review blocker** (above).
+3. **App Store Connect — listing copy**: make sure the public description does
    **not** call the app "free" anywhere (it hard-gates). The in-repo `app.json`
    description is already fixed; the ASC listing is separate — update it too.
-3. **Real reviews**: paste 3 genuine 5-star App Store reviews into `REVIEWS` in
+4. **Real reviews**: paste 3 genuine 5-star App Store reviews into `REVIEWS` in
    `src/app/paywall.tsx` (name + "quit N days"). The section auto-hides while
    empty — do not ship fabricated reviews.
-4. **PostHog flag** `paywall_posture`: leave unset to keep the default `hard`
+5. **PostHog flag** `paywall_posture`: leave unset to keep the default `hard`
    (re-walls onboarded non-subscribers on launch). Set to `soft` if you want to
    soften without a rebuild. The onboarding wall is hard regardless of this flag.
-5. **Device QA** (can't be done from this clone — the RN build fails at the
+6. **Device QA** (can't be done from this clone — the RN build fails at the
    space-in-path repo; build from `~/halecap`):
    - New-user flow: onboarding → plan reveal → hard paywall. Confirm swipe-down,
      edge-swipe, and Android back do nothing; there is no close affordance.
+   - Paywall shows **"Start my 14-day free trial"** on annual (not 3-day).
    - Purchase → lands in the app; Restore → lands in the app.
    - Tap a locked feature (You/Coach/analytics) → paywall shows a close (X) after
      ~1.2s and is dismissible.
    - Kill the app at the paywall, relaunch → paywall re-presents (posture=hard).
+
+## Top monetization experiment (do NOT guess, test it)
+Move the free trial to **annual only** (drop monthly's 3-day trial) to push plan
+mix to the higher-LTV annual SKU (the Moonly tactic). I deliberately did **not**
+change this unilaterally: it reduces a live offer, and the tradeoff is real
+(fewer total trial starts vs. a richer mix). The code already handles either
+config correctly, so this is a clean A/B via `paywall_trial_scope`.
 
 ## Build + submit (from `~/halecap`)
 

@@ -81,11 +81,33 @@ const FREE_VS_PLUS_ROWS: TableRow[] = [
  */
 const REVIEWS: { quote: string; name: string; sub: string }[] = [];
 
-const TIMELINE: { Icon: typeof Unlock; day: string; detail: string; accent?: boolean }[] = [
-  { Icon: Unlock, day: 'Today', detail: 'Everything unlocks. Your quit clock starts.', accent: true },
-  { Icon: Bell, day: 'Day 2', detail: 'We remind you before your trial ends.' },
-  { Icon: BadgeCheck, day: 'Day 3', detail: 'Trial ends. Cancel anytime before then.' },
-];
+/**
+ * The Blinkist de-risking timeline, built from the REAL trial length (read off
+ * the store, never hardcoded). A 14-day trial reads Today / Day 13 / Day 14; a
+ * 3-day trial reads Today / Day 2 / Day 3.
+ */
+function buildTimeline(
+  trialDays: number,
+  renewal: string,
+): { Icon: typeof Unlock; day: string; detail: string; accent?: boolean }[] {
+  const remindOn = Math.max(1, trialDays - 1);
+  return [
+    { Icon: Unlock, day: 'Today', detail: 'Everything unlocks. Your quit clock starts.', accent: true },
+    { Icon: Bell, day: `Day ${remindOn}`, detail: 'We remind you before your trial ends.' },
+    {
+      Icon: BadgeCheck,
+      day: `Day ${trialDays}`,
+      detail: `Trial ends. ${renewal} unless you cancel.`,
+    },
+  ];
+}
+
+/**
+ * Only used while offerings are still loading. Mirrors the CURRENT App Store
+ * Connect config (annual = free first 2 weeks, monthly = free first 3 days).
+ * The live values always win once the store responds.
+ */
+const FALLBACK_TRIAL_DAYS: Record<HalePlan, number | null> = { annual: 14, monthly: 3 };
 
 function usd0(n: number): string {
   return '$' + Math.round(n).toLocaleString('en-US');
@@ -176,7 +198,10 @@ export default function Paywall() {
     const result = await purchasePlan(offer, surface);
     setBusy(false);
     if (result === 'purchased') {
-      if (plan === 'annual') track(Ev.TRIAL_STARTED, { trial_days: 3, trial_type: 'storekit' });
+      // Report the REAL trial length the store granted, not a hardcoded guess.
+      if (offer.trialDays) {
+        track(Ev.TRIAL_STARTED, { trial_days: offer.trialDays, trial_type: 'storekit' });
+      }
       dismiss();
     } else if (result === 'failed') {
       haptics.error();
@@ -266,6 +291,19 @@ function HalePlusUpsell({
   const weekly = usd2(annualNum / 52); // annual framed per-week ($0.96)
 
   const isAnnual = plan === 'annual';
+
+  // Real trial lengths, straight from the store (see lib/paywall.ts). The
+  // fallbacks only apply while offerings load.
+  const trialFor = (p: HalePlan): number | null => {
+    if (offers === 'loading' || offers === null) return FALLBACK_TRIAL_DAYS[p];
+    const o = offers.find((x) => x.plan === p);
+    return o ? o.trialDays : FALLBACK_TRIAL_DAYS[p];
+  };
+  const annualTrial = trialFor('annual');
+  const monthlyTrial = trialFor('monthly');
+  const trialDays = isAnnual ? annualTrial : monthlyTrial;
+  const renewal = isAnnual ? `${annualPrice}/yr` : `${monthlyPrice}/mo`;
+
   const title = hard
     ? name
       ? `${name}, your plan is ready.`
@@ -280,14 +318,16 @@ function HalePlusUpsell({
       ? `Less than a single ${productUnit}. ${weekly} a week.`
       : `Less than you spend on nicotine in a week. ${weekly} a week.`;
 
+  // Never promise "free" on a plan the store has no free trial for (a 2026 App
+  // Review rejection trap), and never understate one it does.
   const ctaLabel = notice
     ? 'Try again'
-    : isAnnual
-      ? 'Start my 3-day free trial'
-      : `Unlock HALE+ · ${monthlyPrice}/mo`;
-  const footnote = isAnnual
-    ? `3 days free, then ${annualPrice}/yr. Auto-renews until cancelled.`
-    : `${monthlyPrice}/mo. Auto-renews until cancelled.`;
+    : trialDays
+      ? `Start my ${trialDays}-day free trial`
+      : `Unlock HALE+ · ${renewal}`;
+  const footnote = trialDays
+    ? `${trialDays} days free, then ${renewal}. Auto-renews until cancelled.`
+    : `${renewal}. Auto-renews until cancelled.`;
 
   return (
     <View
@@ -330,8 +370,9 @@ function HalePlusUpsell({
         {/* Social proof — real reviews only; auto-hidden while REVIEWS is empty. */}
         {REVIEWS.length > 0 ? <ReviewStrip /> : null}
 
-        {/* How the free trial works — the Blinkist de-risking timeline. */}
-        <TrialCard />
+        {/* How the free trial works — the Blinkist de-risking timeline. Hidden
+            when the selected plan genuinely has no free trial. */}
+        {trialDays ? <TrialCard trialDays={trialDays} renewal={renewal} /> : null}
       </ScrollView>
 
       {/* Pinned footer: plans + anchor + reassurance + CTA + legal */}
@@ -346,7 +387,7 @@ function HalePlusUpsell({
             onPress={() => onPlan('annual')}
             title="Annual"
             price={annualPrice}
-            sub={`${weekly}/week · 3 days free`}
+            sub={`${weekly}/week${annualTrial ? ` · ${annualTrial} days free` : ''}`}
             badge="SAVE 40%"
           />
           <PlanCard
@@ -354,7 +395,7 @@ function HalePlusUpsell({
             onPress={() => onPlan('monthly')}
             title="Monthly"
             price={monthlyPrice}
-            sub="billed monthly · no trial"
+            sub={`billed monthly${monthlyTrial ? ` · ${monthlyTrial} days free` : ' · no trial'}`}
           />
         </View>
 
@@ -365,7 +406,7 @@ function HalePlusUpsell({
         <View className="mt-2 flex-row items-center justify-center gap-1.5">
           <Check color={clean.accent} size={14} strokeWidth={3} />
           <Caption className="text-accent font-sora-bold">
-            {isAnnual ? 'No payment due now · Cancel anytime' : 'Cancel anytime'}
+            {trialDays ? 'No payment due now · Cancel anytime' : 'Cancel anytime'}
           </Caption>
         </View>
 
@@ -478,15 +519,16 @@ function ReviewStrip() {
   );
 }
 
-/** "How your free trial works" timeline. */
-function TrialCard() {
+/** "How your free trial works" timeline, built from the store's real trial length. */
+function TrialCard({ trialDays, renewal }: { trialDays: number; renewal: string }) {
+  const timeline = buildTimeline(trialDays, renewal);
   return (
     <View className="mt-5 rounded-tile border border-stroke bg-surface/60 px-4 py-4">
       <Caption className="text-fg-3 text-[11px] tracking-wider font-sora-bold">
-        HOW YOUR FREE TRIAL WORKS
+        {`HOW YOUR ${trialDays}-DAY FREE TRIAL WORKS`}
       </Caption>
       <View className="mt-2.5 gap-2.5">
-        {TIMELINE.map((t) => (
+        {timeline.map((t) => (
           <View key={t.day} className="flex-row items-center gap-3">
             <View className="w-6 items-center">
               <t.Icon color={t.accent ? clean.accent : clean.fg2} size={16} strokeWidth={2.5} />

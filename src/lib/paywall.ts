@@ -28,11 +28,40 @@ export type HalePlan = 'annual' | 'monthly';
 
 export type PlanOffer = {
   plan: HalePlan;
-  /** Localized price string from the store (e.g. "$79.99"). */
+  /** Localized price string from the store (e.g. "$49.99"). */
   price: string;
+  /**
+   * Length of the FREE StoreKit intro trial in days, read from the store, or
+   * null when this plan has no free trial. NEVER hardcode this: App Store
+   * Connect is the source of truth and it has drifted from the copy before
+   * (the app once advertised 3 days while ASC granted 14). Deriving it here
+   * means the paywall copy can't lie about the offer.
+   */
+  trialDays: number | null;
   /** The RC package to purchase. */
   pkg: import('react-native-purchases').PurchasesPackage;
 };
+
+/** Free-trial length in days from a product's intro offer (null when not a free trial). */
+function introTrialDays(product: import('react-native-purchases').PurchasesStoreProduct): number | null {
+  const intro = product.introPrice;
+  // Only a ZERO-price intro offer is a free trial. A discounted intro (pay-up-front
+  // or pay-as-you-go) is not, and must never be called "free".
+  if (!intro || intro.price !== 0) return null;
+  const n = intro.periodNumberOfUnits;
+  switch (intro.periodUnit) {
+    case 'DAY':
+      return n;
+    case 'WEEK':
+      return n * 7;
+    case 'MONTH':
+      return n * 30;
+    case 'YEAR':
+      return n * 365;
+    default:
+      return null;
+  }
+}
 
 /**
  * Load the annual + monthly packages from the current offering. Returns null
@@ -48,8 +77,20 @@ export async function loadPlanOffers(): Promise<PlanOffer[] | null> {
     const offers: PlanOffer[] = [];
     const annual = current.annual ?? current.availablePackages.find((p) => p.packageType === 'ANNUAL');
     const monthly = current.monthly ?? current.availablePackages.find((p) => p.packageType === 'MONTHLY');
-    if (annual) offers.push({ plan: 'annual', price: annual.product.priceString, pkg: annual });
-    if (monthly) offers.push({ plan: 'monthly', price: monthly.product.priceString, pkg: monthly });
+    if (annual)
+      offers.push({
+        plan: 'annual',
+        price: annual.product.priceString,
+        trialDays: introTrialDays(annual.product),
+        pkg: annual,
+      });
+    if (monthly)
+      offers.push({
+        plan: 'monthly',
+        price: monthly.product.priceString,
+        trialDays: introTrialDays(monthly.product),
+        pkg: monthly,
+      });
     return offers.length > 0 ? offers : null;
   } catch {
     return null;
