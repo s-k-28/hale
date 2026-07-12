@@ -96,7 +96,7 @@ export default function Community() {
       >
         {/* Header — matches the Today idiom: lime accent label over the title */}
         <View className="mb-7">
-          <Label className="text-accent">Pseudonyms only — no one sees who you are</Label>
+          <Label className="text-accent">Pseudonyms only, no one sees who you are</Label>
           <H1 className="mt-1 text-3xl">{COMMUNITY_TAB_TITLE}</H1>
         </View>
 

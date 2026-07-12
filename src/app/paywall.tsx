@@ -361,10 +361,12 @@ function HalePlusUpsell({
           <Body className="mt-1.5 text-fg-2 text-[14px] leading-[20px]">{sub}</Body>
         </View>
 
-        {/* The value frame: a comparison table (the hard wall's honest sell). */}
+        {/* The value frame: a comparison table (the hard wall's honest sell).
+            leftLabel must fit the 72pt column at 9pt: "COLD TURKEY" truncated to
+            "COLD TURK…" on device. "ALONE" fits, and is a starker frame anyway. */}
         <CompareTable
           rows={hard ? COLD_TURKEY_ROWS : FREE_VS_PLUS_ROWS}
-          leftLabel={hard ? 'Cold turkey' : 'Free'}
+          leftLabel={hard ? 'Alone' : 'Free'}
         />
 
         {/* Social proof — real reviews only; auto-hidden while REVIEWS is empty. */}

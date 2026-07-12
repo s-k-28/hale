@@ -128,16 +128,28 @@ const WAKE_OPTIONS: { label: string; sub?: string; value: number }[] = [
  * Raw max 7.5, rescaled to 10.
  */
 function dependenceScore(a: Answers): number {
+  // Fagerström item 1 — time to first use after waking. 0-3.
   const wake = a.wakeUse === 5 ? 3 : a.wakeUse === 30 ? 2 : a.wakeUse === 60 ? 1 : 0;
 
-  const n = a.perDay ?? 0;
-  let amount = 0.5;
-  if (a.productType === 'cig') amount = n >= 20 ? 2.5 : n >= 10 ? 1.5 : 0.5;
-  else if (a.productType === 'pouch') amount = n >= 15 ? 2.5 : n >= 8 ? 1.5 : 0.5;
-  else if (a.productType === 'vape') amount = n >= 1 ? 2.5 : n >= 0.5 ? 1.5 : 0.5;
-  else amount = n >= 15 ? 2.5 : n >= 8 ? 1.5 : 0.5; // mixed: times/day reaching
+  // Amount, scaled CONTINUOUSLY against a heavy-use ceiling per product. This
+  // used to be three coarse buckets where anything >= a pack a day scored full
+  // marks — so a pack-a-day smoker and a three-pack-a-day smoker were identical,
+  // and a completely ordinary profile (pack a day, smokes on waking, 4 triggers)
+  // landed on a perfect 10.0/10. A maxed-out score reads as rigged. The top of
+  // the scale is now reserved for genuinely extreme use.
+  const n = Math.max(0, a.perDay ?? 0);
+  const heavyCeiling =
+    a.productType === 'cig'
+      ? 30 // 1.5 packs/day
+      : a.productType === 'pouch'
+        ? 20
+        : a.productType === 'vape'
+          ? 1.5 // devices/day
+          : 20; // mixed: times/day reaching for it
+  const amount = 2.5 * Math.min(1, n / heavyCeiling);
 
-  const triggers = Math.min(2, a.triggers.length * 0.5);
+  // Trigger breadth. Needs SIX to max, not four.
+  const triggers = 2 * Math.min(1, a.triggers.length / 6);
 
   const raw = wake + amount + triggers; // 0 - 7.5
   return Math.round(raw * (10 / 7.5) * 10) / 10; // one decimal, 0 - 10
@@ -213,7 +225,7 @@ const PRODUCTS: {
       { label: 'A few a month', value: 0.1 },
     ],
     q3Title: 'What does one usually cost you?',
-    q3Subtitle: 'Whatever you pay per vape or pod — disposables often run $15–25. Roughly is fine.',
+    q3Subtitle: 'Whatever you pay per vape or pod. Disposables often run $15 to $25. Roughly is fine.',
     q3Eyebrow: 'Cost per vape / pod',
     costDivisor: 1,
   },
@@ -239,7 +251,7 @@ const PRODUCTS: {
       { label: 'Around half a pack', sub: 'about 10 a day', value: 10 },
       { label: 'About a pack a day', sub: 'about 20', value: 20 },
       { label: 'Around two packs', sub: 'about 40', value: 40 },
-      { label: 'More than two packs', sub: 'it adds up fast — that changes now', value: 60 },
+      { label: 'More than two packs', sub: 'it adds up fast, and that changes now', value: 60 },
     ],
     q3Title: 'What does a pack cost where you live?',
     q3Subtitle: 'Prices swing a lot by state and brand. Ballpark is fine.',
@@ -349,6 +361,18 @@ type Phase = 'questions' | 'building' | 'score' | 'reveal' | 'commit' | 'push' |
  * server-side ("Sign in anonymously before completing onboarding"). We gate on
  * `isAuthenticated` so the mutation never races ahead of auth propagation.
  */
+/**
+ * Reject if a promise has not settled in `ms`. Used to bound network calls that
+ * ship no timeout of their own (Convex `signIn`, `completeOnboarding`), so an
+ * unreachable backend fails loudly instead of hanging the UI on a dead spinner.
+ */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(label)), ms)),
+  ]);
+}
+
 async function waitForAuth(
   ref: { current: boolean },
   { timeoutMs = 12000, intervalMs = 50 }: { timeoutMs?: number; intervalMs?: number } = {},
@@ -517,7 +541,12 @@ export default function Quiz() {
       // anonymous session. Calling signIn('anonymous') again would orphan it behind
       // a brand-new anonymous user and strand the first one.
       if (!isAuthedRef.current) {
-        await signIn('anonymous');
+        // signIn() has NO timeout of its own. If Convex is unreachable (backend
+        // down, captive wifi, plane mode) it never settles, so the commit button
+        // spins FOREVER: no error, no retry, no way out — the single worst place
+        // in the app to strand someone, because they have just committed to
+        // quitting. Race it so an unreachable backend surfaces as a real error.
+        await withTimeout(signIn('anonymous'), 15_000, 'sign-in timed out');
       }
       // signIn() resolving ≠ authenticated session established. useConvexAuth()'s
       // isAuthenticated only flips true once the BACKEND confirms the token

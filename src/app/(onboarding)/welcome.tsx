@@ -87,8 +87,8 @@ export default function Welcome() {
             >
               Privacy Policy
             </Muted>
-            , including usage analytics linked to your account ID — turn it off
-            anytime in You ▸ Settings.
+            , including usage analytics linked to your account ID. You can turn it
+            off anytime in You ▸ Settings.
           </Muted>
           {/* Typed-code referral fallback — the deferred-attribution path for fresh
               installs (the share message carries the code; iOS can't pass it

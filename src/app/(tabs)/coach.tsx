@@ -248,7 +248,7 @@ export default function Coach() {
               Read the privacy policy
             </Body>
             <Button
-              label="I agree — start chatting"
+              label="I agree, start chatting"
               onPress={() => {
                 void setAiConsent({}).catch(() => {
                   toast.error("Couldn't save that. Please try again.");
