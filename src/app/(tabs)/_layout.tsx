@@ -82,6 +82,10 @@ export default function TabsLayout() {
         // transition. Pairs with each screen's content RiseIn (translateY+opacity)
         // so switching tabs feels like the new screen settling in, not snapping.
         animation: 'fade',
+        // Pin the tab scene container to our near-black. Without this the tabs
+        // navigator paints the theme default (WHITE) behind each tab, and the
+        // 'fade' above cross-fades straight through it — the white flash.
+        sceneStyle: { backgroundColor: clean.bg },
         tabBarActiveTintColor: clean.accent,
         tabBarInactiveTintColor: clean.fg3,
         tabBarStyle: {

@@ -128,14 +128,35 @@ describe('health milestones', () => {
     expect(atOneWeek).toBeGreaterThanOrEqual(atOneDay);
   });
 
-  it('recoveryFraction is reached/total and ranges 0..1', () => {
+  it('recoveryFraction is a smooth 0..1 curve, clamped at both ends', () => {
     const start = 0;
     expect(recoveryFraction(start, 0)).toBe(0);
-    expect(recoveryFraction(start, 500 * 24 * MS_PER_HOUR)).toBe(1);
-    const mid = recoveryFraction(start, 3 * MS_PER_DAY);
-    expect(mid).toBeGreaterThan(0);
-    expect(mid).toBeLessThanOrEqual(1);
-    expect(mid).toBeCloseTo(reachedHealthMilestones(start, 3 * MS_PER_DAY).length / HEALTH_MILESTONES.length, 5);
+    expect(recoveryFraction(start, 365 * MS_PER_DAY)).toBeCloseTo(1, 5);
+    expect(recoveryFraction(start, 500 * MS_PER_DAY)).toBe(1); // clamped past a year
+  });
+
+  it('recoveryFraction does NOT overstate early recovery (the old reached/total bug)', () => {
+    const start = 0;
+    // The old milestone-count definition claimed 50% at three days and 80% at a
+    // month, which is a health claim we cannot make. Pin the honest curve.
+    expect(recoveryFraction(start, 3 * MS_PER_DAY)).toBeLessThan(0.3);
+    expect(recoveryFraction(start, 30 * MS_PER_DAY)).toBeLessThan(0.65);
+    // 20 minutes must be a rounding error, not "10% recovered".
+    expect(recoveryFraction(start, 20 * 60 * 1000)).toBeLessThan(0.02);
+  });
+
+  it('recoveryFraction is strictly monotonic (no 10-point step jumps)', () => {
+    const start = 0;
+    let prev = -1;
+    for (const d of [0.5, 1, 2, 3, 7, 14, 30, 60, 90, 180, 364]) {
+      const v = recoveryFraction(start, d * MS_PER_DAY);
+      expect(v).toBeGreaterThan(prev);
+      prev = v;
+    }
+    // Two consecutive days must differ — the old version was flat for weeks.
+    expect(recoveryFraction(start, 41 * MS_PER_DAY)).toBeGreaterThan(
+      recoveryFraction(start, 40 * MS_PER_DAY),
+    );
   });
 });
 

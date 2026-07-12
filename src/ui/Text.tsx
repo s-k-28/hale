@@ -38,5 +38,10 @@ export const Body = make('font-sora text-body text-fg-2');
 export const Eyebrow = make('font-sora-semibold text-eyebrow uppercase text-fg-3');
 /** Muted helper text. */
 export const Muted = make('font-sora text-body text-fg-3');
-/** Big stat numerals — tabular, tight tracking; size set per call site. */
-export const Display = make('font-sora-bold text-fg');
+/**
+ * Big stat numerals — tabular, tight tracking; size set per call site.
+ * `tabular-nums` is NOT optional here: Sora is a proportional face, so without it
+ * every digit change re-measures the text and the number visibly jitters. On any
+ * live-ticking value (the Today clock, count-ups) that reads as a permanent twitch.
+ */
+export const Display = make('font-sora-bold tabular-nums text-fg');

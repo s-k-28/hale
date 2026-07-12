@@ -25,6 +25,25 @@ import { initHaptics } from '@/lib/haptics';
 import { initSentry } from '@/lib/sentry';
 import { posthog, initAnalyticsConsent } from '@/lib/analytics';
 import { Toaster } from 'sonner-native';
+import { clean } from '@/theme/clean';
+
+/**
+ * THE WHITE-FLASH FIX.
+ *
+ * React Navigation defaults to its LIGHT theme, whose `colors.background` is
+ * #ffffff. That colour paints every navigator's scene container — stack scenes,
+ * tab scenes, modals — BEHIND our dark screens. Combined with the fade
+ * transitions we use (root stack `fade_from_bottom`, tabs `fade`), the app was
+ * literally cross-fading THROUGH WHITE on every navigation: a hard white strobe
+ * on a near-black app.
+ *
+ * Fixed by pinning the scene container of EVERY navigator to our near-black:
+ *   • root stack        → contentStyle (below; modals inherit it)
+ *   • onboarding stack  → contentStyle (src/app/(onboarding)/_layout.tsx)
+ *   • tabs              → sceneStyle   (src/app/(tabs)/_layout.tsx)
+ * plus the GestureHandlerRootView backstop at the very bottom of this file, so
+ * there is no white surface left anywhere in the view hierarchy to flash.
+ */
 
 initSentry();
 SplashScreen.preventAutoHideAsync();
@@ -73,8 +92,18 @@ export default function RootLayout() {
         {/* Global screen transition: content fades + slides up on enter
             (translateY + opacity), replacing the default right-push. Native
             preset = 60fps on the UI thread; modals below opt into their own
-            slide-up presentation. */}
-        <Stack screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}>
+            slide-up presentation.
+
+            contentStyle pins the scene container to our near-black. Without it
+            the navigator paints the theme's default background behind every
+            screen, and a fade transition strobes through it. */}
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: 'fade_from_bottom',
+            contentStyle: { backgroundColor: clean.bg },
+          }}
+        >
           <Stack.Screen name="index" />
           <Stack.Screen name="(onboarding)" />
           <Stack.Screen name="(tabs)" />
@@ -113,5 +142,12 @@ export default function RootLayout() {
   // GestureHandlerRootView must wrap the whole app so react-native-gesture-handler
   // detectors work — sonner-native toasts (swipe-to-dismiss) and @gorhom/bottom-sheet
   // both require it. Nothing used a GestureDetector before, so it was never needed.
-  return <GestureHandlerRootView style={{ flex: 1 }}>{app}</GestureHandlerRootView>;
+  // backgroundColor here is the outermost backstop for the white flash: it is the
+  // last surface under every navigator, so even a frame where a scene container
+  // has not painted yet shows near-black, never white.
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: clean.bg }}>
+      {app}
+    </GestureHandlerRootView>
+  );
 }

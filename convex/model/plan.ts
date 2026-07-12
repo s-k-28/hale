@@ -72,14 +72,35 @@ export function reachedHealthMilestones(quitStart: number, now: number) {
   return HEALTH_MILESTONES.filter((m) => m.hours <= elapsedH);
 }
 
+/** The last milestone (1 year) is "fully recovered" for the purposes of the %. */
+const FULL_RECOVERY_HOURS = HEALTH_MILESTONES[HEALTH_MILESTONES.length - 1].hours; // 8760
+
+/** Tunes how front-loaded the curve is. 24h ⇒ day 1 lands ~12%, day 30 ~58%. */
+const RECOVERY_SCALE_HOURS = 24;
+
 /**
- * Overall recovery toward full healing as a 0..1 fraction = health milestones
- * reached / total. Monotonic (never resets), unlike next-milestone progress
- * (cleanMs / nextMilestone.hours), which oscillates back toward 0 each time a
- * milestone is passed. This is the canonical "reached / total" definition already
- * surfaced by analytics.recoverySummary — use it anywhere a single recovery % is
- * shown so every surface agrees.
+ * Overall recovery toward full healing, 0..1. Monotonic and smooth.
+ *
+ * WAS: `milestonesReached / totalMilestones`. That was badly wrong. The milestones
+ * are LOG-spaced (20 minutes … 1 year), so counting them equally told a user they
+ * were "10% recovered" after 20 minutes, "50% recovered" after THREE DAYS, and
+ * "80% recovered" at one month. It also only ever moved in 10-point steps. Beyond
+ * looking broken, "your body is 50% recovered" after 3 days is a health claim we
+ * cannot make (Guideline 1.4.1).
+ *
+ * NOW: a log-time curve over the same 20min → 1yr span. Recovery genuinely IS
+ * front-loaded, so the curve is too, but honestly:
+ *   day 1 ≈ 12%  ·  day 3 ≈ 23%  ·  day 7 ≈ 35%  ·  day 30 ≈ 58%  ·  day 90 ≈ 76%
+ *   1 year = 100%
+ * Smooth (moves every day, never jumps), monotonic, and clamped to 0..1.
+ *
+ * Use this anywhere a single recovery % is shown so every surface agrees. The
+ * milestone LIST is still driven by reachedHealthMilestones() — unchanged.
  */
 export function recoveryFraction(quitStart: number, now: number): number {
-  return reachedHealthMilestones(quitStart, now).length / HEALTH_MILESTONES.length;
+  const elapsedH = Math.max(0, (now - quitStart) / 3_600_000);
+  const p =
+    Math.log1p(elapsedH / RECOVERY_SCALE_HOURS) /
+    Math.log1p(FULL_RECOVERY_HOURS / RECOVERY_SCALE_HOURS);
+  return Math.min(1, Math.max(0, p));
 }

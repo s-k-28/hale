@@ -18,15 +18,9 @@ import { RiseIn } from '@/components/motion';
 import { clean } from '@/theme/clean';
 import { haptics } from '@/lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+// No reanimated here any more: Today's only motion is now event-driven (the Ring's
+// check-in surge + the Skia burst). The idle breathing loop and the once-a-second
+// counter bounce were removed — see HeroDays / CounterUnit.
 
 /**
  * Today — the home dashboard (P1/P2), Clean Dark v2.
@@ -521,23 +515,22 @@ function NudgeInbox() {
  * counter reads as alive, not frozen. Scale-only (centered) → no layout shift.
  * Sized to the design's "numerals breathe" rule (66pt, not the banned 100+).
  */
+/**
+ * The hero day count. Deliberately STILL.
+ *
+ * This used to run an infinite withRepeat breathing scale (1 → 1.018 → 1, forever).
+ * A hero number that never stops moving is not "alive", it is restless: there is no
+ * event behind the motion, so the eye keeps being pulled back to a number that has
+ * not changed. The Ring already carries the screen's ambient life, and the check-in
+ * burst carries the celebration. The number itself should hold still.
+ *
+ * tabular-nums so 111 and 999 measure the same and the count never jitters.
+ */
 function HeroDays({ days }: { days: number }) {
-  const scale = useSharedValue(1);
-  useEffect(() => {
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.018, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
-        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-      false,
-    );
-  }, [scale]);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <Animated.View className="mt-1" style={style}>
+    <View className="mt-1">
       <RNText
-        className="font-sora-bold text-fg"
+        className="font-sora-bold tabular-nums text-fg"
         style={{
           fontSize: String(days).length > 2 ? 56 : 66,
           lineHeight: String(days).length > 2 ? 60 : 70,
@@ -546,33 +539,25 @@ function HeroDays({ days }: { days: number }) {
       >
         {days}
       </RNText>
-    </Animated.View>
+    </View>
   );
 }
 
 /**
- * One h/m/s unit under the hero day counter. On every value change the digits
- * roll up with a small spring (a slight overshoot) — the "satisfying tick" that
- * makes the seconds feel live and minute/hour rollovers read cleanly.
+ * One h/m/s unit under the hero day counter. Deliberately STILL.
+ *
+ * This used to spring translateY 6px + fade on EVERY value change. The seconds unit
+ * changes once a second, so that meant the number physically bounced once a second,
+ * forever — a permanent twitch masquerading as "feeling live". The digit changing IS
+ * the liveness; it needs no help.
+ *
+ * tabular-nums + a fixed width so the digits never re-measure and the h/m/s row
+ * cannot shuffle sideways as the clock ticks.
  */
 function CounterUnit({ value, label }: { value: string; label: string }) {
-  const anim = useSharedValue(1);
-  const prev = useRef(value);
-  useEffect(() => {
-    if (prev.current === value) return;
-    prev.current = value;
-    anim.value = 0;
-    anim.value = withSpring(1, { damping: 15, stiffness: 240, mass: 0.5 });
-  }, [value, anim]);
-  const style = useAnimatedStyle(() => ({
-    opacity: 0.72 + anim.value * 0.28,
-    transform: [{ translateY: (1 - anim.value) * 6 }],
-  }));
   return (
     <View className="items-center" style={{ width: 30 }}>
-      <Animated.View style={style}>
-        <RNText className="font-sora-semibold text-[16px] text-fg-2">{value}</RNText>
-      </Animated.View>
+      <RNText className="font-sora-semibold tabular-nums text-[16px] text-fg-2">{value}</RNText>
       <RNText className="mt-0.5 font-sora-semibold text-[9px] tracking-[0.9px] text-fg-4">
         {label}
       </RNText>
