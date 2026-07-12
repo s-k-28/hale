@@ -118,9 +118,28 @@ function usd0(n: number): string {
 function usd2(n: number): string {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-function parsePrice(s: string): number {
-  const n = parseFloat(s.replace(/[^0-9.]/g, ''));
-  return Number.isFinite(n) ? n : 0;
+/**
+ * Money in the STORE's currency. The per-week figure sits directly beside the
+ * store's own price badge, so hardcoding "$" put "$0.96 a week" next to a
+ * "49,99 €" price for every euro-zone user. Intl keeps the two in one currency.
+ */
+function formatCurrency(n: number, currencyCode: string): string {
+  try {
+    const s = n.toLocaleString(undefined, {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    // Hermes does not reliably implement `style: 'currency'`, and it may IGNORE
+    // the option and hand back a bare "0.96" rather than throwing. A price with
+    // no currency marker at all is worse than one with the wrong symbol, so only
+    // trust the result if it actually carries a symbol or code.
+    if (/[^\d\s.,]/.test(s)) return s;
+  } catch {
+    // Unknown/malformed currency code — never crash the paywall over a label.
+  }
+  return usd2(n);
 }
 const PRODUCT_UNIT: Record<string, string> = { vape: 'pod', cig: 'pack', pouch: 'tin', mixed: 'day' };
 
@@ -312,8 +331,21 @@ function HalePlusUpsell({
   };
   const annualPrice = priceFor('annual', '$49.99');
   const monthlyPrice = priceFor('monthly', '$6.99');
-  const annualNum = parsePrice(annualPrice) || 49.99;
-  const weekly = usd2(annualNum / 52); // annual framed per-week ($0.96)
+
+  // The per-week figure sits right beside the store's own price badge, so it has
+  // to be in the store's currency. It used to be parsed out of the localized
+  // price string with replace(/[^0-9.]/g,''), which eats the decimal COMMA most
+  // non-US stores use: "49,99 €" became 4999, and this line read "$96.13/week".
+  //
+  // Prefer the string the SDK already formatted (right currency, right locale,
+  // no Intl needed). Only compute one if the store withheld it.
+  const annualOffer = offers === 'loading' || offers === null
+    ? null
+    : (offers.find((o) => o.plan === 'annual') ?? null);
+  const annualNum = annualOffer?.priceNum || 49.99;
+  const weekly =
+    annualOffer?.pricePerWeek ??
+    formatCurrency(annualNum / 52, annualOffer?.currencyCode ?? 'USD');
 
   const isAnnual = plan === 'annual';
 

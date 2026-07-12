@@ -28,8 +28,28 @@ export type HalePlan = 'annual' | 'monthly';
 
 export type PlanOffer = {
   plan: HalePlan;
-  /** Localized price string from the store (e.g. "$49.99"). */
+  /** Localized price string from the store (e.g. "$49.99", "49,99 €"). DISPLAY ONLY. */
   price: string;
+  /**
+   * The price as a NUMBER, straight from StoreKit. Never parse `price` to get
+   * this. The paywall used to, with `replace(/[^0-9.]/g, '')`, which deletes the
+   * decimal COMMA that most non-US stores use: "49,99 €" parsed to 4999, and the
+   * per-week line (annual / 52) then read "$96.13/week" next to a "49,99 €" price
+   * badge. RevenueCat hands us the number; use it.
+   */
+  priceNum: number;
+  /** ISO currency of the store (e.g. "USD", "EUR"). The price is NOT always dollars. */
+  currencyCode: string;
+  /**
+   * The store's OWN localized per-week price (e.g. "$0.96", "0,96 €"), formatted
+   * by the SDK in the store's currency and locale.
+   *
+   * Prefer this over formatting a number ourselves. It needs no Intl — which
+   * Hermes does not reliably support and which this app polyfills nowhere, so a
+   * hand-rolled `style: 'currency'` risks rendering a bare "0.96" with no symbol
+   * on the money screen — and it cannot disagree with the price badge beside it.
+   */
+  pricePerWeek: string | null;
   /**
    * Length of the FREE StoreKit intro trial in days, read from the store, or
    * null when this plan has no free trial. NEVER hardcode this: App Store
@@ -81,6 +101,9 @@ export async function loadPlanOffers(): Promise<PlanOffer[] | null> {
       offers.push({
         plan: 'annual',
         price: annual.product.priceString,
+        priceNum: annual.product.price,
+        currencyCode: annual.product.currencyCode,
+        pricePerWeek: annual.product.pricePerWeekString ?? null,
         trialDays: introTrialDays(annual.product),
         pkg: annual,
       });
@@ -88,6 +111,9 @@ export async function loadPlanOffers(): Promise<PlanOffer[] | null> {
       offers.push({
         plan: 'monthly',
         price: monthly.product.priceString,
+        priceNum: monthly.product.price,
+        currencyCode: monthly.product.currencyCode,
+        pricePerWeek: monthly.product.pricePerWeekString ?? null,
         trialDays: introTrialDays(monthly.product),
         pkg: monthly,
       });
