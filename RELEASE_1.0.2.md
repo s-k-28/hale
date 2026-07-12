@@ -74,7 +74,46 @@ label and timeline row forced to ONE line (`numberOfLines={1}` + shorter copy),
 tighter row/footer rhythm. The entire paywall (value table + trial timeline +
 plan selector + anchor + CTA) now fits on one screen with **zero scrolling**.
 
-### 5. Onboarding peak-intent enhancements (additive, low-risk)
+### 5. The HALE Score — the metric HALE owns (`src/lib/haleScore.ts`)
+A single 0-100 number, surfaced on Today, that becomes identity and switching cost
+(the Oura Readiness / Duolingo streak playbook). "Hale" means whole, healthy — the
+brand IS the metric.
+
+**The point: it dents on a relapse but NEVER zeroes.** A bare day-counter snapping
+to 0 is the #1 churn cliff in sobriety apps: you slip once, the app says "0", you
+delete it. So the score splits into components that reset and components that
+don't:
+
+| resets on relapse | survives a relapse |
+|---|---|
+| body recovery (35) | best run (20) — `longestStreak` |
+| streak momentum (25) | money banked (10) — `lifetimeMoneySaved` |
+| | showing up (10) — base, for having an active quit |
+
+A 30-day quitter who slips drops from ~56 to ~27, not to zero: *"Your score dropped
+29 points, not to zero. Your body keeps the progress you gave it."* That sentence is
+the retention feature.
+
+- Pure, client-side, computed from fields `todayState` **already returns** — so
+  **no Convex schema change and no codegen**. Locked by `__tests__/haleScore.test.ts`
+  (7 tests, including an explicit never-zeroes case). Full suite: 128 passing.
+- **The Ring now tracks the score, not milestone progress.** Milestone progress
+  visibly *resets backward* every time a milestone passes, so the user lost ground
+  for making progress. The score only climbs. Milestone progress keeps its own bar
+  in the strip below.
+- **Insight line** under the number (the FA / Origin dashboard pattern): never just
+  a stat, always the next thing worth knowing ("You are 9h from taste and smell
+  improving"). Rule-based, ordered by signal strength.
+
+### 6. Plan-reveal defects caught by rendering it
+- **"First month $237" and "Every month $237" rendered the identical number** —
+  `firstMonth ≈ annual/12`, so those two tiles were always near-duplicates and read
+  like a bug. Replaced the dupe with a **5-year projection** ($14,235), a genuinely
+  different and far more motivating figure.
+- "Life regained ~101 days/yr" wrapped to two lines and made the card pair uneven.
+  Now one line ("101 days" / "of life back, every year you stay quit").
+
+### 7. Onboarding peak-intent enhancements (additive, low-risk)
 - **Welcome**: replaced the "Free to start" claim (risky under a hard wall) with a
   social-proof line ("Built with quitters").
 - **Plan reveal**: added a **Freedom Date** card ("cravings typically ease to

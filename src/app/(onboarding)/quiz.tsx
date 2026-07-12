@@ -484,8 +484,11 @@ export default function Quiz() {
         : enteredCost / product.costDivisor,
   };
   const annual = Math.round(projectedAnnualSavings(profile));
-  const monthly = Math.round(annual / 12);
   const firstMonth = Math.round(moneySaved(profile, 30 * 86_400_000));
+  // NOT "every month": that is annual/12, which is the same number as firstMonth,
+  // so the two tiles rendered identical values and read like a bug. Five years is
+  // a genuinely different (and far more motivating) figure.
+  const fiveYear = annual * 5;
   const previewMilestones = HEALTH_MILESTONES.slice(0, 5);
   // Peak-intent reveal extras (client-side, honest framing).
   //  • Life regained — cigarettes only. UCL 2024 (Addiction): ~20 min of life
@@ -657,7 +660,7 @@ export default function Quiz() {
       <PlanReveal
         name={answers.name.trim()}
         annual={annual}
-        monthly={monthly}
+        fiveYear={fiveYear}
         firstMonth={firstMonth}
         milestones={previewMilestones}
         lifeDaysPerYear={lifeDaysPerYear}
@@ -1178,7 +1181,7 @@ function ScoreReveal({
 function PlanReveal({
   name,
   annual,
-  monthly,
+  fiveYear,
   firstMonth,
   milestones,
   lifeDaysPerYear,
@@ -1187,7 +1190,7 @@ function PlanReveal({
 }: {
   name: string;
   annual: number;
-  monthly: number;
+  fiveYear: number;
   firstMonth: number;
   milestones: { hours: number; label: string }[];
   lifeDaysPerYear: number | null;
@@ -1223,9 +1226,9 @@ function PlanReveal({
               </RNText>
             </Card2>
             <Card2 pad className="flex-1">
-              <Eyebrow>Every month</Eyebrow>
+              <Eyebrow>In 5 years</Eyebrow>
               <RNText className="mt-1.5 font-sora-bold text-[28px] tracking-[-0.56px] text-fg">
-                ${monthly.toLocaleString()}
+                ${fiveYear.toLocaleString()}
               </RNText>
             </Card2>
           </View>
@@ -1246,11 +1249,15 @@ function PlanReveal({
           {lifeDaysPerYear ? (
             <View className="flex-1 rounded-tile border border-stroke bg-surface p-4">
               <Eyebrow>Life regained</Eyebrow>
-              <RNText className="mt-1.5 font-sora-bold text-[24px] tracking-[-0.4px] text-fg">
-                ~{lifeDaysPerYear} days/yr
+              {/* One line — "~101 days/yr" wrapped and made the two cards uneven. */}
+              <RNText
+                numberOfLines={1}
+                className="mt-1.5 font-sora-bold text-[24px] tracking-[-0.4px] text-fg"
+              >
+                {lifeDaysPerYear} days
               </RNText>
               <Body className="mt-1 text-[12px] leading-4 text-fg-3">
-                Estimated from life-expectancy research
+                of life back, every year you stay quit
               </Body>
             </View>
           ) : null}

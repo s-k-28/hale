@@ -9,6 +9,7 @@ import { localDateOf } from '@convex/model/streak';
 import { LANDMARK_DAYS, recoveryFraction } from '@convex/model/plan';
 import { toast } from 'sonner-native';
 import { track, Ev } from '@/lib/analytics';
+import { haleScore, haleScoreBand } from '@/lib/haleScore';
 import { Screen, Button, Badge, Tile, Eyebrow, H1, H3, Body, Muted, Ring } from '@/ui';
 import { RNText } from '@/ui/internal';
 import MilestoneCelebration from '@/components/MilestoneCelebration';
@@ -255,7 +256,30 @@ export default function Today() {
   const streak = state.currentStreak;
   const landmark = nextLandmark(streak);
   // Overall recovery = health milestones reached / total — monotonic, never resets.
-  const recoveryPct = Math.round(recoveryFraction(state.quitStart, now) * 100);
+  const recovery = recoveryFraction(state.quitStart, now);
+  const recoveryPct = Math.round(recovery * 100);
+
+  // THE HALE SCORE — the one metric HALE owns (see lib/haleScore). It dents on a
+  // relapse but never zeroes, which is the answer to the delete-the-app cliff.
+  const score = haleScore({
+    recoveryFraction: recovery,
+    currentStreak: state.currentStreak,
+    longestStreak: state.longestStreak,
+    lifetimeMoneySaved: state.lifetimeMoneySaved,
+  });
+  const band = haleScoreBand(score);
+
+  // One line of "so what" under the number (the FA/Origin dashboard pattern):
+  // never just a stat, always the next thing worth knowing. Rule-based, ordered
+  // by signal strength so the most useful line wins.
+  const hoursToMilestone = milestone ? Math.ceil(milestoneRemainingMs / MS.hour) : null;
+  const insight = freshStart
+    ? 'Day one is the whole game. Your score climbs from here.'
+    : milestone && hoursToMilestone !== null && hoursToMilestone <= 24
+      ? `You are ${hoursToMilestone}h from ${milestone.label.toLowerCase()}.`
+      : landmark && landmark - streak === 1
+        ? `One more day and you hit ${landmark} days.`
+        : `${band}. Every clean day pushes this higher.`;
 
   return (
     <Screen edges={['top']}>
@@ -277,14 +301,13 @@ export default function Today() {
 
         {/* HERO — live clean-time counter inside the emerald Ring: the screen's
             ONE green focal element. */}
-        <View className="mb-8 items-center">
+        <View className="mb-4 items-center">
           <View className="relative items-center justify-center">
-            <Ring
-              progress={freshStart ? Math.max(milestoneProgress, 0.08) : milestoneProgress}
-              size={272}
-              stroke={10}
-              surge={ringSurge}
-            >
+            {/* The ring tracks the HALE SCORE, not milestone progress. Milestone
+                progress visibly resets backward every time a milestone passes,
+                so the user loses ground for making progress. The score only
+                climbs. Milestone progress still has its own bar in the strip below. */}
+            <Ring progress={score / 100} size={272} stroke={10} surge={ringSurge}>
               <Eyebrow className="text-[10.5px] tracking-[1.9px]">Clean for</Eyebrow>
               <HeroDays days={t.days} />
               <Eyebrow className="text-accent text-[11.5px] tracking-[2.3px]">
@@ -300,6 +323,20 @@ export default function Today() {
                 Keyed on the surge counter so each check-in remounts + re-fires it. */}
             {ringSurge > 0 ? <RingBurst key={ringSurge} /> : null}
           </View>
+        </View>
+
+        {/* THE HALE SCORE + its "so what" line. The number is the identity ("my
+            score is 62"); the line is what to do about it. */}
+        <View className="mb-7 items-center">
+          <View className="flex-row items-baseline" style={{ gap: 6 }}>
+            <RNText className="font-sora-extrabold text-[26px] tracking-[-0.5px] text-fg">
+              {score}
+            </RNText>
+            <Muted className="text-[12px] tracking-[0.4px]">/ 100 HALE SCORE</Muted>
+          </View>
+          <Body className="mt-1.5 px-6 text-center text-[13px] leading-[18px] text-fg-2">
+            {insight}
+          </Body>
         </View>
 
         {/* Next health milestone strip — quiet surface, fg countdown */}
