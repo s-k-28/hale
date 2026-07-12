@@ -45,3 +45,6 @@ example
 # secrets
 .env.local
 .env*.local
+
+# gstack local working dir
+.gstack/
