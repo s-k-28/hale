@@ -56,21 +56,23 @@ type TableRow = { label: string; free: boolean | string; plus: boolean | string 
 
 // "Cold turkey vs HALE+" — the honest frame for the hard wall (there is no free
 // tier to compare against, and the loss frame converts harder).
+// Labels are deliberately SHORT so every row stays on ONE line at 393pt. Two-line
+// rows push the trial timeline (the highest-converting element) below the fold.
 const COLD_TURKEY_ROWS: TableRow[] = [
-  { label: 'A plan built around your triggers', free: false, plus: true },
-  { label: 'Sage, your 24/7 quit coach', free: false, plus: true },
-  { label: 'Craving SOS the moment it hits', free: false, plus: true },
-  { label: 'Money saved + recovery tracking', free: false, plus: true },
-  { label: 'A buddy and squad who get it', free: false, plus: true },
+  { label: 'A plan for your triggers', free: false, plus: true },
+  { label: 'Sage, your 24/7 coach', free: false, plus: true },
+  { label: 'Instant craving SOS', free: false, plus: true },
+  { label: 'Money + recovery tracking', free: false, plus: true },
+  { label: 'A buddy who gets it', free: false, plus: true },
 ];
 
 // "Free vs HALE+" — for the dismissible in-app gates, mapped to the real gates.
 const FREE_VS_PLUS_ROWS: TableRow[] = [
-  { label: 'Daily check-in & streak', free: true, plus: true },
+  { label: 'Check-in & streak', free: true, plus: true },
   { label: 'Craving SOS', free: true, plus: true },
   { label: 'Sage AI coach', free: 'Limited', plus: 'Unlimited' },
-  { label: 'Full recovery analytics', free: false, plus: true },
-  { label: 'Advanced craving toolkit', free: false, plus: true },
+  { label: 'Recovery analytics', free: false, plus: true },
+  { label: 'Craving toolkit', free: false, plus: true },
   { label: 'Multiple squads', free: false, plus: true },
 ];
 
@@ -91,14 +93,11 @@ function buildTimeline(
   renewal: string,
 ): { Icon: typeof Unlock; day: string; detail: string; accent?: boolean }[] {
   const remindOn = Math.max(1, trialDays - 1);
+  // One line each — see the note on the table rows above.
   return [
-    { Icon: Unlock, day: 'Today', detail: 'Everything unlocks. Your quit clock starts.', accent: true },
-    { Icon: Bell, day: `Day ${remindOn}`, detail: 'We remind you before your trial ends.' },
-    {
-      Icon: BadgeCheck,
-      day: `Day ${trialDays}`,
-      detail: `Trial ends. ${renewal} unless you cancel.`,
-    },
+    { Icon: Unlock, day: 'Today', detail: 'Everything unlocks.', accent: true },
+    { Icon: Bell, day: `Day ${remindOn}`, detail: 'We remind you before it ends.' },
+    { Icon: BadgeCheck, day: `Day ${trialDays}`, detail: `${renewal} unless you cancel.` },
   ];
 }
 
@@ -357,8 +356,9 @@ function HalePlusUpsell({
         {/* Header */}
         <View className="mt-1">
           <Badge label="HALE+" tone="soft" />
-          <Display className="mt-3 text-fg text-4xl leading-tight tracking-tight">{title}</Display>
-          <Body className="mt-2 text-fg-2 text-base leading-relaxed">{sub}</Body>
+          {/* 27pt, not 36 — a two-line headline pushed the trial timeline off screen. */}
+          <Display className="mt-2.5 text-fg text-[27px] leading-[31px] tracking-tight">{title}</Display>
+          <Body className="mt-1.5 text-fg-2 text-[14px] leading-[20px]">{sub}</Body>
         </View>
 
         {/* The value frame: a comparison table (the hard wall's honest sell). */}
@@ -377,11 +377,11 @@ function HalePlusUpsell({
 
       {/* Pinned footer: plans + anchor + reassurance + CTA + legal */}
       <View
-        className="border-t border-stroke bg-surface px-gutter pb-2 pt-4"
+        className="border-t border-stroke bg-surface px-gutter pb-2 pt-3"
         style={{ shadowColor: '#000000', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: -8 } }}
       >
         {/* Plan selector — annual is the highlighted default */}
-        <View className="gap-2.5">
+        <View className="gap-2">
           <PlanCard
             selected={isAnnual}
             onPress={() => onPlan('annual')}
@@ -454,27 +454,36 @@ function HalePlusUpsell({
 /** Free/Cold-turkey vs HALE+ comparison — Jonathan's "what you're missing" table. */
 function CompareTable({ rows, leftLabel }: { rows: TableRow[]; leftLabel: string }) {
   return (
-    <View className="mt-6 overflow-hidden rounded-tile border border-stroke bg-surface/60">
+    <View className="mt-4 overflow-hidden rounded-tile border border-stroke bg-surface/60">
       {/* Column header */}
-      <View className="flex-row items-center border-b border-stroke px-4 py-2.5">
+      <View className="flex-row items-center border-b border-stroke px-3.5 py-2">
         <View className="flex-1" />
-        <Caption className="w-16 text-center text-[10px] font-sora-bold tracking-wider text-fg-3">
+        <Caption
+          numberOfLines={1}
+          className="w-[72px] text-center text-[9px] font-sora-bold tracking-[0.6px] text-fg-3"
+        >
           {leftLabel.toUpperCase()}
         </Caption>
-        <Caption className="w-16 text-center text-[10px] font-sora-bold tracking-wider text-accent">
+        <Caption
+          numberOfLines={1}
+          className="w-[72px] text-center text-[9px] font-sora-bold tracking-[0.6px] text-accent"
+        >
           HALE+
         </Caption>
       </View>
       {rows.map((r, i) => (
         <View
           key={r.label}
-          className={`flex-row items-center px-4 py-3 ${i < rows.length - 1 ? 'border-b border-stroke' : ''}`}
+          className={`flex-row items-center px-3.5 py-2.5 ${i < rows.length - 1 ? 'border-b border-stroke' : ''}`}
         >
-          <Body className="flex-1 pr-2 text-[13px] leading-5 text-fg-2">{r.label}</Body>
-          <View className="w-16 items-center">
+          {/* One line, always — a wrapping row costs ~20pt and buries the timeline. */}
+          <Body numberOfLines={1} className="flex-1 pr-2 text-[13px] leading-[17px] text-fg-2">
+            {r.label}
+          </Body>
+          <View className="w-[72px] items-center">
             <Cell value={r.free} muted />
           </View>
-          <View className="w-16 items-center">
+          <View className="w-[72px] items-center">
             <Cell value={r.plus} />
           </View>
         </View>
@@ -523,11 +532,11 @@ function ReviewStrip() {
 function TrialCard({ trialDays, renewal }: { trialDays: number; renewal: string }) {
   const timeline = buildTimeline(trialDays, renewal);
   return (
-    <View className="mt-5 rounded-tile border border-stroke bg-surface/60 px-4 py-4">
+    <View className="mt-3.5 rounded-tile border border-stroke bg-surface/60 px-3.5 py-3">
       <Caption className="text-fg-3 text-[11px] tracking-wider font-sora-bold">
         {`HOW YOUR ${trialDays}-DAY FREE TRIAL WORKS`}
       </Caption>
-      <View className="mt-2.5 gap-2.5">
+      <View className="mt-2 gap-2">
         {timeline.map((t) => (
           <View key={t.day} className="flex-row items-center gap-3">
             <View className="w-6 items-center">
@@ -565,7 +574,7 @@ function PlanCard({
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
-      className={`flex-row items-center gap-3 rounded-tile px-4 py-3.5 ${
+      className={`flex-row items-center gap-3 rounded-tile px-3.5 py-3 ${
         selected ? 'border-[1.5px] border-accent bg-accent-soft' : 'border border-stroke bg-surface-2'
       }`}
     >

@@ -1,11 +1,11 @@
-# HALE 1.1.0 — Conversion overhaul (hard paywall + onboarding peak-intent)
+# HALE 1.0.2 — Conversion overhaul (hard paywall + onboarding + UI)
 
 _Branch: `feat/conversion-overhaul`. Built 2026-07-11. Grounded in the 3 source
 videos (paywalls / onboarding / dashboards), `MRR_STUDY.md`, and a research pass
 (RevenueCat SOSA 2025, Quittr/Opal/Blinkist/Reframe teardowns, Apple 2026 paywall
 compliance). Goal: move install→trial and trial→paid toward the $100k-MRR funnel._
 
-`app.json`: version **1.1.0**, iOS buildNumber **14** (EAS `autoIncrement` will
+`app.json`: version **1.0.2**, iOS buildNumber **15** (EAS `autoIncrement` will
 bump from the last cloud build regardless).
 
 ---
@@ -49,7 +49,32 @@ The onboarding paywall is now a genuine non-dismissible decision wall:
 - **Reviews carousel** that renders **only when real reviews are supplied** — see
   action items. HALE ships no fabricated social proof.
 
-### 3. Onboarding peak-intent enhancements (additive, low-risk)
+### 3. Dependence Score reveal (the biggest new conversion lever)
+The Quittr move, done more credibly. A new question (**"How soon after waking do
+you first reach for it?"** — Fagerström's single strongest dependence item) feeds
+a 0-10 **nicotine dependence score** revealed between the building beat and the
+plan reveal. Flow is now: quiz → building → **score** → plan → commit → hard wall.
+Name the problem, then name the way out, then ask for money.
+
+- `dependenceScore()` / `scoreBand()` in `quiz.tsx`: pure, client-side, Fagerström-
+  adapted (time-to-first-use 0-3, amount-vs-product 0-2.5, trigger breadth 0-2,
+  rescaled to 10). **Not persisted** — no Convex schema change, no codegen.
+- Colour ramps emerald → warm → coral with the band (Low / Moderate / High /
+  Severe); the CTA stays emerald ("Show me the way out"). Danger lane names the
+  problem, hope lane is the escape.
+- Carries the existing 1.4.1 framing: "general guidance, not a diagnosis or
+  medical advice."
+
+### 4. Paywall layout fixed against a real render
+Rendered the paywall at 393x852 and found the **trial timeline — the single
+highest-converting element (Blinkist: +23% trial starts) — was below the fold and
+never seen.** A 36pt two-line headline plus a comparison table whose every label
+wrapped to two lines ate the whole screen. Fixed: headline to 27pt, every table
+label and timeline row forced to ONE line (`numberOfLines={1}` + shorter copy),
+tighter row/footer rhythm. The entire paywall (value table + trial timeline +
+plan selector + anchor + CTA) now fits on one screen with **zero scrolling**.
+
+### 5. Onboarding peak-intent enhancements (additive, low-risk)
 - **Welcome**: replaced the "Free to start" claim (risky under a hard wall) with a
   social-proof line ("Built with quitters").
 - **Plan reveal**: added a **Freedom Date** card ("cravings typically ease to
@@ -139,8 +164,8 @@ $83.88). **Fixed in code** by reading the intro offer off the store.
 
 ### ⚠️ RELEASE BLOCKER
 **Version 1.0.1 is currently "Waiting for Review"** (1.0 is live). You cannot have
-two versions in review at once. Before submitting 1.1.0 you must either let 1.0.1
-finish review, or remove it from review and submit 1.1.0 in its place. Decide
+two versions in review at once. Before submitting 1.0.2 you must either let 1.0.1
+finish review, or remove it from review and submit 1.0.2 in its place. Decide
 this first — it changes the submission path.
 
 ---

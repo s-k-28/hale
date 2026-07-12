@@ -87,6 +87,10 @@ type Answers = {
   productType: ProductType | null;
   perDay: number | null; // units/day — can be fractional (a vape every 3 days ≈ 0.33)
   unitCost: number | null; // $ as ENTERED (per vape / pack / tin / day) — normalized in `profile`
+  /** Minutes from waking to first use: 5 | 30 | 60 | 999. Fagerström's single
+   *  strongest dependence item. Client-side only (drives the score reveal); it
+   *  is NOT sent to completeOnboarding, so the schema is untouched. */
+  wakeUse: number | null;
   triggers: string[];
   hardestHour: number | null;
   motivation: string;
@@ -97,11 +101,70 @@ const INITIAL: Answers = {
   productType: null,
   perDay: null,
   unitCost: null,
+  wakeUse: null,
   triggers: [],
   hardestHour: null,
   motivation: '',
   name: '',
 };
+
+/** Q: how soon after waking do you first reach for it? (Fagerström item 1) */
+const WAKE_OPTIONS: { label: string; sub?: string; value: number }[] = [
+  { label: 'Within 5 minutes', value: 5 },
+  { label: '5 to 30 minutes', value: 30 },
+  { label: '30 to 60 minutes', value: 60 },
+  { label: 'More than an hour', value: 999 },
+];
+
+/**
+ * Nicotine dependence score, 0-10, adapted from the Fagerström Test for Nicotine
+ * Dependence. Pure, client-side, and NOT a diagnosis — the reveal copy carries
+ * the same "typically / not medical advice" framing as HEALTH_MILESTONES
+ * (Guideline 1.4.1).
+ *
+ *   time-to-first-use  0-3   (the strongest single predictor)
+ *   amount vs product  0-2.5
+ *   trigger breadth    0-2   (0.5 each, capped)
+ * Raw max 7.5, rescaled to 10.
+ */
+function dependenceScore(a: Answers): number {
+  const wake = a.wakeUse === 5 ? 3 : a.wakeUse === 30 ? 2 : a.wakeUse === 60 ? 1 : 0;
+
+  const n = a.perDay ?? 0;
+  let amount = 0.5;
+  if (a.productType === 'cig') amount = n >= 20 ? 2.5 : n >= 10 ? 1.5 : 0.5;
+  else if (a.productType === 'pouch') amount = n >= 15 ? 2.5 : n >= 8 ? 1.5 : 0.5;
+  else if (a.productType === 'vape') amount = n >= 1 ? 2.5 : n >= 0.5 ? 1.5 : 0.5;
+  else amount = n >= 15 ? 2.5 : n >= 8 ? 1.5 : 0.5; // mixed: times/day reaching
+
+  const triggers = Math.min(2, a.triggers.length * 0.5);
+
+  const raw = wake + amount + triggers; // 0 - 7.5
+  return Math.round(raw * (10 / 7.5) * 10) / 10; // one decimal, 0 - 10
+}
+
+/** Band label + the line that reframes the score into a reason to use HALE. */
+function scoreBand(score: number): { label: string; line: string } {
+  if (score >= 8.5)
+    return {
+      label: 'Severe',
+      line: 'Nicotine has a deep hold here. This is not a willpower problem, and willpower alone rarely wins. A plan does.',
+    };
+  if (score >= 6.5)
+    return {
+      label: 'High',
+      line: 'Your brain is asking for nicotine on a schedule. People at this level almost never quit on willpower alone.',
+    };
+  if (score >= 3.5)
+    return {
+      label: 'Moderate',
+      line: 'The habit has roots, but they are not deep yet. This is the level where a real plan makes the biggest difference.',
+    };
+  return {
+    label: 'Low',
+    line: 'You are further from dependence than most. That is a head start, and it is exactly the moment to quit for good.',
+  };
+}
 
 /* lucide glyph type for option rows */
 type Glyph = (props: { color?: string; size?: number; strokeWidth?: number }) => ReactNode;
@@ -252,6 +315,7 @@ type StepKey =
   | 'productType'
   | 'perDay'
   | 'unitCost'
+  | 'wakeUse'
   | 'triggers'
   | 'hardestHour'
   | 'motivation'
@@ -261,13 +325,17 @@ const QUESTION_STEPS: StepKey[] = [
   'productType',
   'perDay',
   'unitCost',
+  'wakeUse',
   'triggers',
   'hardestHour',
   'motivation',
   'name',
 ];
 
-type Phase = 'questions' | 'building' | 'reveal' | 'commit' | 'push' | 'invitebuddy';
+// 'score' sits between the building beat and the plan reveal: name the problem
+// (dependence score), THEN show the way out (the plan). That order is what makes
+// the paywall land at peak intent.
+type Phase = 'questions' | 'building' | 'score' | 'reveal' | 'commit' | 'push' | 'invitebuddy';
 
 /* ------------------------------------------------------------------------- */
 
@@ -355,6 +423,8 @@ export default function Quiz() {
         return answers.perDay !== null && answers.perDay > 0;
       case 'unitCost':
         return answers.unitCost !== null && answers.unitCost > 0;
+      case 'wakeUse':
+        return answers.wakeUse !== null;
       case 'triggers':
         return answers.triggers.length > 0;
       case 'hardestHour':
@@ -385,15 +455,13 @@ export default function Quiz() {
     if (phase === 'questions') setStepIndex((i) => Math.max(0, i - 1));
   };
 
-  /* "Building your plan" → reveal, then fire PLAN_VIEWED once. */
+  /* "Building your plan" → dependence score. The plan reveal follows the score. */
   useEffect(() => {
     if (phase !== 'building') return;
     const t = setTimeout(() => {
-      setPhase('reveal');
-      // "Your plan is ready" — the moment the plan materialises after the
-      // building beat. A success pulse punctuates the transition.
+      setPhase('score');
+      // The score landing is a weighty moment — name the problem, then solve it.
       haptics.success();
-      track(Ev.PLAN_VIEWED);
     }, 2400);
     return () => clearTimeout(t);
   }, [phase]);
@@ -432,6 +500,9 @@ export default function Quiz() {
     month: 'short',
     day: 'numeric',
   });
+  // Dependence score — names the problem right before the plan names the way out.
+  const score = dependenceScore(answers);
+  const band = scoreBand(score);
 
   /* Commit: anonymous sign-in THEN completeOnboarding (the only backend touch). */
   const commit = async () => {
@@ -565,6 +636,21 @@ export default function Quiz() {
   /* ----------------------------- render phases ---------------------------- */
 
   if (phase === 'building') return <BuildingPlan name={answers.name.trim()} />;
+
+  if (phase === 'score') {
+    return (
+      <ScoreReveal
+        score={score}
+        bandLabel={band.label}
+        bandLine={band.line}
+        onContinue={() => {
+          setPhase('reveal');
+          haptics.success();
+          track(Ev.PLAN_VIEWED);
+        }}
+      />
+    );
+  }
 
   if (phase === 'reveal') {
     return (
@@ -725,6 +811,23 @@ export default function Quiz() {
                 prefix="$"
                 accessibilityLabel={product.q3Eyebrow}
               />
+            </Question>
+          )}
+
+          {step === 'wakeUse' && (
+            <Question
+              index={stepIndex}
+              title="How soon after waking do you first reach for it?"
+              subtitle="This says more about dependence than how much you use."
+            >
+              {WAKE_OPTIONS.map((o) => (
+                <OptRow
+                  key={o.value}
+                  label={o.label}
+                  on={answers.wakeUse === o.value}
+                  onPress={() => set('wakeUse', o.value)}
+                />
+              ))}
             </Question>
           )}
 
@@ -990,6 +1093,85 @@ function useCountUp(target: number, duration = 1100) {
     return () => cancelAnimationFrame(raf);
   }, [target, duration]);
   return n;
+}
+
+/**
+ * DEPENDENCE SCORE — name the problem. The plan reveal (next) names the way out.
+ * Fagerström-adapted and computed client-side (see dependenceScore). Framed as
+ * general guidance, never a diagnosis (Guideline 1.4.1). The colour ramps from
+ * emerald (low) through warm to coral (severe): the danger lane, earned.
+ */
+function ScoreReveal({
+  score,
+  bandLabel,
+  bandLine,
+  onContinue,
+}: {
+  score: number;
+  bandLabel: string;
+  bandLine: string;
+  onContinue: () => void;
+}) {
+  // Count up in tenths so the number lands on one decimal.
+  const tenths = useCountUp(Math.round(score * 10));
+  const shown = (tenths / 10).toFixed(1);
+  const pct = Math.min(100, Math.max(0, (score / 10) * 100));
+  const tone = score >= 6.5 ? clean.coral : score >= 3.5 ? clean.warm : clean.accent;
+
+  return (
+    <Screen edges={['top', 'bottom']}>
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="grow px-gutter pt-8 pb-8 justify-center"
+        showsVerticalScrollIndicator={false}
+      >
+        <Eyebrow>Your nicotine dependence score</Eyebrow>
+
+        <View className="mt-4 flex-row items-baseline">
+          <RNText
+            className="font-sora-extrabold text-[88px] leading-[92px] tracking-[-2.6px]"
+            style={{ color: tone }}
+          >
+            {shown}
+          </RNText>
+          <RNText className="ml-1.5 font-sora-bold text-[22px] text-fg-3">/ 10</RNText>
+        </View>
+
+        <View className="mt-3 flex-row">
+          <View
+            className="rounded-pill px-3 py-1.5"
+            style={{ backgroundColor: `${tone}1F`, borderWidth: 1, borderColor: `${tone}44` }}
+          >
+            <RNText className="font-sora-bold text-[12px] tracking-[0.5px]" style={{ color: tone }}>
+              {`${bandLabel.toUpperCase()} DEPENDENCE`}
+            </RNText>
+          </View>
+        </View>
+
+        <View
+          className="mt-6 h-2 overflow-hidden rounded-pill"
+          style={{ backgroundColor: clean.track }}
+        >
+          <View className="h-full rounded-pill" style={{ width: `${pct}%`, backgroundColor: tone }} />
+        </View>
+        <View className="mt-2 flex-row justify-between">
+          <Muted className="text-[11px]">Low</Muted>
+          <Muted className="text-[11px]">Severe</Muted>
+        </View>
+
+        <Lead className="mt-7">{bandLine}</Lead>
+
+        <Muted className="mt-6 text-[12px] leading-5">
+          Based on Fagerstrom-style dependence indicators, the same signals clinicians use. This is
+          general guidance, not a diagnosis or medical advice.
+        </Muted>
+      </ScrollView>
+
+      <View className="px-gutter pb-[30px] pt-4">
+        <Button label="Show me the way out" variant="primary" onPress={onContinue} />
+      </View>
+    </Screen>
+  );
 }
 
 /** PLAN REVEAL — hero $ number + health recovery timeline + medical disclaimer. */

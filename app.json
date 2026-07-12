@@ -2,8 +2,8 @@
   "expo": {
     "name": "HALE",
     "slug": "hale",
-    "version": "1.1.0",
-    "description": "Quit nicotine for good. HALE gives you a personalized quit plan, a craving SOS toolkit, an AI coach in your corner, and a buddy to keep you honest, so you stay clean one day at a time. Start with a 3-day free trial, then HALE+ is $49.99/year or $6.99/month. Cancel anytime.",
+    "version": "1.0.2",
+    "description": "Quit nicotine for good. HALE gives you a personalized quit plan, a craving SOS toolkit, an AI coach in your corner, and a buddy to keep you honest, so you stay clean one day at a time. HALE+ is $49.99/year with a 14-day free trial, or $6.99/month with a 3-day free trial. Cancel anytime.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "hale",
@@ -12,7 +12,7 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.ravipulavarthy.hale",
-      "buildNumber": "14",
+      "buildNumber": "15",
       "icon": "./assets/images/icon.png",
       "supportsTablet": false,
       "infoPlist": {
