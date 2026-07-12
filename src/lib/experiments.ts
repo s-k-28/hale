@@ -1,4 +1,16 @@
 import { useFeatureFlag } from 'posthog-react-native';
+import { posthog } from './analytics';
+
+/**
+ * True only when a PostHog client exists — and therefore only when
+ * <PostHogProvider> is actually mounted (src/app/_layout.tsx mounts it
+ * conditionally: `posthog ? <PostHogProvider…> : tree`).
+ *
+ * This is a MODULE constant: the client is created once at import time and can
+ * never change at runtime, so branching on it below cannot change hook order
+ * between renders.
+ */
+const HAS_POSTHOG = posthog != null;
 
 /**
  * Experiments — a thin, type-safe wrapper over PostHog feature flags.
@@ -44,7 +56,14 @@ export type FlagKey = (typeof Flag)[keyof typeof Flag];
  *   const longQuiz = useFlag(Flag.QUIZ_LENGTH, false);     // boolean
  */
 export function useFlag<T extends string | boolean>(key: string, defaultValue: T): T {
-  const value = useFeatureFlag(key);
+  // useFeatureFlag ERRORS loudly ("called without a PostHog client") whenever no
+  // <PostHogProvider> is mounted, which is exactly the case when PostHog is
+  // unconfigured — dev/scaffold builds, and production if the key is ever missing.
+  // Every screen that read a flag would log an error on mount. HAS_POSTHOG is a
+  // module constant, so this branch is fixed for the life of the process and hook
+  // order is stable; the rules-of-hooks disable below is safe and deliberate.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const value = HAS_POSTHOG ? useFeatureFlag(key) : undefined;
   if (value === undefined) return defaultValue;
   // Coerce to the shape the caller asked for so the return type stays `T`.
   if (typeof defaultValue === 'boolean') {
