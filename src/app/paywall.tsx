@@ -7,6 +7,7 @@ import {
   loadPlanOffers,
   purchasePlan,
   restorePurchases,
+  revenueCatConfigured,
   type HalePlan,
   type PlanOffer,
 } from '@/lib/paywall';
@@ -128,7 +129,6 @@ export default function Paywall() {
     product?: string;
   }>();
   const from = params.from;
-  const hard = from === 'onboarding' || from === 'locked_out';
   const surface =
     from === 'onboarding' ? 'onboarding_peak' : from === 'locked_out' ? 'locked_out' : 'paywall_screen';
 
@@ -142,6 +142,24 @@ export default function Paywall() {
   const [notice, setNotice] = useState<string | null>(null);
   const [showClose, setShowClose] = useState(false);
   const viewedRef = useRef(false);
+
+  /**
+   * FAIL OPEN. A wall you cannot buy through is not a wall, it is a brick.
+   *
+   * The hard wall is only legitimate while a purchase is actually POSSIBLE. If
+   * RevenueCat is unconfigured, or the offerings genuinely fail to load (bad key,
+   * RC outage, StoreKit hiccup, no network), there is no purchase path at all —
+   * and a hard wall with no purchase path PERMANENTLY BRICKS THE APP. The user
+   * sees "Subscriptions aren't available right now", a Try again button that only
+   * ever retries, and nothing else: no close, no back, no way out. They have just
+   * committed to quitting and the app is a dead end.
+   *
+   * That is also a straight App Review 2.1 rejection (the app is non-functional),
+   * and it would strand real people at the worst possible moment. So the moment we
+   * cannot sell, the wall must let them through.
+   */
+  const canPurchase = revenueCatConfigured() && offers !== null;
+  const hard = (from === 'onboarding' || from === 'locked_out') && canPurchase;
 
   const dismiss = () => {
     if (router.canGoBack()) router.back();
@@ -188,7 +206,12 @@ export default function Paywall() {
       setOffers(o);
       if (o === null) {
         haptics.warn();
-        setNotice("Subscriptions aren't available right now. Check your connection and try again.");
+        // We cannot sell right now, so the wall has already failed open (see the
+        // canPurchase note above) and a close is on screen. Say so, rather than
+        // leaving them tapping a Try again button that can only ever retry.
+        setNotice(
+          "Subscriptions aren't available right now. You can close this and start your trial later.",
+        );
       }
       return;
     }
