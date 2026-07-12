@@ -12,6 +12,7 @@ import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { Check, ChevronLeft, Gift, Plus, Trash2, X } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
+import { moneySavedLabel, parseMoneyInput } from '@/lib/money';
 import { haptics } from '@/lib/haptics';
 import {
   Screen,
@@ -42,19 +43,12 @@ import { clean } from '@/theme/clean';
 
 const QUICK_TARGETS = [50, 100, 250, 500];
 
-function money(n: number) {
-  return `$${Math.max(0, n).toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })}`;
-}
-
-function money2(n: number) {
-  return `$${Math.max(0, n).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
+// `goal.saved` is the SAME figure Today and You show. It had its own formatter
+// that always forced 2 decimals, so at $1,240.37 saved this screen read
+// "$1,240.37" while Today read "$1,240" — two answers to "how much have I
+// saved", one tab apart. One formatter, one answer.
+const money = moneySavedLabel;
+const money2 = moneySavedLabel;
 
 type Goal = NonNullable<ReturnType<typeof useQuery<typeof api.goals.myGoals>>>[number];
 
@@ -83,10 +77,10 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const targetNum = useMemo(() => {
-    const n = parseFloat(amount.replace(/[^0-9.]/g, ''));
-    return Number.isFinite(n) ? n : 0;
-  }, [amount]);
+  // parseMoneyInput, not a bare /[^0-9.]/ strip: that silently DELETES the
+  // decimal comma most of Europe and Latin America types, turning "12,50" into
+  // 1250 — a 100x error. See src/lib/money.ts.
+  const targetNum = useMemo(() => parseMoneyInput(amount) ?? 0, [amount]);
 
   const canSave = label.trim().length > 0 && targetNum > 0 && !saving;
 
@@ -180,7 +174,8 @@ function GoalsContent({ goals }: { goals: Goal[] }) {
             <TextInput
               value={amount}
               onChangeText={(t) => {
-                setAmount(t.replace(/[^0-9.]/g, ''));
+                // Keep separators; parseMoneyInput decides what they mean.
+                setAmount(t.replace(/[^0-9.,]/g, ''));
                 if (error) setError(null);
               }}
               placeholder="100"

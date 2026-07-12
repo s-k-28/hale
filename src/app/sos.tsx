@@ -41,6 +41,7 @@ import {
 } from '@/ui';
 import { Canvas, Circle, RadialGradient, vec } from '@shopify/react-native-skia';
 import { clean } from '@/theme/clean';
+import { moneySavedLabel } from '@/lib/money';
 
 /**
  * Craving SOS — I1 (ride-it-out / breathe / talk to Sage / ping buddy) + I4
@@ -87,9 +88,11 @@ function fmtClock(totalSec: number) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function fmtUsd(n: number) {
-  return `$${(n ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
+// This is the lifetime-saved figure Today and You already show. Its own
+// formatter dropped cents unconditionally, so a user with $0.53 banked saw "$1"
+// here — on the post-relapse screen whose entire job is proving their progress
+// was NOT erased. Overstating it there is the worst possible place to be sloppy.
+const fmtUsd = moneySavedLabel;
 
 export default function CravingSos() {
   const logCraving = useMutation(api.cravings.logCraving);

@@ -55,6 +55,7 @@ import { track, Ev } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
 import { requestPushPermission } from '@/lib/onesignal';
 import { identifyPurchaser } from '@/lib/revenuecat';
+import { parseMoneyInput } from '@/lib/money';
 import {
   projectedAnnualSavings,
   moneySaved,
@@ -831,10 +832,15 @@ export default function Quiz() {
                 filled={answers.unitCost !== null && answers.unitCost > 0}
                 value={unitCostText}
                 onChangeText={(t) => {
-                  const cleaned = t.replace(/[^0-9.]/g, '');
+                  // Keep the comma: iOS renders decimal-pad with the LOCALE's
+                  // decimal separator, and most of Europe / Latin America uses a
+                  // comma. Stripping it turned "12,22" into 1222 — a 100x error
+                  // that then clamped to the $100/day ceiling and told the user
+                  // they'd save $36,500 a year. See src/lib/money.ts.
+                  const cleaned = t.replace(/[^0-9.,]/g, '');
                   setUnitCostText(cleaned);
-                  const n = parseFloat(cleaned);
-                  set('unitCost', Number.isFinite(n) && n > 0 ? n : null);
+                  const n = parseMoneyInput(cleaned);
+                  set('unitCost', n !== null && n > 0 ? n : null);
                 }}
                 placeholder="0.00"
                 keyboardType="decimal-pad"

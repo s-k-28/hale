@@ -1,4 +1,41 @@
-import { moneySavedLabel } from '../src/lib/money';
+import { moneySavedLabel, parseMoneyInput } from '../src/lib/money';
+
+describe('parseMoneyInput', () => {
+  it('reads a COMMA as a decimal separator (the 100x bug)', () => {
+    // iOS renders decimal-pad with the locale's separator. Stripping the comma
+    // turned "12,22" into 1222, which fed baselinePerDay * unitCost, clamped to
+    // the $100/day ceiling, and told the user they'd save $36,500 a year.
+    expect(parseMoneyInput('12,22')).toBeCloseTo(12.22);
+    expect(parseMoneyInput('3,50')).toBeCloseTo(3.5);
+    expect(parseMoneyInput('0,99')).toBeCloseTo(0.99);
+  });
+
+  it('still reads a DOT as a decimal separator', () => {
+    expect(parseMoneyInput('12.22')).toBeCloseTo(12.22);
+    expect(parseMoneyInput('0.99')).toBeCloseTo(0.99);
+  });
+
+  it('handles both thousands conventions', () => {
+    expect(parseMoneyInput('1,234.56')).toBeCloseTo(1234.56); // US
+    expect(parseMoneyInput('1.234,56')).toBeCloseTo(1234.56); // EU
+  });
+
+  it('treats a lone separator with exactly 3 trailing digits as grouping', () => {
+    expect(parseMoneyInput('1,000')).toBe(1000);
+    expect(parseMoneyInput('1.000')).toBe(1000);
+  });
+
+  it('passes plain integers through untouched', () => {
+    expect(parseMoneyInput('12')).toBe(12);
+    expect(parseMoneyInput('1222')).toBe(1222);
+  });
+
+  it('returns null when there is no number', () => {
+    expect(parseMoneyInput('')).toBeNull();
+    expect(parseMoneyInput('abc')).toBeNull();
+    expect(parseMoneyInput('$')).toBeNull();
+  });
+});
 
 describe('moneySavedLabel', () => {
   it('keeps cents under $10 so a day-one quitter never sees "$0"', () => {
