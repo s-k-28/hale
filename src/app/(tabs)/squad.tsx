@@ -32,8 +32,6 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -318,25 +316,17 @@ function PairedState({
   );
 }
 
-/** Shared-streak flame, slow warm pulse — the bond reads as alive, not a static icon. */
+/**
+ * Shared-streak flame. Deliberately STILL.
+ *
+ * This used to throb forever (scale 1 → 1.12 → 1 on an infinite withRepeat). A 12%
+ * pulse on a 26pt icon is a big movement, it never stops, and there is no event
+ * behind it — it is decoration pretending to be life. Same call as the Today hero
+ * (see HeroDays): motion in this app is EVENT-DRIVEN. The heart-float on "send
+ * support" right below is real motion, because something actually happened.
+ */
 function PulsingFlame() {
-  const scale = useSharedValue(1);
-  useEffect(() => {
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.12, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
-        withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-      false,
-    );
-  }, [scale]);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  return (
-    <Animated.View style={style}>
-      <Flame color={clean.warm} size={26} strokeWidth={2.5} />
-    </Animated.View>
-  );
+  return <Flame color={clean.warm} size={26} strokeWidth={2.5} />;
 }
 
 /** A lime heart that pops in, floats up, and fades — the tactile "support sent" beat. */

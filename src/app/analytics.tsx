@@ -310,7 +310,15 @@ function IntensityLine({ data }: { data: TrendDay[] }) {
 /* ---- Recovery progress -------------------------------------------- */
 
 function RecoveryProgress({ recovery }: { recovery: Recovery }) {
-  const pct =
+  // How far through the MILESTONE LIST you are — not a claim about how recovered
+  // your body is. Those are different numbers and must never be confused:
+  //   • this screen  → milestones reached (5 of 10)
+  //   • Today's tile → recoveryFraction(), the honest log-time curve
+  // The standalone "50%" that used to sit here was the same value as "5/10" and the
+  // bar (the number three times over), AND it read as "your body is 50% recovered"
+  // at three days clean — a health claim we cannot make (Guideline 1.4.1) and one
+  // that now openly contradicts Today. The fraction and the bar say it once.
+  const milestonePct =
     recovery.total === 0 ? 0 : Math.round((recovery.reached / recovery.total) * 100);
   return (
     <View className="rounded-3xl border border-stroke bg-surface p-5">
@@ -324,12 +332,11 @@ function RecoveryProgress({ recovery }: { recovery: Recovery }) {
             recovery milestones reached
           </Label>
         </View>
-        <Display className="text-3xl text-fg">{pct}%</Display>
       </View>
 
-      {/* Lime progress track */}
+      {/* Lime progress track — milestone completion */}
       <View className="mt-5 h-3 overflow-hidden rounded-full bg-bg">
-        <View style={{ width: `${pct}%` }} className="h-full rounded-full bg-accent" />
+        <View style={{ width: `${milestonePct}%` }} className="h-full rounded-full bg-accent" />
       </View>
 
       {recovery.nextLabel ? (

@@ -249,7 +249,9 @@ export default function Today() {
 
   const streak = state.currentStreak;
   const landmark = nextLandmark(streak);
-  // Overall recovery = health milestones reached / total — monotonic, never resets.
+  // Overall recovery, 0..1 — the honest log-time curve (convex/model/plan.ts), NOT
+  // "milestones reached / total". Analytics shows the milestone COUNT (5 of 10);
+  // this is the smooth curve. Two different numbers on purpose, labelled apart.
   const recovery = recoveryFraction(state.quitStart, now);
   const recoveryPct = Math.round(recovery * 100);
 
