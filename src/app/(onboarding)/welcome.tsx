@@ -67,7 +67,7 @@ export default function Welcome() {
             <Button label="Build my quit plan" variant="primary" />
           </Link>
           <Muted className="mt-3.5 text-center text-[12px] uppercase tracking-[0.48px]">
-            Free to start · 60-second setup
+            Built with quitters · 60-second setup
           </Muted>
           {/* Disclosure at the point of entry (5.1.1(i)/(ii)): continuing means
               the privacy policy + terms apply, incl. usage analytics linked to

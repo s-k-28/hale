@@ -84,7 +84,13 @@ export default function RootLayout() {
               system gesture (ui-audit root cause #1). Both screens carry their
               own explicit dismiss affordances. */}
           <Stack.Screen name="sos" options={{ presentation: 'fullScreenModal' }} />
-          <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
+          {/* gestureEnabled:false — belt-and-suspenders with fullScreenModal so
+              the hard onboarding paywall can never be swipe/drag-dismissed. The
+              in-app gate uses render their own explicit close (X). */}
+          <Stack.Screen
+            name="paywall"
+            options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
+          />
         </Stack>
         {/* App-wide transient feedback (sonner-native). Sibling of the navigator so
             toasts overlay every screen; SafeArea/GestureHandler contexts come from

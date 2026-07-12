@@ -419,6 +419,19 @@ export default function Quiz() {
   const monthly = Math.round(annual / 12);
   const firstMonth = Math.round(moneySaved(profile, 30 * 86_400_000));
   const previewMilestones = HEALTH_MILESTONES.slice(0, 5);
+  // Peak-intent reveal extras (client-side, honest framing).
+  //  • Life regained — cigarettes only. UCL 2024 (Addiction): ~20 min of life
+  //    expectancy per cigarette. days/yr = perDay × 20 × 365 / 1440.
+  //  • Freedom date — quit + 90 days, where cravings typically fade to
+  //    occasional (anchored to HEALTH_MILESTONES). Framed as general guidance.
+  const lifeDaysPerYear =
+    profile.productType === 'cig'
+      ? Math.round((profile.baselinePerDay * 20 * 365) / 1440)
+      : null;
+  const freedomDate = new Date(Date.now() + 90 * 86_400_000).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
 
   /* Commit: anonymous sign-in THEN completeOnboarding (the only backend touch). */
   const commit = async () => {
@@ -515,11 +528,21 @@ export default function Quiz() {
       // already arrived paired via a deep link.
       setPairedInOnboarding(paired);
       setPhase('push');
-      // HARD paywall at peak intent: presented as a modal OVER the push step
-      // (our Clean Dark screen, real StoreKit purchase inside). Its dismiss
-      // ('Continue with the free version' / close) pops back here, so the
-      // invite loop is never blocked.
-      router.push({ pathname: '/paywall', params: { from: 'onboarding' } });
+      // HARD paywall at peak intent: a non-dismissible Clean Dark wall pushed
+      // OVER the push step (real StoreKit purchase inside). It can't be left
+      // without a decision (route gestureEnabled:false + Android back swallowed
+      // + no close), so a non-purchase can't fall through into the app. On
+      // purchase it pops back here to finish onboarding (push opt-in → buddy).
+      // Personalized with the user's own numbers for peak-intent conversion.
+      router.push({
+        pathname: '/paywall',
+        params: {
+          from: 'onboarding',
+          save: String(annual),
+          product: profile.productType,
+          ...(answers.name.trim() ? { name: answers.name.trim() } : {}),
+        },
+      });
     } catch (e) {
       // System failure — the backend couldn't start the plan.
       haptics.error();
@@ -551,6 +574,8 @@ export default function Quiz() {
         monthly={monthly}
         firstMonth={firstMonth}
         milestones={previewMilestones}
+        lifeDaysPerYear={lifeDaysPerYear}
+        freedomDate={freedomDate}
         onContinue={() => setPhase('commit')}
       />
     );
@@ -974,6 +999,8 @@ function PlanReveal({
   monthly,
   firstMonth,
   milestones,
+  lifeDaysPerYear,
+  freedomDate,
   onContinue,
 }: {
   name: string;
@@ -981,6 +1008,8 @@ function PlanReveal({
   monthly: number;
   firstMonth: number;
   milestones: { hours: number; label: string }[];
+  lifeDaysPerYear: number | null;
+  freedomDate: string;
   onContinue: () => void;
 }) {
   // Hero savings counts up on mount; the milestone rows stagger-rise below it.
@@ -1019,6 +1048,31 @@ function PlanReveal({
             </Card2>
           </View>
         </CardHero>
+
+        {/* The outcome, not just the money: a freedom date, plus life regained
+            for cigarette smokers (UCL 2024 ~20 min/cig, general guidance). */}
+        <View className="mt-4 flex-row gap-3">
+          <View className="flex-1 rounded-tile border border-stroke bg-surface p-4">
+            <Eyebrow>Freedom date</Eyebrow>
+            <RNText className="mt-1.5 font-sora-bold text-[24px] tracking-[-0.4px] text-fg">
+              {freedomDate}
+            </RNText>
+            <Body className="mt-1 text-[12px] leading-4 text-fg-3">
+              Cravings typically ease to occasional
+            </Body>
+          </View>
+          {lifeDaysPerYear ? (
+            <View className="flex-1 rounded-tile border border-stroke bg-surface p-4">
+              <Eyebrow>Life regained</Eyebrow>
+              <RNText className="mt-1.5 font-sora-bold text-[24px] tracking-[-0.4px] text-fg">
+                ~{lifeDaysPerYear} days/yr
+              </RNText>
+              <Body className="mt-1 text-[12px] leading-4 text-fg-3">
+                Estimated from life-expectancy research
+              </Body>
+            </View>
+          ) : null}
+        </View>
 
         {/* health recovery timeline */}
         <View className="mt-9 flex-row items-center gap-2">
@@ -1132,7 +1186,8 @@ function PushOptIn({ onDecide }: { onDecide: (granted: boolean) => void }) {
         </H1>
         <Lead className="mt-5">
           The people who quit for good get a little support right before their toughest hour, a
-          check-in, a craving tip, or a word from your buddy. No spam, ever.
+          check-in, a craving tip, or a word from your buddy. We&apos;ll also remind you before your
+          trial ends. No spam, ever.
         </Lead>
       </View>
 
