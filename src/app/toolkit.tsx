@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { useConvexAuth, useQuery } from 'convex/react';
-import { ChevronLeft, Crown, Sparkles, Waves, Clock, Activity } from 'lucide-react-native';
+import { ChevronLeft, Sparkles, Waves, Clock, Activity } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
@@ -15,8 +15,7 @@ import {
   Badge,
   Muted as Caption,
   H2 as Heading,
-  Eyebrow as Label,
- LockedFeature } from '@/ui';
+  Eyebrow as Label } from '@/ui';
 import { clean } from '@/theme/clean';
 
 /**
@@ -28,8 +27,9 @@ import { clean } from '@/theme/clean';
  *      own craving log.
  *   3. Craving-time map — a 24-hour heatmap of when cravings hit hardest.
  *
- * The whole screen is wrapped in the reusable LockedFeature: free users see the
- * real tools blurred under "Unlock with HALE+"; entitled users get them clean.
+ * Ungated. HALE is a hard paywall, so everyone who reaches this screen has paid.
+ * It is also reachable straight from Craving SOS, and meeting a sales pitch
+ * mid-craving was the worst gate in the app.
  */
 
 function hourLabel(h: number): string {
@@ -75,18 +75,14 @@ export default function Toolkit() {
         <Badge label="HALE+" tone="soft" />
       </View>
 
-      <LockedFeature
-        feature="advanced_toolkit"
-        variant="overlay"
-        title="Unlock the advanced toolkit"
-        subtitle="Urge-surfing, your trigger patterns, and your craving-time map, with HALE+."
-      >
-        <ScrollView contentContainerClassName="px-5 pb-16 pt-2" showsVerticalScrollIndicator={false}>
-          <UrgeSurf />
-          <TriggerInsight patterns={patterns} />
-          <CravingHeatmap patterns={patterns} />
-        </ScrollView>
-      </LockedFeature>
+      {/* No gate. This screen is reachable from Craving SOS, which is the worst
+          possible place to meet a sales pitch: the user is mid-craving. Under the
+          hard paywall they have already paid, so the gate was pure friction. */}
+      <ScrollView contentContainerClassName="px-5 pb-16 pt-2" showsVerticalScrollIndicator={false}>
+        <UrgeSurf />
+        <TriggerInsight patterns={patterns} />
+        <CravingHeatmap patterns={patterns} />
+      </ScrollView>
     </Screen>
   );
 }

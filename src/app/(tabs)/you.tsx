@@ -258,27 +258,33 @@ function YouContent({
           </Body>
         </View>
 
-        {/* HALE+ upsell — hidden once premium. */}
+        {/* NOT an upsell. Under the hard paywall there is no free tier to sell to,
+            so "Unlock HALE+" here would be pitching the app to someone who has
+            already bought it.
+
+            This is the RECOVERY path for the fail-open state: the wall opens when
+            RevenueCat can't be reached (a wall with no purchase path is a bricked
+            app, and a 2.1 rejection), and a user who slipped through that way has
+            no subscription and — without this — no way to start or restore one.
+            Rare by construction, but the alternative is stranding someone who is
+            actively trying to pay us. */}
         {!state.premium ? (
           <Pressable
             onPress={goPaywall}
-            // The premium upsell surface mirrors LockedFeature's gate → a Medium
-            // press (a primary, deliberate action), fired here since this is a
-            // custom Pressable, not a UI primitive.
             onPressIn={() => haptics.press()}
             accessibilityRole="button"
             className="overflow-hidden rounded-3xl border border-stroke bg-surface active:opacity-90"
           >
-            {/* Lime top rail so the upgrade reads as the one premium surface. */}
             <View className="h-1.5 bg-accent" />
             <View className="flex-row items-center px-5 py-5">
               <View className="mr-4 h-11 w-11 items-center justify-center rounded-2xl bg-accent">
                 <Crown color={clean.accentInk} size={22} strokeWidth={2.5} />
               </View>
               <View className="flex-1 pr-3">
-                <Heading className="text-xl">UNLOCK HALE+</Heading>
+                <Heading className="text-xl">Subscription inactive</Heading>
                 <Body className="mt-1 text-[13px] leading-relaxed text-fg-2">
-                  Deeper coaching, richer insights, and more ways to stay free.
+                  We couldn&apos;t confirm your HALE+ subscription. Tap to subscribe
+                  or restore a purchase.
                 </Body>
               </View>
               <ChevronRight color={clean.accent} size={22} strokeWidth={2.5} />

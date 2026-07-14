@@ -7,7 +7,6 @@ import { ChevronLeft, Crown, TrendingDown } from 'lucide-react-native';
 import { api } from '@convex/_generated/api';
 import { track, Ev } from '@/lib/analytics';
 import { haptics } from '@/lib/haptics';
-import { usePremium } from '@/hooks/usePremium';
 import {
   Screen,
   Display,
@@ -15,8 +14,7 @@ import {
   Tile,
   Badge,
   H2 as Heading,
-  Eyebrow as Label,
- LockedFeature } from '@/ui';
+  Eyebrow as Label } from '@/ui';
 import { clean } from '@/theme/clean';
 
 /**
@@ -26,9 +24,9 @@ import { clean } from '@/theme/clean';
  *   • api.analytics.cravingTrend    → 30 days of { date, count, avgIntensity }
  *   • api.analytics.recoverySummary → { reached, total, nextLabel }
  *
- * Gate: usePremium(). Locked → a tasteful "Unlock HALE+" prompt that pushes the
- * paywall. Premium → a craving-frequency bar chart + an intensity trend line
- * (react-native-svg) and the recovery progress bar. Bold Momentum (lime on void).
+ * Ungated. HALE is a hard paywall, so everyone here has paid at the door. Shows a
+ * craving-frequency bar chart + an intensity trend line (react-native-svg) and the
+ * recovery progress bar.
  *
  * Entry point: wire from the You screen's HALE+ section -> router.push('/analytics').
  * Registered automatically (file route); no _layout edit needed.
@@ -44,24 +42,23 @@ function fmtDay(date: string) {
 
 export default function Analytics() {
   const { isAuthenticated } = useConvexAuth();
-  const { hasAccess, loading } = usePremium();
 
-  // Blurred in-place paywall: fetch the user's OWN craving data regardless of
-  // entitlement so the locked view shows their REAL patterns under the blur
-  // ("see what you're missing"), not an empty teaser. LockedFeature renders the
-  // charts blurred + an Unlock CTA for free users, and passes them through
-  // untouched for HALE+ / trial users. Only the fetch gates on auth.
+  // No in-app gate. HALE is a hard paywall: everyone standing on this screen has
+  // already paid at the door (src/app/index.tsx re-walls non-subscribers on
+  // launch), so an "Unlock HALE+" overlay here would be selling the app to
+  // someone who just bought it. Entitlement is enforced ONCE, at entry, and
+  // server-side on the only cost-bearing path (convex/sage.ts caps Sage by tier).
   const enabled = isAuthenticated;
   const trend = useQuery(api.analytics.cravingTrend, enabled ? {} : 'skip');
   const recovery = useQuery(api.analytics.recoverySummary, enabled ? {} : 'skip');
+  const loading = trend === undefined || recovery === undefined;
 
-  // Fire a view event once, per surface (locked vs unlocked), after gate resolves.
   const viewedRef = useRef(false);
   useEffect(() => {
     if (loading || viewedRef.current) return;
     viewedRef.current = true;
-    track(Ev.ANALYTICS_VIEWED, { locked: !hasAccess });
-  }, [loading, hasAccess]);
+    track(Ev.ANALYTICS_VIEWED, {});
+  }, [loading]);
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -95,16 +92,7 @@ export default function Analytics() {
           <ActivityIndicator color={clean.accent} />
         </View>
       ) : (
-        // One reusable blurred-paywall treatment. Free users see their real
-        // charts blurred behind "Unlock HALE+"; entitled users see them clean.
-        <LockedFeature
-          feature="analytics"
-          variant="overlay"
-          title="Unlock your insights"
-          subtitle="Craving trends, intensity over time, and your full recovery timeline."
-        >
-          <Unlocked trend={trend} recovery={recovery} />
-        </LockedFeature>
+        <Unlocked trend={trend} recovery={recovery} />
       )}
     </Screen>
   );

@@ -16,9 +16,7 @@ import {
   Tile,
   Badge,
   H2 as Heading,
-  Eyebrow as Label,
- LockedFeature } from '@/ui';
-import { usePremium } from '@/hooks/usePremium';
+  Eyebrow as Label } from '@/ui';
 import { clean } from '@/theme/clean';
 
 /**
@@ -90,13 +88,12 @@ function daysLeft(end: number, now: number): number {
 export default function Squads() {
   const mySquads = useQuery(api.squads.mySquads, {}) as MySquad[] | undefined;
   const publicSquads = useQuery(api.squads.publicSquads, {}) as PublicSquad[] | undefined;
-  const { hasHALEPlus } = usePremium();
 
   const loading = mySquads === undefined;
-  // Free tier gets ONE squad; adding more is HALE+. Once a free user is in a
-  // squad, the create/join/discover surface blurs (see what you're missing) —
-  // their existing squad stays fully usable above.
-  const squadLimitReached = !loading && !hasHALEPlus && (mySquads?.length ?? 0) >= 1;
+  // The one-squad free limit is gone with the hard paywall: there is no free
+  // tier left to limit. Every user here is a subscriber, so capping them at one
+  // squad was throttling a paying customer's accountability — the single thing
+  // most correlated with staying quit.
 
   return (
     <Screen>
@@ -133,26 +130,9 @@ export default function Squads() {
         ) : (
           <>
             <YourSquads squads={mySquads} />
-            {squadLimitReached ? (
-              <View className="mt-8">
-                <LockedFeature
-                  feature="multiple_squads"
-                  variant="inline"
-                  title="Unlock multiple squads"
-                  subtitle="Quit alongside more than one group, and keep every squad accountable, with HALE+."
-                >
-                  <CreateSquad />
-                  <JoinByCode />
-                  {PUBLIC_SQUADS_ENABLED && <Discover squads={publicSquads} mySquads={mySquads} />}
-                </LockedFeature>
-              </View>
-            ) : (
-              <>
-                <CreateSquad />
-                <JoinByCode />
-                {PUBLIC_SQUADS_ENABLED && <Discover squads={publicSquads} mySquads={mySquads} />}
-              </>
-            )}
+            <CreateSquad />
+            <JoinByCode />
+            {PUBLIC_SQUADS_ENABLED && <Discover squads={publicSquads} mySquads={mySquads} />}
           </>
         )}
       </ScrollView>
