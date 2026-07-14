@@ -20,8 +20,10 @@ import { clean } from '@/theme/clean'
 export default function RewardUnlocked() {
   const progress = useQuery(api.referrals.myProgress)
 
-  // While loading, render nothing (Screen would flash).
-  if (progress === undefined) return null
+  // Render the SURFACE while loading, never bare null. Returning null gave a
+  // frame with no background at all (a white flash on a dark app), which is the
+  // exact class of bug we chased out of the navigator.
+  if (progress === undefined) return <Screen edges={['top', 'bottom']}>{null}</Screen>
 
   // Not active — send them back to the hub instead of showing "0 days of HALE+".
   if (!progress?.rewardActive) {

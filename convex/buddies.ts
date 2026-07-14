@@ -145,7 +145,7 @@ export const pairWith = mutation({
       pairKey,
     );
     if (gate === 'caller_already_paired') {
-      throw new Error('You already have a buddy — unpair first to switch.');
+      throw new Error('You already have a buddy. Unpair first to switch.');
     }
     if (gate === 'inviter_already_paired') {
       throw new Error('They already have a buddy right now.');

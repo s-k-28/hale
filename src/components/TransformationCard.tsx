@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { forwardRef, memo, useEffect, useRef, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import type { View as RNView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -101,6 +101,98 @@ function useCountUp(target: number, active: boolean, durationMs = 950, delayMs =
 }
 
 /**
+ * The count-up runs on the JS thread (rAF + setState, ~57 frames). That is
+ * deliberate and must stay: this card is the SHARE CAPTURE target
+ * (react-native-view-shot, see shareCard), so the values have to live in the
+ * React tree as real <Text>. Driving them from a Reanimated shared value into an
+ * animated TextInput would move the work to the UI thread but risks the snapshot
+ * catching a stale value — silently corrupting the one artifact users post.
+ *
+ * What WAS wrong: the three useCountUp hooks sat in TransformationCard itself, so
+ * every one of those ~57 frames re-rendered the ENTIRE card — three
+ * LinearGradients, the wordmark, the footer — while the Skia particle burst was
+ * drawing 60 particles alongside it (MilestoneCelebration mounts both at once).
+ *
+ * Isolating each animating value into its own memo'd leaf keeps the exact same
+ * capture-safe setState, but now a count-up frame re-renders one <Text> instead
+ * of the whole card.
+ */
+const CountUpDays = memo(function CountUpDays({
+  target,
+  active,
+}: {
+  target: number;
+  active: boolean;
+}) {
+  const days = Math.round(useCountUp(target, active));
+  return (
+    <>
+      {days}
+      <Text
+        style={{
+          fontFamily: FONTS.display,
+          // Unit scaled ~0.26x; no lineHeight so it inherits the parent
+          // run's baseline exactly.
+          fontSize: 34,
+          color: clean.accent,
+          includeFontPadding: false,
+        }}
+      >
+        {' '}
+        {target === 1 ? 'DAY' : 'DAYS'}
+      </Text>
+    </>
+  );
+});
+
+const CountUpMoney = memo(function CountUpMoney({
+  target,
+  active,
+}: {
+  target: number;
+  active: boolean;
+}) {
+  return <>{fmtMoney(useCountUp(target, active))}</>;
+});
+
+const RecoveryRow = memo(function RecoveryRow({
+  target,
+  active,
+}: {
+  target: number;
+  active: boolean;
+}) {
+  const dispPct = clampPct(useCountUp(target, active));
+  return (
+    <View className="mt-5">
+      <View className="flex-row items-center justify-between">
+        <Text
+          className="text-[11px] uppercase tracking-[3px] text-fg-2"
+          style={{ fontFamily: FONTS.bodyBold, color: clean.fg2 }}
+        >
+          Recovery
+        </Text>
+        <Text
+          className="text-sm text-fg"
+          style={{ fontFamily: FONTS.bodyBold, color: clean.fg }}
+        >
+          {dispPct}%
+        </Text>
+      </View>
+      <View
+        className="mt-2 h-2.5 w-full overflow-hidden rounded-full"
+        style={{ backgroundColor: 'rgba(255,255,255,0.10)' }}
+      >
+        <View
+          className="h-full rounded-full bg-accent"
+          style={{ width: `${dispPct}%`, backgroundColor: clean.accent }}
+        />
+      </View>
+    </View>
+  );
+});
+
+/**
  * The visual card. We forward a ref to the OUTER capture surface so callers (or
  * the built-in shareCard helper) can snapshot exactly this node.
  */
@@ -110,12 +202,10 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
     const pct = recoveryPct === undefined ? null : clampPct(recoveryPct);
     const firstName = name?.trim().split(/\s+/)[0] || null;
 
-    // Count-up displays — animate only in the celebration; static elsewhere and
-    // for share captures (settles exact). Hooks are called unconditionally.
+    // Animate only in the celebration; static elsewhere and for share captures
+    // (each leaf settles on the EXACT target). The count-up hooks now live in the
+    // memo'd leaves above, so a frame re-renders one <Text>, not this whole card.
     const animateNums = !!animate;
-    const dispDays = Math.round(useCountUp(wholeDays, animateNums));
-    const dispMoney = useCountUp(moneySaved, animateNums);
-    const dispPct = clampPct(useCountUp(pct ?? 0, animateNums && pct !== null));
 
     return (
       <View
@@ -227,20 +317,7 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
                   includeFontPadding: false,
                 }}
               >
-                {dispDays}
-                <Text
-                  style={{
-                    fontFamily: FONTS.display,
-                    // Unit scaled ~0.26x; no lineHeight so it inherits the parent
-                    // run's baseline exactly.
-                    fontSize: 34,
-                    color: clean.accent,
-                    includeFontPadding: false,
-                  }}
-                >
-                  {' '}
-                  {wholeDays === 1 ? 'DAY' : 'DAYS'}
-                </Text>
+                <CountUpDays target={wholeDays} active={animateNums} />
               </Text>
               <Text
                 className="mt-2 text-base text-fg"
@@ -272,39 +349,12 @@ const TransformationCard = forwardRef<RNView, TransformationCardProps>(
                       color: clean.fg,
                     }}
                   >
-                    {fmtMoney(dispMoney)}
+                    <CountUpMoney target={moneySaved} active={animateNums} />
                   </Text>
                 </View>
 
                 {pct !== null ? (
-                  <View className="mt-5">
-                    <View className="flex-row items-center justify-between">
-                      <Text
-                        className="text-[11px] uppercase tracking-[3px] text-fg-2"
-                        style={{ fontFamily: FONTS.bodyBold, color: clean.fg2 }}
-                      >
-                        Recovery
-                      </Text>
-                      <Text
-                        className="text-sm text-fg"
-                        style={{ fontFamily: FONTS.bodyBold, color: clean.fg }}
-                      >
-                        {dispPct}%
-                      </Text>
-                    </View>
-                    <View
-                      className="mt-2 h-2.5 w-full overflow-hidden rounded-full"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.10)' }}
-                    >
-                      <View
-                        className="h-full rounded-full bg-accent"
-                        style={{
-                          width: `${dispPct}%`,
-                          backgroundColor: clean.accent,
-                        }}
-                      />
-                    </View>
-                  </View>
+                  <RecoveryRow target={pct} active={animateNums && pct !== null} />
                 ) : null}
               </View>
 

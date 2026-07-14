@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
   FadeIn,
+  cancelAnimation,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -693,6 +694,7 @@ function SheenButton({
       -1,
       false,
     );
+    return () => cancelAnimation(x);
   }, [w, x]);
 
   const sheenStyle = useAnimatedStyle(() => ({

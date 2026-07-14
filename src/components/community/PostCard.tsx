@@ -171,7 +171,12 @@ function CommentRow({
           <Body className="text-xs text-fg-2">{comment.timeLabel}</Body>
           <View className="flex-1" />
           {!comment.isMine && (
-            <Pressable hitSlop={8} onPress={confirmReport} accessibilityRole="button">
+            <Pressable
+              hitSlop={16}
+              onPress={confirmReport}
+              accessibilityRole="button"
+              accessibilityLabel="Report this comment"
+            >
               <Flag size={14} color={clean.fg2} />
             </Pressable>
           )}
@@ -281,6 +286,7 @@ export function PostCard({
             hitSlop={8}
             onPress={() => setCommentsOpen((open) => !open)}
             accessibilityRole="button"
+            accessibilityLabel="View comments"
             accessibilityState={{ expanded: commentsOpen }}
             className="flex-row items-center gap-1.5"
           >
@@ -300,7 +306,12 @@ export function PostCard({
 
           <View className="flex-1" />
 
-          <SpringPressable hitSlop={8} onPress={openOverflow} accessibilityRole="button">
+          <SpringPressable
+            hitSlop={8}
+            onPress={openOverflow}
+            accessibilityRole="button"
+            accessibilityLabel="More options"
+          >
             <MoreHorizontal size={18} color={clean.fg2} />
           </SpringPressable>
         </View>

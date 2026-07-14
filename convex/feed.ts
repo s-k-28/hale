@@ -109,7 +109,7 @@ export const sendStrength = mutation({
     await ctx.scheduler.runAfter(0, internal.pushes.notifyUser, {
       userId: toUser,
       title: `${who} is rallying with you`,
-      body: `You're not alone in this — I'm right here with you. Let's go.`,
+      body: `You're not alone in this. I'm right here with you. Let's go.`,
       data: { kind: 'rally', fromUser },
     });
 

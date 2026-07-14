@@ -159,6 +159,7 @@ export function Composer({
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           accessibilityRole="button"
+          accessibilityLabel={postId ? 'Send comment' : 'Post'}
           accessibilityState={{ disabled: !canSend }}
           className={`h-11 w-11 items-center justify-center rounded-full ${
             canSend ? 'bg-accent' : 'border border-stroke bg-surface-3'

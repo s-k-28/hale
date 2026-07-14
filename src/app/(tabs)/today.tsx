@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Redirect, router } from 'expo-router';
@@ -36,8 +36,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const MS = { sec: 1000, min: 60_000, hour: 3_600_000, day: 86_400_000 } as const;
 
-/** Live clock — re-renders this subtree (not the whole screen) every second. */
-function useNow(intervalMs = MS.sec) {
+function useNow(intervalMs: number = MS.sec) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), intervalMs);
@@ -45,6 +44,25 @@ function useNow(intervalMs = MS.sec) {
   }, [intervalMs]);
   return now;
 }
+
+/**
+ * Today's tick, for everything that is NOT the live counter.
+ *
+ * This used to be 1s at the top of Today(), and the old comment above claimed it
+ * "re-renders this subtree (not the whole screen)". That was simply false: the
+ * hook was called in Today() itself, so ONCE A SECOND the entire screen
+ * re-reconciled — header, NudgeInbox (a live Convex subscription), the Ring, the
+ * milestone strip, both tiles, the check-in button, the SOS card and BuddyRow —
+ * on the JS thread, for as long as the tab was open. That is a permanent 1Hz tax
+ * on the most-visited screen in the app, and it lands as a dropped frame if it
+ * hits during a scroll or a tap.
+ *
+ * Nothing up here actually needs second resolution: the milestone countdown
+ * renders minutes ("7h 18m"), recovery moves on a log curve, the HALE score is a
+ * rounded integer, and the local-date check is per-day. The live H:M:S counter is
+ * the one thing that does, and it now owns its own 1s tick in <LiveCounter/>.
+ */
+const AMBIENT_TICK = 20 * MS.sec;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -109,11 +127,16 @@ export default function Today() {
   const checkIn = useMutation(api.checkins.checkIn);
   const buddy = useQuery(api.buddies.myBuddy, {});
 
-  const now = useNow();
+  const now = useNow(AMBIENT_TICK);
   const [checking, setChecking] = useState(false);
   // Increments on a successful check-in to fire one Ring pop + one Skia
   // RingBurst (the radial particle celebration emanating from the ring).
   const [ringSurge, setRingSurge] = useState(0);
+  // RingBurst is a Skia Canvas. It exposes onDone precisely so the caller can
+  // unmount it when the ~900ms burst ends — that was never wired, so after a
+  // user's FIRST check-in one Canvas sat mounted (idle, but retained) for the
+  // rest of the session.
+  const [bursting, setBursting] = useState(false);
 
   // COUNTER_VIEWED — once, when the screen mounts with real data.
   const viewedRef = useRef(false);
@@ -205,6 +228,7 @@ export default function Today() {
         // Reward beat: success haptic + particle burst from the ring.
         haptics.success();
         setRingSurge((n) => n + 1);
+        setBursting(true);
         // No success toast here: the burst + the inline "Locked in for today"
         // confirmation already say it. (Error path keeps its toast — see catch.)
       }
@@ -300,20 +324,13 @@ export default function Today() {
                 so the user loses ground for making progress. The score only
                 climbs. Milestone progress still has its own bar in the strip below. */}
             <Ring progress={score / 100} size={272} stroke={10} surge={ringSurge}>
-              <Eyebrow className="text-[10.5px] tracking-[1.9px]">Clean for</Eyebrow>
-              <HeroDays days={t.days} />
-              <Eyebrow className="text-accent text-[11.5px] tracking-[2.3px]">
-                {t.days === 1 ? 'Day' : 'Days'}
-              </Eyebrow>
-              <View className="mt-3.5 flex-row items-end" style={{ gap: 16 }}>
-                <CounterUnit value={pad(t.hours)} label="H" />
-                <CounterUnit value={pad(t.minutes)} label="M" />
-                <CounterUnit value={pad(t.seconds)} label="S" />
-              </View>
+              <LiveCounter quitStart={state.quitStart} />
             </Ring>
             {/* Skia radial particle burst on check-in, centered on the ring.
                 Keyed on the surge counter so each check-in remounts + re-fires it. */}
-            {ringSurge > 0 ? <RingBurst key={ringSurge} /> : null}
+            {bursting ? (
+              <RingBurst key={ringSurge} onDone={() => setBursting(false)} />
+            ) : null}
           </View>
         </View>
 
@@ -524,6 +541,34 @@ function NudgeInbox() {
  *
  * tabular-nums so 111 and 999 measure the same and the count never jitters.
  */
+/**
+ * The ONLY thing on Today that needs a 1-second tick, isolated into its own
+ * memo'd leaf so the clock re-renders four <Text> nodes instead of the entire
+ * screen. See the AMBIENT_TICK note at the top of this file for what this fixed.
+ *
+ * memo + a primitive `quitStart` prop is what makes the isolation real: the
+ * parent's 20s tick produces a new render, but this subtree bails out unless the
+ * quit actually restarted.
+ */
+const LiveCounter = memo(function LiveCounter({ quitStart }: { quitStart: number }) {
+  const now = useNow(MS.sec);
+  const t = breakdown(now - quitStart);
+  return (
+    <>
+      <Eyebrow className="text-[10.5px] tracking-[1.9px]">Clean for</Eyebrow>
+      <HeroDays days={t.days} />
+      <Eyebrow className="text-accent text-[11.5px] tracking-[2.3px]">
+        {t.days === 1 ? 'Day' : 'Days'}
+      </Eyebrow>
+      <View className="mt-3.5 flex-row items-end" style={{ gap: 16 }}>
+        <CounterUnit value={pad(t.hours)} label="H" />
+        <CounterUnit value={pad(t.minutes)} label="M" />
+        <CounterUnit value={pad(t.seconds)} label="S" />
+      </View>
+    </>
+  );
+});
+
 function HeroDays({ days }: { days: number }) {
   return (
     <View className="mt-1">

@@ -100,7 +100,7 @@ export function containsClinicalDosing(reply: string): boolean {
 
 /** Safe replacement used when a reply trips containsClinicalDosing(). */
 export function medicalRedirectReply(contacts: RoutingContacts): string {
-  return `That's really a question about specific doses or medication, and I can't give clinical dosing advice — the right amount depends on you. A clinician or pharmacist can set that safely, or the ${contacts.quitline.name} (${contacts.quitline.phone}) has free coaching. I'm here for the behavioral side whenever you want it.`;
+  return `That's really a question about specific doses or medication, and I can't give clinical dosing advice. The right amount depends on you. A clinician or pharmacist can set that safely, or the ${contacts.quitline.name} (${contacts.quitline.phone}) has free coaching. I'm here for the behavioral side whenever you want it.`;
 }
 
 /** Lightweight intent router → which key feeds TOPIC_ROUTES in sources.config. */

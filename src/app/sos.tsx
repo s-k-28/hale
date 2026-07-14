@@ -683,6 +683,9 @@ function CoralGlow() {
   const p = useSharedValue(0);
   useEffect(() => {
     p.value = withRepeat(withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) }), -1, true);
+    // Ride-it-out is the most re-entered screen in the app (someone fighting a
+    // craving opens it repeatedly). Every entry leaked another infinite loop.
+    return () => cancelAnimation(p);
   }, [p]);
   const style = useAnimatedStyle(() => ({
     opacity: 0.5 + p.value * 0.5,

@@ -132,7 +132,7 @@ export const streakAtRisk = internalAction({
       await ctx.scheduler.runAfter(0, internal.pushes.notifyUser, {
         userId,
         title: 'Your streak is at risk',
-        body: 'Your streak is at risk — one tap saves it.',
+        body: 'Your streak is at risk. One tap saves it.',
         data: { kind: 'streak_at_risk' },
       });
     }

@@ -24,6 +24,7 @@ import { clean } from '@/theme/clean';
 import { PRIVACY_POLICY_URL } from '@/constants/legal';
 import Animated, {
   Easing,
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -437,6 +438,10 @@ function BreathingSage() {
       -1,
       false,
     );
+    // withRepeat(-1) runs on the UI thread FOREVER. Without this, the loop
+    // outlives the component: the empty state unmounts the instant the user
+    // sends their first message, and the animation just keeps burning frames.
+    return () => cancelAnimation(scale);
   }, [scale]);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
@@ -465,6 +470,10 @@ function TypingDot({ delay }: { delay: number }) {
         false,
       ),
     );
+    // The worst leak in the app: three of these mount on EVERY Sage reply and
+    // unmount the moment it lands. Uncancelled, a long chat accumulates dozens
+    // of orphaned infinite loops all competing for UI-thread frame time.
+    return () => cancelAnimation(y);
   }, [y, delay]);
   const style = useAnimatedStyle(() => ({
     transform: [{ translateY: y.value }],
