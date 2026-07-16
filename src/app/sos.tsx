@@ -786,6 +786,7 @@ function BoxBreathing({
         <View className="flex-1 items-center justify-center">
           <View className="h-72 w-72 items-center justify-center">
             <Animated.View
+              pointerEvents="none"
               className="absolute h-72 w-72 rounded-full border border-accent-edge/40 bg-accent/10"
               style={circleStyle}
             />
